@@ -9,3 +9,7 @@
 
 #Object files
 *.o
+
+build/
+out/
+
