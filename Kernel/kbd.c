@@ -1,17 +1,5 @@
 #include <kbd.h>
 
-
-char _kbd_readKeyCombo(){
-    uint8_t startPress = _kbd_read();
-    uint8_t currKey = _kbd_read();
-
-    while( currKey =! startPress  ){
-
-    }
-}
-
-
-
     /*
     // Keyboard us, 
     // todo: revisar los valores
@@ -73,3 +61,14 @@ char _kbd_readKeyCombo(){
     [0x45] = "NumLock",
     [0x46] = "ScrollLock"
     };
+    
+    
+    
+    char* _kbd_readKeyCombo(){
+        uint8_t startPress = _kbd_read();
+        uint8_t secondPress = _kbd_read();
+        if((startPress & secondPress) == 0){
+            return scancode_to_ascii[startPress];
+        }        
+        return 0;
+    }
