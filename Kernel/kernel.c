@@ -80,27 +80,33 @@ int main() {
   // Draw some test graphics
   vga_clear(0x01);
 
-  // vga_pixel(128, 10, 0xc);
-  // vga_pixel(128, 20, 0xc);
-  // vga_pixel(128, 30, 0xc);
-  // vga_pixel(128, 40, 0xc);
-  // vga_pixel(128, 50, 0xc);
-  // vga_pixel(128, 60, 0xc);
-  // vga_pixel(128, 70, 0xc);
-  //
-  // vga_line(0, 10, 127, 0, 0x07);
-  // vga_line(0, 20, 128, 0, 0x07);
-  // vga_line(20, 30, 127, 0, 0x07);
-  // vga_line(0, 40, 150, 0, 0x07);
-  // vga_line(0, 50, 40, 0, 0x07);
-  // vga_line(20, 60, 40, 0, 0x07);
+  vga_pixel(128, 10, 0xc);
+  vga_pixel(128, 20, 0xc);
+  vga_pixel(128, 30, 0xc);
+  vga_pixel(128, 40, 0xc);
+  vga_pixel(128, 50, 0xc);
+  vga_pixel(128, 60, 0xc);
+  vga_pixel(128, 70, 0xc);
 
-  // Slow: fill screen drawing individual pixels
-  for (int y = 0; y < VGA_HEIGHT; y++)
-    for (int x = 0; x < VGA_WIDTH; x++) vga_pixel(x, y, 0x02);
+  vga_line(0, 10, 127, 10, 0x07);
+  vga_line(0, 20, 128, 20, 0x07);
+  vga_line(20, 30, 127, 30, 0x07);
+  vga_line(0, 40, 150, 40, 0x07);
+  vga_line(0, 50, 40, 50, 0x07);
+  vga_line(20, 60, 40, 60, 0x07);
 
-  // fast as fuk boiiii
-  for (int y = 0; y < VGA_HEIGHT; y++) vga_line(0, y, VGA_WIDTH - 1, y, 0x04);
+  vga_rect(50, 70, 400, 210, 0x07);
+  vga_rect(80, 100, 430, 240, 0x05);
+
+  vga_line(520, 10, 600, 30, 0x07);
+  vga_line(520, 20, 600, 50, 0x07);
+  vga_line(520, 30, 600, 70, 0x07);
+  vga_line(520, 40, 600, 200, 0x07);
+
+  vga_line(200, 240, 200, 340, 0x07);
+  vga_line(220, 240, 220, 340, 0x07);
+  vga_line(240, 240, 240, 340, 0x07);
+  vga_line(280, 240, 280, 340, 0x07);
 
   // vga_textMode();
 

@@ -97,8 +97,10 @@ static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, uint8_t color) {
   uint64_t mask0 = 0xffffffffffffffff >> (x0 & 0x3f);
   uint64_t mask1 = 0xffffffffffffffff << (64 - ((x1 + 1) & 0x3f));
 
+  // Handle special case where line is drawn entirely within a single chunk
   if (chunk0 == chunk1) mask0 &= mask1;
 
+  // Reverse mask bytes for correct endianness (i hate little endian)
   mask0 = reversebytes(mask0);
   mask1 = reversebytes(mask1);
 
@@ -124,10 +126,83 @@ static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, uint8_t color) {
   }
 }
 
+static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, uint8_t color) {
+  uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y0;
+  x &= 7;
+  uint8_t mask = 0x80 >> x;
+  uint8_t pmask = 1;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+
+    uint16_t poffset = offset;
+    for (uint16_t y = y0; y <= y1; y++) {
+      vram[poffset] =
+        pmask & color ? vram[poffset] | mask : vram[poffset] & ~mask;
+      poffset += VGA_WIDTH >> 3;
+    }
+
+    pmask <<= 1;
+  }
+}
+
 void vga_line(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
 ) {
-  vga_hline(x0, x1, y0, color);
+  if (y1 == y0) {
+    if (x1 == x0) {
+      vga_pixel(x0, y0, color);
+    } else {
+      vga_hline(x0, x1, y0, color);
+    }
+  } else if (x1 == x0) {
+    vga_vline(x0, y0, y1, color);
+  } else {
+    // TODO diagonal lines
+  }
+}
+
+void vga_rect(
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
+) {
+  // Very similar to vga_hline(), but we draw a bunch of horizontal lines at once
+  // The reason we don't just call hline in a loop is so we don't have to do
+  // the plane switching for each scanline
+  uint64_t data[4] = color2data(color);
+
+  uint16_t chunk0 = x0 >> 6;// x0 / 64
+  uint16_t chunk1 = x1 >> 6;// x1 / 64
+
+  uint64_t mask0 = 0xffffffffffffffff >> (x0 & 0x3f);
+  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x1 + 1) & 0x3f));
+
+  if (chunk0 == chunk1) mask0 &= mask1;
+
+  mask0 = reversebytes(mask0);
+  mask1 = reversebytes(mask1);
+
+  uint16_t pchunk0, pchunk1;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+
+    for (uint16_t y = y0; y <= y1; y++) {
+      pchunk0 = chunk0, pchunk1 = chunk1;
+
+      // Draw first (partial) chunk
+      vga_hchunkMasked(pchunk0, y, data[p], mask0);
+      pchunk0++;
+
+      if (pchunk1 >= pchunk0) {
+        // Draw last (partial) chunk
+        vga_hchunkMasked(pchunk1, y, data[p], mask1);
+        pchunk1--;
+      }
+
+      if (pchunk1 >= pchunk0) {
+        // Draw chunks in between
+        vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y, data[p]);
+      }
+    }
+  }
 }
 
 void vga_clear(uint8_t color) {

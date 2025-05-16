@@ -63,9 +63,17 @@ void vga_clear(uint8_t color);
 
 /*
  * Draw a line between two points.
- * Optimized for horizontal lines.
+ * Uses optimized drawing for horizontal lines, otherwise draws with
+ * Bresenham's algorithm.
  */
 void vga_line(
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
+);
+
+/*
+ * Draw a filled rectangle.
+ */
+void vga_rect(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
 );
 
