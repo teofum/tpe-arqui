@@ -75,9 +75,9 @@
         if( secondPress & 0x80 ){               // si el second key es un release del primero
             return scancode_to_ascii[startPress];
         }else if(startPress == secondPress){                             // si no es release 
-            return scancode_to_ascii[startPress]
+            return scancode_to_ascii[startPress];
         }else{
-            
+
         }
 
         //sigue apilandolas en un buffer ?
