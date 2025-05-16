@@ -108,6 +108,9 @@ int main() {
   vga_line(240, 240, 240, 340, 0x07);
   vga_line(280, 240, 280, 340, 0x07);
 
+  for (int y1 = 140; y1 <= 340; y1 += 10)
+    for (int x1 = 220; x1 <= 420; x1 += 10) vga_line(320, 240, x1, y1, 0x0b);
+
   // vga_textMode();
 
   return 0;

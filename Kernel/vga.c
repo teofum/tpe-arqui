@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <vga.h>
 
 #define VGA_WIDTH_CHUNKS 10
@@ -18,6 +19,9 @@
    ((lw & (0xffull << 16)) << 24) | ((lw & (0xffull << 24)) << 8) |            \
    ((lw & (0xffull << 32)) >> 8) | ((lw & (0xffull << 40)) >> 24) |            \
    ((lw & (0xffull << 48)) >> 40) | ((lw & (0xffull << 56)) >> 56))
+
+// TODO maybe we should move this to a utils header?
+#define abs(x) ((x) > 0 ? (x) : -(x))
 
 uint8_t *vram = (uint8_t *) 0xA0000;
 
@@ -145,19 +149,103 @@ static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, uint8_t color) {
   }
 }
 
+static void
+vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
+  int16_t dx = x1 - x0, dy = y1 - y0;
+  int16_t yi = 1;
+
+  if (dy < 0) {
+    yi = -1;
+    dy = -dy;
+  }
+
+  uint8_t pmask = 1;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+    int16_t D = 2 * dy - dx;
+    int16_t y = y0;
+
+    for (int16_t x = x0; x <= x1; x++) {
+      uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
+      uint8_t mask = 0x80 >> (x & 7);
+      vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
+
+      if (D > 0) {
+        y += yi;
+        D += 2 * (dy - dx);
+      } else {
+        D += 2 * dy;
+      }
+    }
+
+    pmask <<= 1;
+  }
+}
+
+static void
+vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int8_t color) {
+  int16_t dx = x1 - x0, dy = y1 - y0;
+  int16_t xi = 1;
+
+  if (dx < 0) {
+    xi = -1;
+    dx = -dx;
+  }
+
+  uint8_t pmask = 1;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+    int16_t D = 2 * dx - dy;
+    int16_t x = x0;
+
+    for (int16_t y = y0; y <= y1; y++) {
+      uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
+      uint8_t mask = 0x80 >> (x & 7);
+      vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
+
+      if (D > 0) {
+        x += xi;
+        D += 2 * (dx - dy);
+      } else {
+        D += 2 * dx;
+      }
+    }
+
+    pmask <<= 1;
+  }
+}
+
 void vga_line(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
 ) {
   if (y1 == y0) {
     if (x1 == x0) {
       vga_pixel(x0, y0, color);
-    } else {
+    } else if (x1 > x0) {
       vga_hline(x0, x1, y0, color);
+    } else {
+      vga_hline(x1, x0, y0, color);
     }
   } else if (x1 == x0) {
-    vga_vline(x0, y0, y1, color);
+    if (y1 > y0) {
+      vga_vline(x0, y0, y1, color);
+    } else {
+      vga_vline(x0, y1, y0, color);
+    }
   } else {
-    // TODO diagonal lines
+    if (abs(x1 - x0) > abs(y1 - y0)) {
+      if (x1 > x0) {
+        vga_lineLo(x0, y0, x1, y1, color);
+      } else {
+        vga_lineLo(x1, y1, x0, y0, color);
+      }
+    } else {
+      if (y1 > y0) {
+        vga_lineHi(x0, y0, x1, y1, color);
+      } else {
+        vga_lineHi(x1, y1, x0, y0, color);
+      }
+    }
   }
 }
 
