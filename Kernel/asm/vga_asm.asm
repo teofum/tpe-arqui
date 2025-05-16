@@ -129,3 +129,25 @@ _vga_setmode:
     pop rbp
     ret
 
+global _vga_setplane
+_vga_setplane:
+    and rdi, 0x3
+
+    mov al, 0x04
+    mov dx, VGA_GC_INDEX
+    out dx, al
+    mov rax, rdi
+    mov dx, VGA_GC_DATA
+    out dx, al
+
+    mov al, 0x02
+    mov dx, VGA_SEQ_INDEX
+    out dx, al
+    ; al = 1 << rdi
+    mov rax, 0x1
+    mov rcx, rdi
+    shl al, cl
+    mov dx, VGA_SEQ_DATA
+    out dx, al
+
+    ret

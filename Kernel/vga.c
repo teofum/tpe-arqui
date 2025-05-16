@@ -26,17 +26,23 @@
 
 uint8_t *vram = (uint8_t *) 0xA0000;
 
-vga_mode_descriptor_t _vga_g_320x200x256 = {
-  {0x63},
-  {0x03, 0x01, 0x0F, 0x00, 0x0E},
-  {0x5F, 0x4F, 0x50, 0x82, 0x54, 0x80, 0xBF, 0x1F, 0x00, 0x41, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x9C, 0x0E, 0x8F, 0x28, 0x40, 0x96, 0xB9, 0xA3, 0xFF},
-  {0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x05, 0x0F, 0xFF},
-  {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
-   0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x41, 0x00, 0x0F, 0x00, 0x00}
+/*
+ * Graphics mode, 640x480 16 color. Just as God intended.
+ */
+vga_mode_descriptor_t _vga_g_640x480x16 = {
+  {0xE3},
+  {0x03, 0x01, 0x08, 0x00, 0x06},
+  {0x5F, 0x4F, 0x50, 0x82, 0x54, 0x80, 0x0B, 0x3E, 0x00, 0x40, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0xEA, 0x0C, 0xDF, 0x28, 0x00, 0xE7, 0x04, 0xE3, 0xFF},
+  {0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x05, 0x0F, 0xFF},
+  {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07, 0x38, 0x39, 0x3A,
+   0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x01, 0x00, 0x0F, 0x00, 0x00}
 };
-const vga_mode_descriptor_t *vga_g_320x200x256 = &_vga_g_320x200x256;
+const vga_mode_descriptor_t *vga_g_640x480x16 = &_vga_g_640x480x16;
 
+/*
+ * Text mode, 80x25
+ */
 vga_mode_descriptor_t _vga_t_80x25 = {
   {0x67},
   {0x03, 0x00, 0x03, 0x00, 0x02},
@@ -49,6 +55,7 @@ vga_mode_descriptor_t _vga_t_80x25 = {
 const vga_mode_descriptor_t *vga_t_80x25 = &_vga_t_80x25;
 
 extern void _vga_setmode(const vga_mode_descriptor_t *mode);
+extern void _vga_setplane(uint8_t plane);
 
 /*
  * Mode switch
@@ -58,7 +65,7 @@ void vga_setMode(const vga_mode_descriptor_t *mode) { _vga_setmode(mode); }
 /*
  * Initialize the VGA driver in graphics mode.
  */
-void vga_gfxMode() { vga_setMode(vga_g_320x200x256); }
+void vga_gfxMode() { vga_setMode(vga_g_640x480x16); }
 
 /*
  * Initialize the graphics driver in text mode.
@@ -71,21 +78,22 @@ void vga_textMode() { vga_setMode(vga_t_80x25); }
  */
 void vga_clear(uint8_t color) {
   // Make a 64-bit dword so we can clear 8 bytes at a time
-  // This is faster than writing individual bytes
-  uint64_t data = color;
-  data |= (uint64_t) color << 8;
-  data |= (uint64_t) color << 16;
-  data |= (uint64_t) color << 24;
-  data |= (uint64_t) color << 32;
-  data |= (uint64_t) color << 40;
-  data |= (uint64_t) color << 48;
-  data |= (uint64_t) color << 56;
+  // This is much faster than writing individual pixels
+  uint64_t data[4] = {
+    color & 0x1 ? 0xffffffffffffffff : 0x0,
+    color & 0x2 ? 0xffffffffffffffff : 0x0,
+    color & 0x4 ? 0xffffffffffffffff : 0x0,
+    color & 0x8 ? 0xffffffffffffffff : 0x0,
+  };
 
   // Fill VRAM with this color
   uint64_t *vram64 = (uint64_t *) vram;
-  uint16_t end = VGA_VRAM_SIZE >> 3;// vram size / 8
+  uint16_t end = (VGA_WIDTH * VGA_HEIGHT) >> 6;// vram size in bytes / 8
 
-  for (uint16_t offset = 0; offset < end; offset++) vram64[offset] = data;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+    for (uint16_t offset = 0; offset < end; offset++) vram64[offset] = data[p];
+  }
 }
 
 /*
@@ -94,6 +102,13 @@ void vga_clear(uint8_t color) {
  * only write to pixel coordinates within VRAM bounds.
  */
 void vga_pixel(uint16_t x, uint16_t y, uint8_t color) {
-  uint16_t offset = x + VGA_WIDTH * y;
-  vram[offset] = color;
+  uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
+  x &= 7;
+  uint8_t mask = 0x80 >> x;
+  uint8_t pmask = 1;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+    vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
+    pmask <<= 1;
+  }
 }

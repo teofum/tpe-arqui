@@ -2,8 +2,8 @@
 #define VGA_H
 #include <stdint.h>
 
-#define VGA_WIDTH 320
-#define VGA_HEIGHT 200
+#define VGA_WIDTH 640
+#define VGA_HEIGHT 480
 
 #define VGA_VRAM_SIZE 64000
 
@@ -19,7 +19,8 @@ typedef struct {
   uint8_t ac[21];
 } vga_mode_descriptor_t;
 
-extern const vga_mode_descriptor_t *vga_g_320x200x256;
+extern const vga_mode_descriptor_t *vga_g_640x480x16;
+extern const vga_mode_descriptor_t *vga_t_80x25;
 
 void vga_setMode(const vga_mode_descriptor_t *mode);
 void vga_gfxMode();
