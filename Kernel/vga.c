@@ -1,29 +1,5 @@
 #include <vga.h>
 
-#define VGA_AC_INDEX 0x3C0
-#define VGA_AC_WRITE 0x3C0
-#define VGA_AC_READ 0x3C1
-#define VGA_MISC_WRITE 0x3C2
-#define VGA_SEQ_INDEX 0x3C4
-#define VGA_SEQ_DATA 0x3C5
-#define VGA_DAC_READ_INDEX 0x3C7
-#define VGA_DAC_WRITE_INDEX 0x3C8
-#define VGA_DAC_DATA 0x3C9
-#define VGA_MISC_READ 0x3CC
-#define VGA_GC_INDEX 0x3CE
-#define VGA_GC_DATA 0x3CF
-/*			COLOR emulation		MONO emulation */
-#define VGA_CRTC_INDEX 0x3D4 /* 0x3B4 */
-#define VGA_CRTC_DATA 0x3D5  /* 0x3B5 */
-#define VGA_INSTAT_READ 0x3DA
-
-#define VGA_NUM_SEQ_REGS 5
-#define VGA_NUM_CRTC_REGS 25
-#define VGA_NUM_GC_REGS 9
-#define VGA_NUM_AC_REGS 21
-#define VGA_NUM_REGS                                                           \
-  (1 + VGA_NUM_SEQ_REGS + VGA_NUM_CRTC_REGS + VGA_NUM_GC_REGS + VGA_NUM_AC_REGS)
-
 uint8_t *vram = (uint8_t *) 0xA0000;
 
 /*
@@ -57,25 +33,12 @@ const vga_mode_descriptor_t *vga_t_80x25 = &_vga_t_80x25;
 extern void _vga_setmode(const vga_mode_descriptor_t *mode);
 extern void _vga_setplane(uint8_t plane);
 
-/*
- * Mode switch
- */
 void vga_setMode(const vga_mode_descriptor_t *mode) { _vga_setmode(mode); }
 
-/*
- * Initialize the VGA driver in graphics mode.
- */
 void vga_gfxMode() { vga_setMode(vga_g_640x480x16); }
 
-/*
- * Initialize the graphics driver in text mode.
- * TODO: add text mode functionality
- */
 void vga_textMode() { vga_setMode(vga_t_80x25); }
 
-/*
- * Clear VRAM with a single solid color.
- */
 void vga_clear(uint8_t color) {
   // Make a 64-bit dword so we can clear 8 bytes at a time
   // This is much faster than writing individual pixels
@@ -96,11 +59,6 @@ void vga_clear(uint8_t color) {
   }
 }
 
-/*
- * Plot a single pixel to VRAM.
- * This function does not do any bounds checking. The user should make sure to
- * only write to pixel coordinates within VRAM bounds.
- */
 void vga_pixel(uint16_t x, uint16_t y, uint8_t color) {
   uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
   x &= 7;

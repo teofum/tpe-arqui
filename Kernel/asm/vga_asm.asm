@@ -1,8 +1,10 @@
 section .text
 
+; Some definitions for VGA registers
+; yoinked from https://files.osdev.org/mirrors/geezer/osd/graphics/modes.c
 %define	VGA_AC_INDEX		0x3C0
 %define	VGA_AC_WRITE		0x3C0
-%define	VGA_AC_READ		0x3C1
+%define	VGA_AC_READ		    0x3C1
 %define	VGA_MISC_WRITE		0x3C2
 %define VGA_SEQ_INDEX		0x3C4
 %define VGA_SEQ_DATA		0x3C5
@@ -17,8 +19,12 @@ section .text
 %define	VGA_NUM_CRTC_REGS	25
 %define	VGA_NUM_GC_REGS		9
 %define	VGA_NUM_AC_REGS		21
-%define	VGA_NUM_REGS		(1 + VGA_NUM_SEQ_REGS + VGA_NUM_CRTC_REGS + VGA_NUM_GC_REGS + VGA_NUM_AC_REGS)
 
+; _vga_setmode
+; Expects a pointer to a VGA register struct (vga_mode_descriptor_t) in rdi,
+; sets all the necessary registers to switch VGA mode without going through
+; BIOS calls unavailable in protected mode
+; Adapted from C source linked above
 global _vga_setmode
 _vga_setmode:
     push rbp
@@ -129,6 +135,8 @@ _vga_setmode:
     pop rbp
     ret
 
+; _vga_setplane
+; VGA VRAM plane switching.
 global _vga_setplane
 _vga_setplane:
     and rdi, 0x3
