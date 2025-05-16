@@ -6,6 +6,7 @@
 #define VGA_HEIGHT 480
 
 #define VGA_VRAM_SIZE 64000
+#define VGA_FONT_MAX_HEIGHT 24
 
 /*
  * VGA mode descriptor. Contains values for all the VGA registers that must
@@ -22,6 +23,34 @@ typedef struct {
 } vga_mode_descriptor_t;
 
 /*
+ * Font descriptor. Contains all relevant data about a font so the driver can
+ * use it to draw text.
+ */
+typedef struct {
+  /* Character data width, in pixels */
+  uint8_t charWidth;
+
+  /* Character data height, in pixels */
+  uint8_t charHeight;
+
+  /* Line height as drawn */
+  uint8_t lineHeight;
+
+  /* Space between characters in pixels */
+  uint8_t spacing;
+
+  /*
+   * Character data. Stored linearly in memory: each character uses W * H bits,
+   * where W and H are the font's character width and height respectively.
+   * Characters are stored as a 1-bit per pixel bitmap in row-major order (left
+   * to right, top to bottom).
+   * Characters may be stored across multiple words. Data should be padded to a
+   * multiple of 8 bytes.
+   */
+  const uint64_t *characterData;
+} vga_font_t;
+
+/*
  * Graphics mode, 640x480 16 color. Just as God intended.
  */
 extern const vga_mode_descriptor_t *vga_g_640x480x16;
@@ -30,6 +59,8 @@ extern const vga_mode_descriptor_t *vga_g_640x480x16;
  * Text mode, 80x25
  */
 extern const vga_mode_descriptor_t *vga_t_80x25;
+
+extern const vga_font_t *vga_defaultFont;
 
 /*
  * Switch VGA mode
@@ -90,5 +121,14 @@ void vga_frame(
 void vga_shade(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
 );
+
+/*
+ * Set the font used for drawing text.
+ * Returns a pointer to the previous font used, so it can be restored with
+ * another call to vga_font.
+ */
+vga_font_t *vga_font(vga_font_t *font);
+
+void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color);
 
 #endif

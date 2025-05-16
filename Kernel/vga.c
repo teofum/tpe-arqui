@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <vga.h>
 
 #define VGA_WIDTH_CHUNKS 10
@@ -23,6 +24,9 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
+/*
+ * VRAM address in memory
+ */
 uint8_t *vram = (uint8_t *) 0xA0000;
 
 /*
@@ -52,6 +56,20 @@ vga_mode_descriptor_t _vga_t_80x25 = {
    0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x0C, 0x00, 0x0F, 0x08, 0x00}
 };
 const vga_mode_descriptor_t *vga_t_80x25 = &_vga_t_80x25;
+
+vga_font_t _vga_defaultFont = {
+  .charWidth = 8,
+  .charHeight = 16,
+  .lineHeight = 16,
+  .spacing = 1,
+  .characterData = NULL// TODO
+};
+const vga_font_t *vga_defaultFont = &_vga_defaultFont;
+
+/*
+ * Active font for text drawing
+ */
+vga_font_t *active_font = &_vga_defaultFont;
 
 extern void _vga_setmode(const vga_mode_descriptor_t *mode);
 extern void _vga_setplane(uint8_t plane);
@@ -90,6 +108,9 @@ vga_hchunkMasked(uint16_t x, uint16_t y, uint64_t chunk, uint64_t mask) {
   vram64[offset] = (chunk & mask) | (vram64[offset] & ~mask);
 }
 
+/*
+ * Optimized function to draw a horizontal line by chunks, this is very fast.
+ */
 static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, uint8_t color) {
   uint64_t data[4] = color2data(color);
 
@@ -130,6 +151,10 @@ static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, uint8_t color) {
   }
 }
 
+/*
+ * Optimized function to draw a vertical line. Faster than running Bresenham's
+ * algorithm, but not as fast as horizontal drawing.
+ */
 static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, uint8_t color) {
   uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y0;
   x &= 7;
@@ -149,6 +174,9 @@ static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, uint8_t color) {
   }
 }
 
+/*
+ * Bresenham's algorithm for |slope| < 1
+ */
 static void
 vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
   int16_t dx = x1 - x0, dy = y1 - y0;
@@ -182,6 +210,9 @@ vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
   }
 }
 
+/*
+ * Bresenham's algorithm for |slope| > 1
+ */
 static void
 vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int8_t color) {
   int16_t dx = x1 - x0, dy = y1 - y0;
@@ -419,5 +450,59 @@ void vga_pixel(uint16_t x, uint16_t y, uint8_t color) {
     _vga_setplane(p);
     vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
     pmask <<= 1;
+  }
+}
+
+void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color) {
+  // First, calculate the size of the text to be drawn
+  size_t len = 0;
+  while (string[len] != 0) len++;
+  if (!len) return;
+
+  size_t drawWidth =
+    len * active_font->charWidth + (len - 1) * active_font->spacing;
+  size_t drawHeight = active_font->charHeight;
+
+  // Allocate memory for the chunks and zero it
+  uint64_t masks[VGA_WIDTH_CHUNKS * VGA_FONT_MAX_HEIGHT] = {0};
+
+  // Calculate masks for first and last chunks
+  uint64_t mask0 = 0xffffffffffffffff >> (x & 0x3f);
+  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x + drawWidth) & 0x3f));
+
+  uint16_t chunk0 = x >> 6;
+  uint16_t chunk1 = (x + drawWidth) >> 6;
+  size_t hchunks = chunk1 - chunk0 + 1;
+
+  if (chunk0 == chunk1) mask0 &= mask1;
+
+  mask0 = reversebytes(mask0);
+  mask1 = reversebytes(mask1);
+
+  // TODO Draw character bitmaps to masks
+
+  uint16_t pchunk0, pchunk1;
+  uint16_t y1 = y0 + drawHeight;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+
+    for (uint16_t y = y0; y < y1; y++) {
+      pchunk0 = chunk0, pchunk1 = chunk1;
+
+      // Draw first (partial) chunk
+      vga_hchunkMasked(pchunk0, y, 0xffffffffffffffff, mask0);
+      pchunk0++;
+
+      if (pchunk1 >= pchunk0) {
+        // Draw last (partial) chunk
+        vga_hchunkMasked(pchunk1, y, 0xffffffffffffffff, mask1);
+        pchunk1--;
+      }
+
+      if (pchunk1 >= pchunk0) {
+        // Draw chunks in between
+        vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y, 0xffffffffffffffff);
+      }
+    }
   }
 }
