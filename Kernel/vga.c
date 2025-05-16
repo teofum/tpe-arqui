@@ -293,6 +293,71 @@ void vga_rect(
   }
 }
 
+void vga_frame(
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
+) {
+  // Very similar to vga_hline(), but we draw a bunch of horizontal lines at once
+  // The reason we don't just call hline in a loop is so we don't have to do
+  // the plane switching for each scanline
+  uint64_t data[4] = color2data(color);
+
+  uint16_t chunk0 = x0 >> 6;// x0 / 64
+  uint16_t chunk1 = x1 >> 6;// x1 / 64
+
+  uint64_t mask0 = 0xffffffffffffffff >> (x0 & 0x3f);
+  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x1 + 1) & 0x3f));
+
+  if (chunk0 == chunk1) mask0 &= mask1;
+
+  mask0 = reversebytes(mask0);
+  mask1 = reversebytes(mask1);
+
+  uint16_t pchunk0, pchunk1;
+  uint8_t pmask = 1;
+  for (uint8_t p = 0; p < 4; p++) {
+    _vga_setplane(p);
+
+    // Top and bottom lines
+    pchunk0 = chunk0, pchunk1 = chunk1;
+
+    // Draw first (partial) chunk
+    vga_hchunkMasked(pchunk0, y0, data[p], mask0);
+    vga_hchunkMasked(pchunk0, y1, data[p], mask0);
+    pchunk0++;
+
+    if (pchunk1 >= pchunk0) {
+      // Draw last (partial) chunk
+      vga_hchunkMasked(pchunk1, y0, data[p], mask1);
+      vga_hchunkMasked(pchunk1, y1, data[p], mask1);
+      pchunk1--;
+    }
+
+    if (pchunk1 >= pchunk0) {
+      // Draw chunks in between
+      vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y0, data[p]);
+      vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y1, data[p]);
+    }
+
+    // Left and right lines
+    uint16_t offset0 = (x0 >> 3) + (VGA_WIDTH >> 3) * y0;
+    uint8_t mask0 = 0x80 >> (x0 & 7);
+    uint16_t offset1 = (x1 >> 3) + (VGA_WIDTH >> 3) * y0;
+    uint8_t mask1 = 0x80 >> (x1 & 7);
+
+    for (uint16_t y = y0; y <= y1; y++) {
+      vram[offset0] =
+        pmask & color ? vram[offset0] | mask0 : vram[offset0] & ~mask0;
+      vram[offset1] =
+        pmask & color ? vram[offset1] | mask1 : vram[offset1] & ~mask1;
+
+      offset0 += VGA_WIDTH >> 3;
+      offset1 += VGA_WIDTH >> 3;
+    }
+
+    pmask <<= 1;
+  }
+}
+
 void vga_clear(uint8_t color) {
   uint64_t data[4] = color2data(color);
 
