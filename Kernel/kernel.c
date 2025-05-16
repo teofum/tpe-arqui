@@ -99,6 +99,17 @@ int main()
 	ncPrint((char*)sampleDataModuleAddress);
 	ncNewline();
 
+	ncClear();
+	while (1)
+	{
+		char* aux = _kbd_readKeyCombo();
+		ncPrintChar(aux);
+		ncPrint("//");
+		ncPrintHex(aux);
+		ncNewline();
+	}
+	
+
 	ncPrint("[Finished]");
 	return 0;
 }
