@@ -84,4 +84,11 @@ void vga_frame(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
 );
 
+/*
+ * Draw a shaded rectangle.
+ */
+void vga_shade(
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
+);
+
 #endif
