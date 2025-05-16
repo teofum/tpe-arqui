@@ -62,13 +62,99 @@
     [0x46] = "ScrollLock"
     };
     
-    
+    struct {
+        char string[16];// el 6 trivial
+        uint8_t isChar; //flags
+        uint8_t comand;
+    }package;
     
     char* _kbd_readKeyCombo(){
         uint8_t startPress = _kbd_read();
         uint8_t secondPress = _kbd_read();
-        if((startPress & secondPress) == 0){
+        
+        if( secondPress & 0x80 ){               // si el second key es un release del primero
             return scancode_to_ascii[startPress];
-        }        
+        }else if(startPress == secondPress){                             // si no es release 
+            return scancode_to_ascii[startPress]
+        }else{
+            
+        }
+
+        //sigue apilandolas en un buffer ?
+
         return 0;
     }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+ * keyboard.c
+ *
+ * Driver de teclado simplificado sin teclas especiales.
+ */
+
+#define BUFFER_SIZE    64
+
+/* Buffer circular */
+struct {
+  char data[BUFFER_SIZE];
+  int write_pos;
+  int read_pos;
+} buffer = {0};
+
+/* Verifica si el buffer está lleno */
+uint8_t isBuffFull() {
+  int next = (buffer.write_pos + 1) % BUFFER_SIZE;
+  return (next == buffer.read_pos);
+}
+
+/* Verifica si el buffer está vacío */
+uint8_t isBuffEmpty() {
+  return (buffer.read_pos == buffer.write_pos);
+}
+
+
+/* Agrega un carácter al buffer */
+void addCharToBuff(char c) {
+  if (isBuffFull())
+    return;
+  buffer.data[buffer.write_pos] = c;
+  buffer.write_pos = (buffer.write_pos + 1) % BUFFER_SIZE;
+}
+
+/* Procesa una pulsación de tecla */
+// void process_keyboard() {
+//   uint8_t scancode = getKey();
+//   if (scancode == 0)
+//     return;
+
+//   char c = keymap[scancode];
+//   if (c)
+//     addCharToBuff(c);
+// }
+
+/* Obtiene un carácter del buffer */
+// char get_char() {
+//   if (isBuffEmpty())
+//     return 0;
+//   char c = buffer.data[buffer.read_pos];
+//   buffer.read_pos = (buffer.read_pos + 1) % BUFFER_SIZE;
+//   return c;
+// }
+
+/* Espera hasta que haya un carácter disponible */
+// char waitForKey() {
+//   char c;
+//   while ((c = get_char()) == 0)
+//     process_keyboard();
+//   return c;
+// }
+
+/* Inicializa el teclado (reinicia el buffer) */
+// void initKeyboard() {
+//   buffer.read_pos = 0;
+//   buffer.write_pos = 0;
+// }
+
