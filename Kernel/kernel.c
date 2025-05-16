@@ -79,7 +79,28 @@ int main() {
 
   // Draw some test graphics
   vga_clear(0x01);
-  for (int i = 100; i < 200; i++) vga_pixel(i, i, 0x0f);
+
+  // vga_pixel(128, 10, 0xc);
+  // vga_pixel(128, 20, 0xc);
+  // vga_pixel(128, 30, 0xc);
+  // vga_pixel(128, 40, 0xc);
+  // vga_pixel(128, 50, 0xc);
+  // vga_pixel(128, 60, 0xc);
+  // vga_pixel(128, 70, 0xc);
+  //
+  // vga_line(0, 10, 127, 0, 0x07);
+  // vga_line(0, 20, 128, 0, 0x07);
+  // vga_line(20, 30, 127, 0, 0x07);
+  // vga_line(0, 40, 150, 0, 0x07);
+  // vga_line(0, 50, 40, 0, 0x07);
+  // vga_line(20, 60, 40, 0, 0x07);
+
+  // Slow: fill screen drawing individual pixels
+  for (int y = 0; y < VGA_HEIGHT; y++)
+    for (int x = 0; x < VGA_WIDTH; x++) vga_pixel(x, y, 0x02);
+
+  // fast as fuk boiiii
+  for (int y = 0; y < VGA_HEIGHT; y++) vga_line(0, y, VGA_WIDTH - 1, y, 0x04);
 
   // vga_textMode();
 
