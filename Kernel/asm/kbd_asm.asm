@@ -1,11 +1,10 @@
-GLOBAL getKey
-GLOBAL getKBDState
+GLOBAL _kbd_read
 
 section .text
 
 
 
-_kbd_read
+_kbd_read:
     mov rax,0
 
 .getState:
