@@ -72,12 +72,12 @@
     };
     
     
-    /* Buffer circular con flags adicionales*/
-    struct buffer{
-    char* data[BUFFER_SIZE];
-    int write_pos;
-    uint8_t isChar; //flag
-    };
+    // /* Buffer circular con flags adicionales*/
+    // struct buffer{
+    // char* data[BUFFER_SIZE];
+    // int write_pos;
+    // uint8_t isChar; //flag
+    // };
 
     /* Verifica si el buffer está lleno */
     uint8_t isBuffFull(struct buffer buff) {
