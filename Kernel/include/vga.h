@@ -61,6 +61,7 @@ extern const vga_mode_descriptor_t *vga_g_640x480x16;
 extern const vga_mode_descriptor_t *vga_t_80x25;
 
 extern const vga_font_t *vga_defaultFont;
+extern const vga_font_t *vga_comicsans;
 
 /*
  * Switch VGA mode
@@ -127,7 +128,7 @@ void vga_shade(
  * Returns a pointer to the previous font used, so it can be restored with
  * another call to vga_font.
  */
-vga_font_t *vga_font(vga_font_t *font);
+const vga_font_t *vga_font(const vga_font_t *font);
 
 void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color);
 
