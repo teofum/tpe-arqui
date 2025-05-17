@@ -85,8 +85,32 @@ const vga_font_t *vga_comicsans = &_vga_comicsans;
  */
 const vga_font_t *active_font = &_vga_defaultFont;
 
+/*
+ * Color palettes
+ */
+const vga_palette_t vga_pal_macintoshii = {
+  vga_color(0xFF, 0xFF, 0xFF),// White
+  vga_color(0xFF, 0xFF, 0x00),// Yellow
+  vga_color(0xFF, 0x66, 0x00),// Orange
+  vga_color(0xDD, 0x00, 0x00),// Red
+  vga_color(0xFF, 0x00, 0x99),// Magenta
+  vga_color(0x33, 0x00, 0x99),// Purple
+  vga_color(0x00, 0x00, 0xCC),// Blue
+  vga_color(0x00, 0x99, 0xFF),// Cyan
+  vga_color(0x00, 0xAA, 0x00),// Green
+  vga_color(0x00, 0x66, 0x00),// Dark Green
+  vga_color(0x66, 0x33, 0x00),// Brown
+  vga_color(0x99, 0x66, 0x33),// Tan
+  vga_color(0xBB, 0xBB, 0xBB),// Light Grey
+  vga_color(0x88, 0x88, 0x88),// Medium Grey
+  vga_color(0x44, 0x44, 0x44),// Dark Grey
+  vga_color(0x00, 0x00, 0x00),// Black
+};
+
 extern void _vga_setmode(const vga_mode_descriptor_t *mode);
 extern void _vga_setplane(uint8_t plane);
+extern void _vga_setcolor(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
+extern void _vga_setpalette(uint8_t *bytes);
 
 void vga_setMode(const vga_mode_descriptor_t *mode) { _vga_setmode(mode); }
 
@@ -551,4 +575,25 @@ const vga_font_t *vga_font(const vga_font_t *font) {
   const vga_font_t *lastFont = active_font;
   active_font = font;
   return lastFont;
+}
+
+void vga_setColor(uint8_t idx, uint32_t color) {
+  uint8_t r = (color >> 12) & 0x3f, g = (color >> 6) & 0x3f, b = color & 0x3f;
+
+  // Adapt index for default palette
+  if (idx == 0x6) idx = 0x14;
+  else if (idx & 0x8)
+    idx |= 0x30;
+
+  _vga_setcolor(idx, r, g, b);
+}
+
+void vga_setPalette(const uint32_t *palette) {
+  uint8_t paletteBytes[VGA_PALETTE_SIZE * 3];
+  for (int i = 0; i < VGA_PALETTE_SIZE; i++) {
+    paletteBytes[3 * i + 0] = (palette[i] >> 12) & 0x3f;
+    paletteBytes[3 * i + 1] = (palette[i] >> 6) & 0x3f;
+    paletteBytes[3 * i + 2] = palette[i] & 0x3f;
+  }
+  _vga_setpalette(paletteBytes);
 }

@@ -4,9 +4,13 @@
 
 #define VGA_WIDTH 640
 #define VGA_HEIGHT 480
+#define VGA_PALETTE_SIZE 16
 
 #define VGA_VRAM_SIZE 64000
 #define VGA_FONT_MAX_HEIGHT 24
+
+#define vga_color(r, g, b)                                                     \
+  (((uint32_t) (r >> 2) << 12) | ((uint32_t) (g >> 2) << 6) | (b >> 2))
 
 /*
  * VGA mode descriptor. Contains values for all the VGA registers that must
@@ -50,6 +54,8 @@ typedef struct {
   const uint64_t *characterData;
 } vga_font_t;
 
+typedef uint32_t vga_palette_t[VGA_PALETTE_SIZE];
+
 /*
  * Graphics mode, 640x480 16 color. Just as God intended.
  */
@@ -62,6 +68,8 @@ extern const vga_mode_descriptor_t *vga_t_80x25;
 
 extern const vga_font_t *vga_defaultFont;
 extern const vga_font_t *vga_comicsans;
+
+extern const vga_palette_t vga_pal_macintoshii;
 
 /*
  * Switch VGA mode
@@ -147,5 +155,15 @@ typedef enum {
 void vga_text(
   uint16_t x, uint16_t y0, const char *string, uint8_t color, uint8_t flags
 );
+
+/*
+ * Set a VGA palette color.
+ */
+void vga_setColor(uint8_t idx, uint32_t color);
+
+/*
+ * Set a new VGA palette.
+ */
+void vga_setPalette(const uint32_t *palette);
 
 #endif

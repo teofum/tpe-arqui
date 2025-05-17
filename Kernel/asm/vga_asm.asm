@@ -8,6 +8,8 @@ section .text
 %define	VGA_MISC_WRITE		0x3C2
 %define VGA_SEQ_INDEX		0x3C4
 %define VGA_SEQ_DATA		0x3C5
+%define	VGA_DAC_WRITE_INDEX	0x3C8
+%define	VGA_DAC_DATA		0x3C9
 %define	VGA_MISC_READ		0x3CC
 %define VGA_GC_INDEX 		0x3CE
 %define VGA_GC_DATA 		0x3CF
@@ -156,6 +158,74 @@ _vga_setplane:
     mov rcx, rdi
     shl al, cl
     mov dx, VGA_SEQ_DATA
+    out dx, al
+
+    ret
+
+global _vga_setcolor
+_vga_setcolor:
+    mov r8, rdx
+
+    ; Index
+    mov dx, VGA_DAC_WRITE_INDEX
+    mov rax, rdi
+    out dx, al
+
+    ; Color R, G, B
+    mov dx, VGA_DAC_DATA
+    mov rax, rsi
+    out dx, al
+    mov rax, r8
+    out dx, al
+    mov rax, rcx
+    out dx, al
+
+    ret
+
+global _vga_setpalette
+_vga_setpalette:
+    ; Index
+    mov dx, VGA_DAC_WRITE_INDEX
+    mov rax, 0
+    out dx, al
+
+    ; Palette bytes (part 1)
+    mov dx, VGA_DAC_DATA
+    mov rcx, 0
+.loop:
+    mov al, [rdi + rcx]
+    out dx, al
+    inc rcx
+    cmp rcx, 24
+    jne .loop
+
+    ; Index
+    mov dx, VGA_DAC_WRITE_INDEX
+    mov rax, 0x38
+    out dx, al
+
+    ; Palette bytes (part 2)
+    mov dx, VGA_DAC_DATA
+    mov rcx, 24
+.loop2:
+    mov al, [rdi + rcx]
+    out dx, al
+    inc rcx
+    cmp rcx, 48
+    jne .loop2
+
+    ; Index
+    mov dx, VGA_DAC_WRITE_INDEX
+    mov rax, 0x14
+    out dx, al
+
+    ; Palette bytes (part 3)
+    mov dx, VGA_DAC_DATA
+    mov al, [rdi + 18]
+    out dx, al
+    mov al, [rdi + 19]
+    out dx, al
+    mov al, [rdi + 20]
     out dx, al
 
     ret

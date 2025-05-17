@@ -78,22 +78,7 @@ int main() {
   vga_gfxMode();
 
   // Draw some test graphics
-  vga_clear(0x01);
-
-  vga_pixel(128, 10, 0xc);
-  vga_pixel(128, 20, 0xc);
-  vga_pixel(128, 30, 0xc);
-  vga_pixel(128, 40, 0xc);
-  vga_pixel(128, 50, 0xc);
-  vga_pixel(128, 60, 0xc);
-  vga_pixel(128, 70, 0xc);
-
-  vga_line(0, 10, 127, 10, 0x07);
-  vga_line(0, 20, 128, 20, 0x07);
-  vga_line(20, 30, 127, 30, 0x07);
-  vga_line(0, 40, 150, 40, 0x07);
-  vga_line(0, 50, 40, 50, 0x07);
-  vga_line(20, 60, 40, 60, 0x07);
+  vga_clear(0x00);
 
   vga_shade(58, 78, 408, 218, 0x00);
   vga_rect(50, 70, 400, 210, 0x07);
@@ -104,17 +89,11 @@ int main() {
   vga_font(lastfont);
   vga_text(58, 78 + 24, "This is a longer string of text", 0x4c, VGA_TEXT_BG);
 
-  vga_line(520, 10, 600, 30, 0x07);
-  vga_line(520, 20, 600, 50, 0x07);
-  vga_line(520, 30, 600, 70, 0x07);
-  vga_line(520, 40, 600, 200, 0x07);
+  for (int i = 0; i < 16; i++) {
+    vga_rect(100 + 20 * i, 400, 100 + 20 * i + 19, 419, i);
+  }
 
-  vga_line(200, 240, 200, 340, 0x07);
-  vga_line(220, 240, 220, 340, 0x07);
-  vga_line(240, 240, 240, 340, 0x07);
-  vga_line(280, 240, 280, 340, 0x07);
-
-  // vga_textMode();
+  vga_setPalette(vga_pal_macintoshii);
 
   return 0;
 }
