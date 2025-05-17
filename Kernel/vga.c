@@ -491,7 +491,9 @@ void vga_char2masks(char c, uint64_t *masks, uint16_t offsetBits) {
   }
 }
 
-void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color) {
+void vga_text(
+  uint16_t x, uint16_t y0, const char *string, uint8_t color, uint8_t flags
+) {
   // First, calculate the size of the text to be drawn
   size_t len = 0;
   while (string[len] != 0) len++;
@@ -512,6 +514,7 @@ void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color) {
   uint16_t maskOffset = x & 0x3f;
   for (uint16_t i = 0; i < len; i++) {
     char c = string[i];
+    if (c < ' ') continue;// Non printable character
     vga_char2masks(
       c, masks,
       maskOffset + i * active_font->charWidth +
@@ -521,6 +524,11 @@ void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color) {
 
   for (uint16_t i = 0; i < VGA_WIDTH_CHUNKS * VGA_FONT_MAX_HEIGHT; i++)
     masks[i] = reversebytes(masks[i]);
+
+  // Draw background if flag set
+  if (flags & VGA_TEXT_BG) {
+    vga_rect(x, y0, x + drawWidth - 1, y0 + drawHeight - 1, color >> 4);
+  }
 
   uint16_t y1 = y0 + drawHeight;
   uint8_t pmask = 1;
