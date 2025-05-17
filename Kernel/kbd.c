@@ -1,5 +1,14 @@
 #include <kbd.h>
 
+#define BUFFER_SIZE    64
+
+#define SHIFT 0x2A
+#define SHIFT_R 0x36
+#define BACKSPACE 0x0E
+#define CTRL 0x1D
+#define ALT 0x38
+#define CAPLOCK 0x3A
+
     /*
     // Keyboard us, 
     // todo: revisar los valores
@@ -62,99 +71,46 @@
     [0x46] = "ScrollLock"
     };
     
-    struct {
-        char string[16];// el 6 trivial
-        uint8_t isChar; //flags
-        uint8_t comand;
-    }package;
     
-    char* _kbd_readKeyCombo(){
-        uint8_t startPress = _kbd_read();
-        uint8_t secondPress = _kbd_read();
-        
-        if( secondPress & 0x80 ){               // si el second key es un release del primero
-            return scancode_to_ascii[startPress];
-        }else if(startPress == secondPress){                             // si no es release 
-            return scancode_to_ascii[startPress];
-        }else{
+    /* Buffer circular con flags adicionales*/
+    struct buffer{
+    char* data[BUFFER_SIZE];
+    int write_pos;
+    uint8_t isChar; //flag
+    };
 
-        }
-
-        //sigue apilandolas en un buffer ?
-
-        return 0;
+    /* Verifica si el buffer está lleno */
+    uint8_t isBuffFull(struct buffer buff) {
+      return buff.write_pos<BUFFER_SIZE;
     }
 
+    /* Agrega un carácter al buffer */
+    void addCharToBuff(char* c,struct buffer buff) {
+      buff.data[buff.write_pos]=c;
+      buff.write_pos+=1;
+    }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////////////////
+    struct buffer _kbd_readKeyCombo(){
 
-    /**
- * keyboard.c
- *
- * Driver de teclado simplificado sin teclas especiales.
- */
+      struct buffer buff = {.data={0}, .write_pos=0, .isChar=1};
 
-#define BUFFER_SIZE    64
+      char firstKey =_kbd_read();
+      addCharToBuff(scancode_to_ascii[firstKey],buff);
 
-/* Buffer circular */
-struct {
-  char data[BUFFER_SIZE];
-  int write_pos;
-  int read_pos;
-} buffer = {0};
+      for(int i=0;i<BUFFER_SIZE;i++){
+        char currKey =_kbd_read();
 
-/* Verifica si el buffer está lleno */
-uint8_t isBuffFull() {
-  int next = (buffer.write_pos + 1) % BUFFER_SIZE;
-  return (next == buffer.read_pos);
-}
+        if( currKey & 0x80 && currKey & firstKey){ //deberia validar si es el release de la primera tecla
+          return buff;// esto no se si se libera ;- ;
+        }else if(scancode_to_special[currKey]!=0){//si hay teclas
+          buff.isChar=0;
+          addCharToBuff(scancode_to_special[currKey],buff);
+        }else{
+          addCharToBuff(scancode_to_special[currKey],buff);
+        }
+      
+      }
+      return buff;
 
-/* Verifica si el buffer está vacío */
-uint8_t isBuffEmpty() {
-  return (buffer.read_pos == buffer.write_pos);
-}
-
-
-/* Agrega un carácter al buffer */
-void addCharToBuff(char c) {
-  if (isBuffFull())
-    return;
-  buffer.data[buffer.write_pos] = c;
-  buffer.write_pos = (buffer.write_pos + 1) % BUFFER_SIZE;
-}
-
-/* Procesa una pulsación de tecla */
-// void process_keyboard() {
-//   uint8_t scancode = getKey();
-//   if (scancode == 0)
-//     return;
-
-//   char c = keymap[scancode];
-//   if (c)
-//     addCharToBuff(c);
-// }
-
-/* Obtiene un carácter del buffer */
-// char get_char() {
-//   if (isBuffEmpty())
-//     return 0;
-//   char c = buffer.data[buffer.read_pos];
-//   buffer.read_pos = (buffer.read_pos + 1) % BUFFER_SIZE;
-//   return c;
-// }
-
-/* Espera hasta que haya un carácter disponible */
-// char waitForKey() {
-//   char c;
-//   while ((c = get_char()) == 0)
-//     process_keyboard();
-//   return c;
-// }
-
-/* Inicializa el teclado (reinicia el buffer) */
-// void initKeyboard() {
-//   buffer.read_pos = 0;
-//   buffer.write_pos = 0;
-// }
+    }
 
