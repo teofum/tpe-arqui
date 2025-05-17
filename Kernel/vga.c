@@ -57,12 +57,83 @@ vga_mode_descriptor_t _vga_t_80x25 = {
 };
 const vga_mode_descriptor_t *vga_t_80x25 = &_vga_t_80x25;
 
+/*
+ * Font data
+ *
+ */
+uint64_t _vga_fontdata_dos_ank_8x16[190] = {
+  0x0000000000000000, 0x0000000000000000, 0x0000101010101010,
+  0x1000001038100000, 0x00006c6c24480000, 0x0000000000000000,
+  0x00002424247e2424, 0x24247e2424240000, 0x0000103854545038,
+  0x1454545438100000, 0x00002256542c0818, 0x1030246a4a440000,
+  0x0000304848502066, 0x669494888c760000, 0x0000181808100000,
+  0x0000000000000000, 0x0000081010202020, 0x2020201010080000,
+  0x0000100808040404, 0x0404040808100000, 0x0000000010925438,
+  0x3854921000000000, 0x00000000101010fe, 0x1010101000000000,
+  0x0000000000000000, 0x0000000018180810, 0x000000000000007e,
+  0x0000000000000000, 0x0000000000000000, 0x0000000018180000,
+  0x0000020404080810, 0x1020204040800000, 0x0000182424424242,
+  0x4242422424180000, 0x0000103050101010, 0x10101010107c0000,
+  0x00003c4242020408, 0x10204042427e0000, 0x00003c424202021c,
+  0x02024242423c0000, 0x0000040c0c142424, 0x4444fe04040e0000,
+  0x00007e4040407c42, 0x02024242423c0000, 0x00003c424240407c,
+  0x42424242423c0000, 0x00007e4242040408, 0x0810101010100000,
+  0x00003c424242423c, 0x42424242423c0000, 0x00003c4242424242,
+  0x3e020242423c0000, 0x0000000000001818, 0x0000000018180000,
+  0x0000000000001818, 0x0000000018180810, 0x0000020408102040,
+  0x2010080402000000, 0x0000000000007e00, 0x7e00000000000000,
+  0x0000402010080402, 0x0408102040000000, 0x0000384482824408,
+  0x1010001038100000, 0x00003c4242020232, 0x4a4a4a4a4a3c0000,
+  0x0000182442424242, 0x7e42424242420000, 0x0000fc424242427c,
+  0x4242424242fc0000, 0x00003a4642424040, 0x40404242423c0000,
+  0x0000f84442424242, 0x4242424244f80000, 0x0000fe424040447c,
+  0x4440404042fe0000, 0x0000fe424040447c, 0x4440404040e00000,
+  0x00003a4642424040, 0x4e424242463a0000, 0x0000ee444444447c,
+  0x4444444444ee0000, 0x00007c1010101010, 0x10101010107c0000,
+  0x00003c0808080808, 0x0808080888700000, 0x0000ee4448506060,
+  0x5050484844ee0000, 0x0000702020202020, 0x20202020227e0000,
+  0x0000c6446c6c5454, 0x5444444444ee0000, 0x0000ee4464647454,
+  0x5c4c4c4444ee0000, 0x00003c4242424242, 0x42424242423c0000,
+  0x0000f84442424244, 0x7840404040e00000, 0x00003c4242424242,
+  0x4242724a443a0000, 0x0000fc4242424478, 0x4c44444444ee0000,
+  0x00003a4642402018, 0x04024242625c0000, 0x0000fe9292101010,
+  0x1010101010380000, 0x0000ee4444444444, 0x4444444444380000,
+  0x0000ee4444444444, 0x2828281010100000, 0x0000ee4444444454,
+  0x547c6c6c44440000, 0x0000ee4444282810, 0x1028284444ee0000,
+  0x0000ee4444442828, 0x1010101010380000, 0x0000fe8282040810,
+  0x2040808282fe0000, 0x00001c1010101010, 0x10101010101c0000,
+  0x0000181808100000, 0x0000000000000000, 0x0000380808080808,
+  0x0808080808380000, 0x0000182442000000, 0x0000000000000000,
+  0x0000000000000000, 0x000000000000ff00, 0x0000303020100000,
+  0x0000000000000000, 0x0000000000003844, 0x043c44444c360000,
+  0x0000c04040405864, 0x4242424264d80000, 0x0000000000003844,
+  0x4440404444380000, 0x00000c040404344c, 0x444444444c360000,
+  0x0000000000003844, 0x447c404444380000, 0x00000c1210107c10,
+  0x1010101010380000, 0x0000000000003e44, 0x44444c3404444438,
+  0x0000c04040405864, 0x4444444444ee0000, 0x0000001010003010,
+  0x1010101010380000, 0x0000000808003808, 0x0808080808484830,
+  0x0000c0404040404c, 0x4850605048ee0000, 0x0000301010101010,
+  0x1010101010380000, 0x000000000000e854, 0x5454545454d60000,
+  0x000000000000d864, 0x4444444444ee0000, 0x0000000000003c42,
+  0x42424242423c0000, 0x0000000000007c22, 0x2222223c20202070,
+  0x0000000000003e44, 0x4444443c0404040e, 0x0000000000006c32,
+  0x2220202020700000, 0x0000000000003c42, 0x42300c42423c0000,
+  0x0000001010107c10, 0x10101012120c0000, 0x000000000000cc44,
+  0x444444444c360000, 0x000000000000ee44, 0x4444282810100000,
+  0x000000000000c644, 0x445454546c440000, 0x000000000000c644,
+  0x2810102844c60000, 0x000000000000ee44, 0x4424281808109060,
+  0x0000000000007e42, 0x04081020427e0000, 0x00000c1010101020,
+  0x10101010100c0000, 0x0000001010101010, 0x1010101010100000,
+  0x0000300808080804, 0x0808080808300000, 0x0000324c00000000,
+  0x0000000000000000
+};
+
 vga_font_t _vga_defaultFont = {
   .charWidth = 8,
   .charHeight = 16,
   .lineHeight = 16,
   .spacing = 1,
-  .characterData = NULL// TODO
+  .characterData = _vga_fontdata_dos_ank_8x16
 };
 const vga_font_t *vga_defaultFont = &_vga_defaultFont;
 
@@ -453,6 +524,30 @@ void vga_pixel(uint16_t x, uint16_t y, uint8_t color) {
   }
 }
 
+#define ACTIVE_FONT_BITS (active_font->charWidth * active_font->charHeight)
+
+void vga_char2masks(char c, uint64_t *masks, uint16_t offsetBits) {
+  for (uint16_t y = 0; y < active_font->charHeight; y++) {
+    for (uint16_t x0 = 0; x0 < active_font->charWidth; x0++) {
+      size_t charOffsetBits =
+        (c - ' ') * ACTIVE_FONT_BITS + y * active_font->charWidth + x0;
+      size_t charOffsetWords = charOffsetBits >> 6;
+      charOffsetBits &= 0x3f;
+
+      uint16_t x = x0 + offsetBits;
+      uint16_t xWord = x >> 6;
+      x &= 0x3f;
+
+      uint64_t charBit = (active_font->characterData[charOffsetWords] &
+                          (1ull << (63 - charOffsetBits))) >>
+                         (63 - charOffsetBits);
+
+      uint16_t idx = y * VGA_WIDTH_CHUNKS + xWord;
+      masks[idx] = masks[idx] | (charBit << (63 - x));
+    }
+  }
+}
+
 void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color) {
   // First, calculate the size of the text to be drawn
   size_t len = 0;
@@ -466,43 +561,37 @@ void vga_text(uint16_t x, uint16_t y0, const char *string, uint8_t color) {
   // Allocate memory for the chunks and zero it
   uint64_t masks[VGA_WIDTH_CHUNKS * VGA_FONT_MAX_HEIGHT] = {0};
 
-  // Calculate masks for first and last chunks
-  uint64_t mask0 = 0xffffffffffffffff >> (x & 0x3f);
-  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x + drawWidth) & 0x3f));
-
   uint16_t chunk0 = x >> 6;
   uint16_t chunk1 = (x + drawWidth) >> 6;
   size_t hchunks = chunk1 - chunk0 + 1;
 
-  if (chunk0 == chunk1) mask0 &= mask1;
+  // Draw character bitmaps to masks
+  uint16_t maskOffset = x & 0x3f;
+  for (uint16_t i = 0; i < len; i++) {
+    char c = string[i];
+    vga_char2masks(
+      c, masks,
+      maskOffset + i * active_font->charWidth +
+        (i == 0 ? 0 : i - 1) * active_font->spacing
+    );
+  }
 
-  mask0 = reversebytes(mask0);
-  mask1 = reversebytes(mask1);
+  for (uint16_t i = 0; i < VGA_WIDTH_CHUNKS * VGA_FONT_MAX_HEIGHT; i++)
+    masks[i] = reversebytes(masks[i]);
 
-  // TODO Draw character bitmaps to masks
-
-  uint16_t pchunk0, pchunk1;
   uint16_t y1 = y0 + drawHeight;
+  uint8_t pmask = 1;
   for (uint8_t p = 0; p < 4; p++) {
     _vga_setplane(p);
 
     for (uint16_t y = y0; y < y1; y++) {
-      pchunk0 = chunk0, pchunk1 = chunk1;
-
-      // Draw first (partial) chunk
-      vga_hchunkMasked(pchunk0, y, 0xffffffffffffffff, mask0);
-      pchunk0++;
-
-      if (pchunk1 >= pchunk0) {
-        // Draw last (partial) chunk
-        vga_hchunkMasked(pchunk1, y, 0xffffffffffffffff, mask1);
-        pchunk1--;
-      }
-
-      if (pchunk1 >= pchunk0) {
-        // Draw chunks in between
-        vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y, 0xffffffffffffffff);
+      for (uint16_t ci = 0; ci < hchunks; ci++) {
+        vga_hchunkMasked(
+          chunk0 + ci, y, color & pmask ? 0xffffffffffffffff : 0x0,
+          masks[(y - y0) * VGA_WIDTH_CHUNKS + ci]
+        );
       }
     }
+    pmask <<= 1;
   }
 }

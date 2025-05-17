@@ -100,7 +100,7 @@ int main() {
   vga_frame(50, 70, 400, 210, 0x00);
 
   vga_text(58, 78, "Hello world!", 0x00);
-  vga_text(58, 78 + 16, "This is a longer string of text, skibidi ohio", 0x00);
+  vga_text(58, 78 + 16, "This is a longer string of text", 0x04);
 
   vga_line(520, 10, 600, 30, 0x07);
   vga_line(520, 20, 600, 50, 0x07);
