@@ -12,11 +12,13 @@ GLOBAL _irq02Handler
 GLOBAL _irq03Handler
 GLOBAL _irq04Handler
 GLOBAL _irq05Handler
+GLOBAL _irq80Handler
 
 GLOBAL _exception0Handler
 
 EXTERN irqDispatcher
 EXTERN exceptionDispatcher
+EXTERN syscallDispatcher
 
 SECTION .text
 
@@ -148,7 +150,36 @@ haltcpu:
 	hlt
 	ret
 
+_irq80Handler:
+  ; Preservo registros
+  push rdi
+  push rsi
+  push rdx
+  push rcx
+  push r8
+  push r9
 
+  ; Paso los argumentos a syscallDispatcher
+  mov rdi, rax              ; syscallID en rax -> se lo paso como primer arg a syscallDispatcher
+  mov rsi, [rsp + 6*8]      ; segundo arg de syscallDispatcher
+  mov rdx, [rsp + 5*8]      ; ...
+  mov rcx, [rsp + 4*8]      ; ...
+  mov r8,  [rsp + 3*8]      ; ...
+  mov r9,  [rsp + 2*8]      ; ...
+
+  call syscallDispatcher
+
+  ; Resultado queda en rax
+
+  ; Restauro registros
+  pop r9
+  pop r8
+  pop rcx
+  pop rdx
+  pop rsi
+  pop rdi
+
+  iretq
 
 SECTION .bss
 	aux resq 1
