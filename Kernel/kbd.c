@@ -104,9 +104,10 @@
           return buff;// esto no se si se libera ;- ;
         }else if(scancode_to_special[currKey]!=0){//si es tecla especial
           buff.isChar=0;
-          addCharToBuff(scancode_to_special[currKey],&buff);
+          buff.data[i]=scancode_to_special[currKey];
+          // addCharToBuff(scancode_to_special[currKey],&buff);
         }else{
-          addCharToBuff(scancode_to_ascii[currKey],&buff); // si es tecla normal
+          buff.data[i]=scancode_to_ascii[currKey];// si es tecla normal
         }
       
       }
@@ -114,12 +115,10 @@
 
     }
 
-    char* _kbd_readChar(){
-
-      //return scancode_to_ascii[_kbd_read()][0]; //con readChar anda
+    char* _kbd_readString(){
 
       struct buffer buff = _kbd_readKeyCombo();
-      // return buff.data[0][0]; // con readchar anda
+      return buff.data[0]; // con readchar anda
 
       if( buff.isChar == 1 ){
         return buff.data[0];

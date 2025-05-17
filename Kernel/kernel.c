@@ -102,14 +102,24 @@ int main()
 	ncNewline();
 
 	ncClear();
+	int i=0;
 	while (1)
 	{
-		struct buffer aux = _kbd_readKeyCombo(); //no se como recibir el struct ;-; todavia
-		if(aux.isChar){
-			ncPrint(aux.data[0]);
-		}else{
-			//es un comando 
-		}
+		// struct buffer aux = _kbd_readKeyCombo(); //no se como recibir el struct ;-; todavia
+		// if(aux.isChar){
+		// 	ncPrint(aux.data[0]);
+		// }else{
+		// 	//es un comando 
+		// }
+		
+		
+		if(i>=20){_kbd_read(); ncClear();i=0;}i++;
+		char* aux = _kbd_readString();
+		ncPrint(aux);
+		ncPrint("//");
+		ncPrintHex(aux);
+		ncPrint("/h");
+		ncNewline();
 	}	
 
 	ncPrint("[Finished]");
