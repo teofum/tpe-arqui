@@ -4,6 +4,8 @@
 #include <moduleLoader.h>
 #include <naiveConsole.h>
 
+#include "kbd.h"
+
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -102,13 +104,13 @@ int main()
 	ncClear();
 	while (1)
 	{
-		char* aux = _kbd_readKeyCombo();
-		ncPrintChar(aux);
-		ncPrint("//");
-		ncPrintHex(aux);
-		ncNewline();
-	}
-	
+		struct buffer aux = _kbd_readKeyCombo(); //no se como recibir el struct ;-; todavia
+		if(aux.isChar){
+			ncPrint(aux.data[0]);
+		}else{
+			//es un comando 
+		}
+	}	
 
 	ncPrint("[Finished]");
 	return 0;
