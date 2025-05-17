@@ -12,6 +12,7 @@
     /*
     // Keyboard us, 
     // todo: revisar los valores
+    // la de specials se podria insertar en las otras
     */
     const char* scancode_to_ascii[128] = {
      0  , 27 ,"1" ,"2" ,"3" ,"4" ,"5" ,"6" , // 0x00 - 0x07
@@ -71,17 +72,10 @@
     [0x46] = "ScrollLock"
     };
     
-    
-    // /* Buffer circular con flags adicionales*/
-    // struct buffer{
-    // char* data[BUFFER_SIZE];
-    // int write_pos;
-    // uint8_t isChar; //flag
-    // };
 
     /* Verifica si el buffer está lleno */
-    uint8_t isBuffFull(struct buffer buff) {
-      return buff.write_pos<BUFFER_SIZE;
+    uint8_t isBuffFull(struct buffer* buff) {
+      return buff->write_pos<BUFFER_SIZE;
     }
 
     /* Agrega un carácter al buffer */
@@ -90,24 +84,33 @@
       buff->write_pos+=1;
     }
 
+    char* scancodeToString(uint8_t sc){
+      if(scancode_to_special[sc]!=0){
+        return scancode_to_special[sc];
+      }else{
+        return scancode_to_ascii[sc];
+      }
+    }
+
+    /* Llena el buffer con una combinacion de teclas */
     struct buffer _kbd_readKeyCombo(){
 
       struct buffer buff = {.data={0}, .write_pos=0, .isChar=1};
 
       char firstKey =_kbd_read();
-      addCharToBuff(scancode_to_ascii[firstKey],&buff);
+      addCharToBuff(scancodeToString(firstKey),&buff);
 
-      for(int i=0;i<BUFFER_SIZE;i++){
+      for(int i=1;i<BUFFER_SIZE;i++){
         char currKey =_kbd_read();
 
         if( currKey & 0x80 && currKey & firstKey){ //deberia validar si es el release de la primera tecla
-          return buff;// esto no se si se libera ;- ;
+          return buff;
         }else if(scancode_to_special[currKey]!=0){//si es tecla especial
           buff.isChar=0;
           buff.data[i]=scancode_to_special[currKey];
-          // addCharToBuff(scancode_to_special[currKey],&buff);
-        }else{
-          buff.data[i]=scancode_to_ascii[currKey];// si es tecla normal
+          
+        }else{                                    // si es tecla normal
+          buff.data[i]=scancode_to_ascii[currKey];
         }
       
       }
@@ -118,12 +121,7 @@
     char* _kbd_readString(){
 
       struct buffer buff = _kbd_readKeyCombo();
-      return buff.data[0]; // con readchar anda
+      return buff.data[0];
 
-      if( buff.isChar == 1 ){
-        return buff.data[0];
-      }else{
-        return 0xff;        //es un caso especial
-      }
     }
 
