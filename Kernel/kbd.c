@@ -1,6 +1,6 @@
 #include <kbd.h>
 
-#define BUFFER_SIZE    64
+#define BUFFER_SIZE    64 
 
 #define SHIFT 0x2A
 #define SHIFT_R 0x36
@@ -8,6 +8,13 @@
 #define CTRL 0x1D
 #define ALT 0x38
 #define CAPLOCK 0x3A
+
+#define BUFFER_SIZE 64
+struct buffer{
+char* data[BUFFER_SIZE];
+int write_pos;
+uint8_t isChar; //flag
+};
 
     /*
     // Keyboard us, 
@@ -84,6 +91,7 @@
       buff->write_pos+=1;
     }
 
+    /* Pasa de scan code a string_(:v\)/_*/ //nota: no altera la flag, asiq no lo uses en cualquier lado
     char* scancodeToString(uint8_t sc){
       if(scancode_to_special[sc]!=0){
         return scancode_to_special[sc];
@@ -108,7 +116,7 @@
         }else if(scancode_to_special[currKey]!=0){//si es tecla especial
           buff.isChar=0;
           buff.data[i]=scancode_to_special[currKey];
-          
+
         }else{                                    // si es tecla normal
           buff.data[i]=scancode_to_ascii[currKey];
         }
@@ -118,6 +126,7 @@
 
     }
 
+    /* returns the first key pressed /TESTING ONELY */
     char* _kbd_readString(){
 
       struct buffer buff = _kbd_readKeyCombo();
