@@ -43,7 +43,7 @@
      0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    // 0x58 - 0x5F
     };
     
-    const char* scancode_to_special[128] = {
+    const char* scancode_to_special[128] = {//chequiar los f1
     [0x00] = "NULL",
     [0x01] = "ESC",
     [0x0E] = "Backspace",
@@ -85,9 +85,9 @@
     }
 
     /* Agrega un carácter al buffer */
-    void addCharToBuff(char* c,struct buffer buff) {
-      buff.data[buff.write_pos]=c;
-      buff.write_pos+=1;
+    void addCharToBuff(char* c,struct buffer* buff) {
+      buff->data[buff->write_pos]=c;
+      buff->write_pos+=1;
     }
 
     struct buffer _kbd_readKeyCombo(){
@@ -95,22 +95,36 @@
       struct buffer buff = {.data={0}, .write_pos=0, .isChar=1};
 
       char firstKey =_kbd_read();
-      addCharToBuff(scancode_to_ascii[firstKey],buff);
+      addCharToBuff(scancode_to_ascii[firstKey],&buff);
 
       for(int i=0;i<BUFFER_SIZE;i++){
         char currKey =_kbd_read();
 
         if( currKey & 0x80 && currKey & firstKey){ //deberia validar si es el release de la primera tecla
           return buff;// esto no se si se libera ;- ;
-        }else if(scancode_to_special[currKey]!=0){//si hay teclas
+        }else if(scancode_to_special[currKey]!=0){//si es tecla especial
           buff.isChar=0;
-          addCharToBuff(scancode_to_special[currKey],buff);
+          addCharToBuff(scancode_to_special[currKey],&buff);
         }else{
-          addCharToBuff(scancode_to_special[currKey],buff);
+          addCharToBuff(scancode_to_ascii[currKey],&buff); // si es tecla normal
         }
       
       }
       return buff;
 
+    }
+
+    char* _kbd_readChar(){
+
+      //return scancode_to_ascii[_kbd_read()][0]; //con readChar anda
+
+      struct buffer buff = _kbd_readKeyCombo();
+      // return buff.data[0][0]; // con readchar anda
+
+      if( buff.isChar == 1 ){
+        return buff.data[0];
+      }else{
+        return 0xff;        //es un caso especial
+      }
     }
 
