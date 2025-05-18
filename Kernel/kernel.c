@@ -113,13 +113,22 @@ int main()
 		// }
 		
 		
+
+		// char* aux =_kbd_readString();
+		// ncPrint(aux);
+		// ncPrint("//");
+		// ncPrintHex(aux);
+		// ncPrint("/h");
+		// ncNewline();
+		
+		struct buffer aux = _kbd_readKeyCombo();
+
+		for(int i=0;i<(BUFFER_SIZE-1);i++){
+			ncPrint(aux.data[i]);
+			ncPrint("+");
+		}
+
 		if(i>=20){_kbd_read(); ncClear();i=0;}i++;
-		char* aux = _kbd_readString();
-		ncPrint(aux);
-		ncPrint("//");
-		ncPrintHex(aux);
-		ncPrint("/h");
-		ncNewline();
 	}	
 
 	ncPrint("[Finished]");
