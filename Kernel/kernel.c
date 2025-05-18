@@ -127,6 +127,7 @@ int main()
 			ncPrint(aux.data[i]);
 			ncPrint("+");
 		}
+		ncNewline();
 
 		if(i>=20){_kbd_read(); ncClear();i=0;}i++;
 	}	
