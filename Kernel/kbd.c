@@ -1,6 +1,5 @@
 #include <kbd.h>
 
-#define BUFFER_SIZE    64 
 
 #define SHIFT 0x2A
 #define SHIFT_R 0x36
@@ -9,12 +8,12 @@
 #define ALT 0x38
 #define CAPLOCK 0x3A
 
-#define BUFFER_SIZE 64
-struct buffer{
-char* data[BUFFER_SIZE];
-int write_pos;
-uint8_t isChar; //flag
-};
+// #define BUFFER_SIZE 64
+// struct buffer{
+// char* data[BUFFER_SIZE];
+// int write_pos;
+// uint8_t isChar; //flag
+// };
 
     /*
     // Keyboard us, 
@@ -108,7 +107,7 @@ uint8_t isChar; //flag
       char firstKey =_kbd_read();
       addCharToBuff(scancodeToString(firstKey),&buff);
 
-      for(int i=1;i<BUFFER_SIZE;i++){
+      for(int i=1;i<(BUFFER_SIZE-1);i++){
         char currKey =_kbd_read();
 
         if( currKey & 0x80 && currKey & firstKey){ //deberia validar si es el release de la primera tecla
@@ -128,9 +127,13 @@ uint8_t isChar; //flag
 
     /* returns the first key pressed /TESTING ONELY */
     char* _kbd_readString(){
-
       struct buffer buff = _kbd_readKeyCombo();
       return buff.data[0];
+    }
 
+    /* returns the buffer */
+    char** _kbd_readBuffer(){
+      struct buffer buff =_kbd_readKeyCombo();
+      return buff.data;
     }
 
