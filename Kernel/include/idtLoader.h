@@ -10,9 +10,9 @@
 /* Descriptor de interrupcion */
 typedef struct {
   uint16_t offset_l, selector;
-  uint8_t cero, access;
+  uint8_t zero, access;
   uint16_t offset_m;
-  uint32_t offset_h, other_cero;
+  uint32_t offset_h, other_zero;
 } idtDescriptor_t;
 
 extern void picMasterMask(uint8_t mask);

@@ -19,8 +19,8 @@ static void setup_IDT_Entry (int index, uint64_t offset) {
   idt[index].offset_m = (offset >> 16) & 0xFFFF;
   idt[index].offset_h = (offset >> 32) & 0xFFFFFFFF;
   idt[index].access = ACS_INT;
-  idt[index].cero = 0;
-  idt[index].other_cero = (uint64_t) 0;
+  idt[index].zero = 0;
+  idt[index].other_zero = (uint64_t) 0;
 }
 
 #pragma pack(pop)		/* Reestablece la alinceación actual */
