@@ -110,8 +110,10 @@
       for(int i=1;i<(BUFFER_SIZE-1);i++){
         char currKey =_kbd_read();
 
-        if( currKey & 0x80 && currKey & firstKey){ //deberia validar si es el release de la primera tecla
-          return buff;
+        if( currKey & 0x80 ){ //deberia validar si es el release de la primera tecla
+          if( (currKey & firstKey)==firstKey ){
+            return buff;
+          }
         }else if(scancode_to_special[currKey]!=0){//si es tecla especial
           buff.isChar=0;
           buff.data[i]=scancode_to_special[currKey];

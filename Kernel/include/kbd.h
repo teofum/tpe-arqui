@@ -11,7 +11,7 @@ uint8_t isChar; //flag
 };
 
 extern uint8_t _kbd_read();
-
+extern uint8_t _kbd_readState();
 
 struct buffer _kbd_readKeyCombo();
 
