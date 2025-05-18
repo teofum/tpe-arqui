@@ -104,16 +104,22 @@
 
       struct buffer buff = {.data={0}, .write_pos=0, .isChar=1};
 
+      // int presscount=0;
       char firstKey =_kbd_read();
       addCharToBuff(scancodeToString(firstKey),&buff);
 
       for(int i=1;i<(BUFFER_SIZE-1);i++){
         char currKey =_kbd_read();
+        // presscount++;
 
-        if( currKey & 0x80 ){ //deberia validar si es el release de la primera tecla
-          if( (currKey & firstKey)==firstKey ){
-            return buff;
+        if( currKey & 0x80 ){              //valida si es un release
+          if( (currKey & firstKey)==firstKey ){//deberia validar si es el release de la primera tecla
+            // for(int i=0; i<presscount;i++){//vaciar el buffer de releases
+            //   _kbd_read();
+            // }
+              return buff;
           }
+          // presscount-2;
         }else if(scancode_to_special[currKey]!=0){//si es tecla especial
           buff.isChar=0;
           buff.data[i]=scancode_to_special[currKey];
@@ -127,7 +133,7 @@
 
     }
 
-    /* returns the first key pressed /TESTING ONELY */
+    /* returns the first key pressed /TESTING ONLY */
     char* _kbd_readString(){
       struct buffer buff = _kbd_readKeyCombo();
       return buff.data[0];
