@@ -1,17 +1,14 @@
-#include <time.h>
-#include <stdint.h>
+#include <irqDispatcher.h>
 
-static void int_20();
+void (*irqHandlers[MAX_INTERRUPTS])();
 
 void irqDispatcher(uint64_t irq) {
-	switch (irq) {
-		case 0:
-			int_20();
-			break;
-	}
-	return;
+  if (irq < MAX_INTERRUPTS)
+    irqHandlers[irq]();
 }
 
-void int_20() {
-	timer_handler();
+void setInterruptHandler(uint64_t irq, void (*handler)()) {
+  if (irq < MAX_INTERRUPTS)
+    irqHandlers[irq] = handler;
 }
+

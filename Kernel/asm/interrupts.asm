@@ -1,65 +1,35 @@
-
-GLOBAL _cli
-GLOBAL _sti
-GLOBAL picMasterMask
-GLOBAL picSlaveMask
-GLOBAL haltcpu
-GLOBAL _hlt
-
-GLOBAL _irq00Handler
-GLOBAL _irq01Handler
-GLOBAL _irq02Handler
-GLOBAL _irq03Handler
-GLOBAL _irq04Handler
-GLOBAL _irq05Handler
-GLOBAL _irq80Handler
-
-GLOBAL _exception0Handler
-
-EXTERN irqDispatcher
-EXTERN exceptionDispatcher
-EXTERN syscallDispatcher
-
 SECTION .text
 
-%macro pushState 0
+%macro pushall 0
 	push rax
-	push rbx
 	push rcx
 	push rdx
-	push rbp
-	push rdi
 	push rsi
+	push rdi
 	push r8
 	push r9
 	push r10
 	push r11
-	push r12
-	push r13
-	push r14
-	push r15
 %endmacro
 
-%macro popState 0
-	pop r15
-	pop r14
-	pop r13
-	pop r12
+%macro popall 0
 	pop r11
 	pop r10
 	pop r9
 	pop r8
-	pop rsi
 	pop rdi
-	pop rbp
+	pop rsi
 	pop rdx
 	pop rcx
-	pop rbx
 	pop rax
 %endmacro
 
+
+EXTERN irqDispatcher
 %macro irqHandlerMaster 1
-	pushState
+	pushall
+  push rbp
+  mov rbp, rsp
 
 	mov rdi, %1 ; pasaje de parametro
 	call irqDispatcher
@@ -68,118 +38,87 @@ SECTION .text
 	mov al, 20h
 	out 20h, al
 
-	popState
+  mov rsp, rbp
+  pop rbp
+	popall
 	iretq
 %endmacro
 
 
-
-%macro exceptionHandler 1
-	pushState
-
-	mov rdi, %1 ; pasaje de parametro
-	call exceptionDispatcher
-
-	popState
-	iretq
-%endmacro
-
-
+GLOBAL _hlt
 _hlt:
-	sti
+  sti
 	hlt
 	ret
 
+GLOBAL _cli
 _cli:
 	cli
 	ret
 
 
+GLOBAL _sti
 _sti:
 	sti
 	ret
 
-picMasterMask:
-	push rbp
-    mov rbp, rsp
-    mov ax, di
-    out	21h,al
-    pop rbp
-    retn
 
-picSlaveMask:
-	push    rbp
-    mov     rbp, rsp
-    mov     ax, di  ; ax = mascara de 16 bits
-    out	0A1h,al
-    pop     rbp
-    retn
-
-
-;8254 Timer (Timer Tick)
-_irq00Handler:
-	irqHandlerMaster 0
-
-;Keyboard
-_irq01Handler:
-	irqHandlerMaster 1
-
-;Cascade pic never called
-_irq02Handler:
-	irqHandlerMaster 2
-
-;Serial Port 2 and 4
-_irq03Handler:
-	irqHandlerMaster 3
-
-;Serial Port 1 and 3
-_irq04Handler:
-	irqHandlerMaster 4
-
-;USB
-_irq05Handler:
-	irqHandlerMaster 5
-
-
-;Zero Division Exception
-_exception0Handler:
-	exceptionHandler 0
-
+GLOBAL haltcpu
 haltcpu:
 	cli
 	hlt
 	ret
 
+
+GLOBAL picMasterMask
+picMasterMask:
+  mov rax, rdi
+  out	21h, al
+  ret
+
+GLOBAL picSlaveMask
+picSlaveMask:
+  mov rax, rdi  ; ax = mascara de 16 bits
+  out	0A1h, al
+  ret
+
+;8254 Timer (Timer Tick)
+GLOBAL _irq00Handler
+_irq00Handler:
+	irqHandlerMaster 0
+
+;Keyboard
+;GLOBAL _irq01Handler
+;_irq01Handler:
+;	irqHandlerMaster 1
+
+GLOBAL _irq80Handler
+EXTERN syscallDispatchTable
 _irq80Handler:
-  ; Preservo registros
-  push rdi
-  push rsi
-  push rdx
-  push rcx
-  push r8
-  push r9
+  push rbp
+  mov rbp, rsp
 
-  ; Paso los argumentos a syscallDispatcher
-  mov rdi, rax              ; syscallID en rax -> se lo paso como primer arg a syscallDispatcher
-  mov rsi, [rsp + 6*8]      ; segundo arg de syscallDispatcher
-  mov rdx, [rsp + 5*8]      ; ...
-  mov rcx, [rsp + 4*8]      ; ...
-  mov r8,  [rsp + 3*8]      ; ...
-  mov r9,  [rsp + 2*8]      ; ...
+  mov rax, [syscallDispatchTable + rax * 8]
+  call rax
 
-  call syscallDispatcher
-
-  ; Resultado queda en rax
-
-  ; Restauro registros
-  pop r9
-  pop r8
-  pop rcx
-  pop rdx
-  pop rsi
-  pop rdi
-
+  mov rsp, rbp
+  pop rbp
   iretq
 
-SECTION .bss
-	aux resq 1
+
+;EXTERN exceptionDispatcher
+;%macro exceptionHandler 1
+;	pushState
+;
+;	mov rdi, %1 ; pasaje de parametro
+;	call exceptionDispatcher
+;
+;	popState
+;	iretq
+;%endmacro
+
+
+;Zero Division Exception
+;GLOBAL _exception0Handler
+;_exception0Handler:
+;	exceptionHandler 0
