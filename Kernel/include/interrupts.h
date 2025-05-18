@@ -1,26 +1,45 @@
-#ifndef INTERRUPS_H_
-#define INTERRUPS_H_
+#ifndef INTERRUPTS_H
+#define INTERRUPTS_H
 
-#include <idtLoader.h>
+#include <stdint.h>
+#include <libasm.h>
 
+#define ID_TIMER_TICK 0x20
+//#define ID_KEYBOARD 0x21
+#define ID_SYSCALL 0x80
+
+#define MAX_INTERRUPTS 256
+#define MAX_SYSCALLS 256
+
+/* Descriptor de interrupción */
+typedef struct {
+  uint16_t offset_l, selector;
+  uint8_t zero, access;
+  uint16_t offset_m;
+  uint32_t offset_h, other_zero;
+} idtDescriptor_t;
+
+void load_idt(void);
+
+/* Handlers de interrupciones */
 void _irq00Handler(void);
-// void _irq01Handler(void);
 void _irq80Handler(void);
-
+// void _irq01Handler(void);
 // void _exception0Handler(void);
 
-void _cli(void);
+/* Manejo de IRQs */
+void irqDispatcher(uint64_t irq);
+void setInterruptHandler(uint64_t irq, void (*handler)());
 
-void _sti(void);
+/* Manejo de syscalls */
+void initSyscalls(void);
+void registerSyscall(uint64_t id, void *syscall);
 
-void _hlt(void);
+/* Funciones externas asm */
+extern void picMasterMask(uint8_t mask);
+extern void picSlaveMask(uint8_t mask);
+extern void _cli(void);
+extern void _sti(void);
 
-void picMasterMask(uint8_t mask);
-
-void picSlaveMask(uint8_t mask);
-
-//Termina la ejecución de la cpu.
-void haltcpu(void);
-
-#endif /* INTERRUPS_H_ */
+#endif /* INTERRUPTS_H */
 
