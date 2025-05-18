@@ -20,8 +20,8 @@ SECTION .text
 EXTERN irqDispatcher
 %macro irqHandlerMaster 1
 	pushall
-  push rbp
-  mov rbp, rsp
+    push rbp
+    mov rbp, rsp
 
 	mov rdi, %1 ; pasaje de parametro
 	call irqDispatcher
@@ -30,8 +30,8 @@ EXTERN irqDispatcher
 	mov al, 20h
 	out 20h, al
 
-  mov rsp, rbp
-  pop rbp
+    mov rsp, rbp
+    pop rbp
 	popall
 	iretq
 %endmacro
@@ -119,9 +119,9 @@ _irq00Handler:
 	irqHandlerMaster 0
 
 ; Keyboard handler (comentado por ahora)
-;GLOBAL _irq01Handler
-;_irq01Handler:
-;	irqHandlerMaster 1
+GLOBAL _irq01Handler
+_irq01Handler:
+	irqHandlerMaster 1
 
 ; Syscall handler (IRQ 80h)
 GLOBAL _irq80Handler

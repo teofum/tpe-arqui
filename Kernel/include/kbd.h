@@ -2,19 +2,31 @@
 #define KBD_H
 #include <stdint.h>
 
-#define BUFFER_SIZE    5
+#define KBD_BUFFER_SIZE 128
 
-struct buffer{
-char* data[BUFFER_SIZE];
-int write_pos;
-uint8_t isChar; //flag
-};
+typedef struct {
+  uint8_t data[KBD_BUFFER_SIZE];
+  int writePos, readPos;
+} kbd_buffer_t;
 
-extern uint8_t _kbd_read();
-extern uint8_t _kbd_readState();
+/*
+ * Consumes all events (scancodes) in queue and updates keyboard state
+ */
+void kbd_pollEvents();
 
-struct buffer _kbd_readKeyCombo();
+/*
+ * Returns 1 if key is pressed, 0 if not.
+ */
+int kbd_keydown(uint8_t key);
 
+/*
+ * Returns 1 if key was pressed since last pollEvents call.
+ */
+int kbd_keypressed(uint8_t key);
 
+/*
+ * Returns 1 if key was pressed since last pollEvents call.
+ */
+int kbd_keyreleased(uint8_t key);
 
 #endif
