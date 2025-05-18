@@ -20,8 +20,8 @@ SECTION .text
 EXTERN irqDispatcher
 %macro irqHandlerMaster 1
 	pushall
-    push rbp
-    mov rbp, rsp
+  push rbp
+  mov rbp, rsp
 
 	mov rdi, %1 ; pasaje de parametro
 	call irqDispatcher
@@ -30,8 +30,8 @@ EXTERN irqDispatcher
 	mov al, 20h
 	out 20h, al
 
-    mov rsp, rbp
-    pop rbp
+  mov rsp, rbp
+  pop rbp
 	popall
 	iretq
 %endmacro
@@ -68,7 +68,7 @@ cpuVendor:
 
 GLOBAL _hlt
 _hlt:
-    sti
+  sti
 	hlt
 	ret
 
@@ -98,16 +98,16 @@ haltcpu:
 ; Establece la máscara del PIC maestro
 GLOBAL picMasterMask
 picMasterMask:
-    mov rax, rdi
-    out	21h, al
-    ret
+  mov rax, rdi
+  out	21h, al
+  ret
 
 ; Establece la máscara del PIC esclavo
 GLOBAL picSlaveMask
 picSlaveMask:
-    mov rax, rdi  ; ax = mascara de 16 bits
-    out	0A1h, al
-    ret
+  mov rax, rdi  ; ax = mascara de 16 bits
+  out	0A1h, al
+  ret
 
 ; -----------------------------------------------------------------------------
 ; Handlers de interrupciones
@@ -127,15 +127,15 @@ _irq00Handler:
 GLOBAL _irq80Handler
 EXTERN syscallDispatchTable
 _irq80Handler:
-    push rbp
-    mov rbp, rsp
+  push rbp
+  mov rbp, rsp
 
-    mov rax, [syscallDispatchTable + rax * 8]
-    call rax
+  mov rax, [syscallDispatchTable + rax * 8]
+  call rax
 
-    mov rsp, rbp
-    pop rbp
-    iretq
+  mov rsp, rbp
+  pop rbp
+  iretq
 
 ; Exception handlers (comentados por ahora)
 ;EXTERN exceptionDispatcher
