@@ -50,6 +50,23 @@ void kbd_pollEvents() {
   }
 }
 
+/*
+ * Returns 1 if key is pressed, 0 if not.
+ */
+int kbd_keydown(uint8_t key) { return kbd_state[key]; }
+
+/*
+ * Returns 1 if key was pressed since last pollEvents call.
+ */
+int kbd_keypressed(uint8_t key) {
+  return (kbd_state[key] && !kbd_lastState[key]);
+}
+
+/*
+ * Returns 1 if key was pressed since last pollEvents call.
+ */
+int kbd_keyreleased(uint8_t key) { return (!kbd_state[key] && kbd_lastState); }
+
 // /*
 // // Keyboard us,
 // // todo: revisar los valores
