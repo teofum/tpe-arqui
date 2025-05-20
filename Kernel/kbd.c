@@ -1,26 +1,29 @@
 #include <kbd.h>
 #include <string.h>
 
-#define SHIFT 0x2A
-#define SHIFT_R 0x36
-#define BACKSPACE 0x0E
-#define CTRL 0x1D
-#define ALT 0x38
-#define CAPLOCK 0x3A
-
-const char *scancode_to_special[128] = { // chequiar los f1
-    [0x00] = "NULL",      [0x01] = "ESC",         [0x0E] = "Backspace",
-    [0x0F] = "Tab",       [0x1C] = "Enter",       [0x1D] = "Ctrl",
-    [0x2A] = "Shift",     [0x36] = "Right Shift", [0x38] = "Alt",
-    [0x39] = "Space",     [0x3A] = "CapsLock",    [0x3B] = "F1",
-    [0x3C] = "F2",        [0x3D] = "F3",          [0x3E] = "F4",
-    [0x3F] = "F5",        [0x40] = "F6",          [0x41] = "F7",
-    [0x42] = "F8",        [0x43] = "F9",          [0x44] = "F10",
-    [0x57] = "F11",       [0x58] = "F12",         [0x45] = "NumLock",
-    [0x46] = "ScrollLock"};
+// const char *scancode_to_special[128] = { // chequiar los f1
+//     [0x00] = "NULL",      [0x01] = "ESC",         [0x0E] = "Backspace",
+//     [0x0F] = "Tab",       [0x1C] = "Enter",       [0x1D] = "Ctrl",
+//     [0x2A] = "Shift",     [0x36] = "Right Shift", [0x38] = "Alt",
+//     [0x39] = "Space",     [0x3A] = "CapsLock",    [0x3B] = "F1",
+//     [0x3C] = "F2",        [0x3D] = "F3",          [0x3E] = "F4",
+//     [0x3F] = "F5",        [0x40] = "F6",          [0x41] = "F7",
+//     [0x42] = "F8",        [0x43] = "F9",          [0x44] = "F10",
+//     [0x57] = "F11",       [0x58] = "F12",         [0x45] = "NumLock",
+//     [0x46] = "ScrollLock"};
+typedef enum {
+  SC_CTRL = 0x1D, // Left Ctrl
+  SC_LSHIFT = 0x2A,
+  SC_RSHIFT = 0x36,
+  SC_ALT = 0x38, // Left Alt
+  SC_CAPLOCK = 0x3A,
+} ScancodeSpecial;
 
 #define scancodeToKey(x) ((x) & 0x7f)
 #define isReleased(x) ((x) & 0x80)
+#define isSpecial(x)                                                           \
+  (((x) == SC_CTRL) || ((x) == SC_LSHIFT) || ((x) == SC_RSHIFT) ||             \
+   ((x) == SC_ALT) || ((x) == SC_CAPLOCK))
 
 #define next(x) x = (x + 1) % KBD_BUFFER_SIZE
 
@@ -55,7 +58,7 @@ void kbd_pollEvents() {
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
-    if (scancodeToKey(scancode) == CAPLOCK) { //  togle caplock on press
+    if (scancodeToKey(scancode) == SC_CAPLOCK) { //  togle caplock on press
       if (!(isReleased(scancode))) {
         kbd_state[scancodeToKey(scancode)] =
             !(kbd_state[scancodeToKey(scancode)]);
@@ -86,7 +89,7 @@ kbd_event_t kbd_getKeyEvent() {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
     next(kbd_buffer.readPos);
 
-    if ((scancode_to_special[scancode] != 0) || isReleased(scancode)) {
+    if ((isSpecial(scancode) != 0) || isReleased(scancode)) {
       // es una especial o un release ? actualiza el estado del teclado:;
 
       kbd_state[scancodeToKey(scancode)] = isReleased(scancode) ? 0 : 1;
@@ -97,12 +100,11 @@ kbd_event_t kbd_getKeyEvent() {
       kbd_state[scancodeToKey(scancode)] = 1;
       kbd_event.scancode = scancode;
 
-      kbd_event.alt = kbd_state[ALT];
-      kbd_event.backspace = kbd_state[BACKSPACE];
-      kbd_event.caplock = kbd_state[CAPLOCK];
-      kbd_event.ctrl = kbd_state[CTRL];
-      kbd_event.shift = kbd_state[SHIFT];
-      kbd_event.shift_r = kbd_state[SHIFT_R];
+      kbd_event.alt = kbd_state[SC_ALT];
+      kbd_event.caplock = kbd_state[SC_CAPLOCK];
+      kbd_event.ctrl = kbd_state[SC_CTRL];
+      kbd_event.shift = kbd_state[SC_LSHIFT];
+      kbd_event.shift_r = kbd_state[SC_RSHIFT];
 
       return kbd_event;
     }
