@@ -8,6 +8,17 @@
 #define ALT 0x38
 #define CAPLOCK 0x3A
 
+const char *scancode_to_special[128] = { // chequiar los f1
+    [0x00] = "NULL",      [0x01] = "ESC",         [0x0E] = "Backspace",
+    [0x0F] = "Tab",       [0x1C] = "Enter",       [0x1D] = "Ctrl",
+    [0x2A] = "Shift",     [0x36] = "Right Shift", [0x38] = "Alt",
+    [0x39] = "Space",     [0x3A] = "CapsLock",    [0x3B] = "F1",
+    [0x3C] = "F2",        [0x3D] = "F3",          [0x3E] = "F4",
+    [0x3F] = "F5",        [0x40] = "F6",          [0x41] = "F7",
+    [0x42] = "F8",        [0x43] = "F9",          [0x44] = "F10",
+    [0x57] = "F11",       [0x58] = "F12",         [0x45] = "NumLock",
+    [0x46] = "ScrollLock"};
+
 #define scancodeToKey(x) ((x) & 0x7f)
 #define isReleased(x) ((x) & 0x80)
 
@@ -133,16 +144,7 @@ kbd_event_t kbd_getKeyEvent() {
 //     0,    0,   0,   0,   0,    0,   0,    0     // 0x58 - 0x5F
 // };
 //
-const char *scancode_to_special[128] = { // chequiar los f1
-    [0x00] = "NULL",      [0x01] = "ESC",         [0x0E] = "Backspace",
-    [0x0F] = "Tab",       [0x1C] = "Enter",       [0x1D] = "Ctrl",
-    [0x2A] = "Shift",     [0x36] = "Right Shift", [0x38] = "Alt",
-    [0x39] = "Space",     [0x3A] = "CapsLock",    [0x3B] = "F1",
-    [0x3C] = "F2",        [0x3D] = "F3",          [0x3E] = "F4",
-    [0x3F] = "F5",        [0x40] = "F6",          [0x41] = "F7",
-    [0x42] = "F8",        [0x43] = "F9",          [0x44] = "F10",
-    [0x57] = "F11",       [0x58] = "F12",         [0x45] = "NumLock",
-    [0x46] = "ScrollLock"};
+
 //
 // /* Verifica si el buffer está lleno */
 // uint8_t isBuffFull(struct buffer *buff) {
