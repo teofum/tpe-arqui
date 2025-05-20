@@ -11,6 +11,8 @@ typedef struct {
 
 typedef struct {
   uint8_t scancode;
+  uint8_t isReleased;
+
   uint8_t shift;
   uint8_t shift_r;
   uint8_t backspace;
