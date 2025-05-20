@@ -44,6 +44,12 @@ void kbd_pollEvents() {
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
+    if (scancodeToKey(scancode) == CAPLOCK) { //  togle caplock on press
+      if (!(isReleased(scancode))) {
+        kbd_state[scancodeToKey(scancode)] =
+            !(kbd_state[scancodeToKey(scancode)]);
+      }
+    }
     kbd_state[scancodeToKey(scancode)] = isReleased(scancode) ? 0 : 1;
     next(kbd_buffer.readPos);
   }
@@ -57,6 +63,39 @@ int kbd_keypressed(uint8_t key) {
 
 int kbd_keyreleased(uint8_t key) {
   return (!kbd_state[key] && kbd_lastState[key]);
+}
+
+/*
+ * tiene que retornar un evento
+ */
+kbd_event_t kbd_getKeyEvent() {
+  kbd_event_t kbd_event = {0};
+
+  while (kbd_buffer.readPos != kbd_buffer.writePos) {
+    uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
+    next(kbd_buffer.readPos);
+
+    if ((scancode_to_special[scancode] != 0) || isReleased(scancode)) {
+      // es una especial o un release ? actualiza el estado del teclado:;
+
+      kbd_state[scancodeToKey(scancode)] = isReleased(scancode) ? 0 : 1;
+    } else {
+      // es un press no especial ? lo actualiza en el estado y lo meta al
+      // y lo meta al state:;
+
+      kbd_state[scancodeToKey(scancode)] = 1;
+      kbd_event.scancode = scancode;
+
+      kbd_event.alt = kbd_state[ALT];
+      kbd_event.backspace = kbd_state[BACKSPACE];
+      kbd_event.caplock = kbd_state[CAPLOCK];
+      kbd_event.ctrl = kbd_state[CTRL];
+      kbd_event.shift = kbd_state[SHIFT];
+      kbd_event.shift_r = kbd_state[SHIFT_R];
+
+      return kbd_event;
+    }
+  }
 }
 
 // /*
@@ -94,16 +133,16 @@ int kbd_keyreleased(uint8_t key) {
 //     0,    0,   0,   0,   0,    0,   0,    0     // 0x58 - 0x5F
 // };
 //
-// const char *scancode_to_special[128] = { // chequiar los f1
-//     [0x00] = "NULL",      [0x01] = "ESC",         [0x0E] = "Backspace",
-//     [0x0F] = "Tab",       [0x1C] = "Enter",       [0x1D] = "Ctrl",
-//     [0x2A] = "Shift",     [0x36] = "Right Shift", [0x38] = "Alt",
-//     [0x39] = "Space",     [0x3A] = "CapsLock",    [0x3B] = "F1",
-//     [0x3C] = "F2",        [0x3D] = "F3",          [0x3E] = "F4",
-//     [0x3F] = "F5",        [0x40] = "F6",          [0x41] = "F7",
-//     [0x42] = "F8",        [0x43] = "F9",          [0x44] = "F10",
-//     [0x57] = "F11",       [0x58] = "F12",         [0x45] = "NumLock",
-//     [0x46] = "ScrollLock"};
+const char *scancode_to_special[128] = { // chequiar los f1
+    [0x00] = "NULL",      [0x01] = "ESC",         [0x0E] = "Backspace",
+    [0x0F] = "Tab",       [0x1C] = "Enter",       [0x1D] = "Ctrl",
+    [0x2A] = "Shift",     [0x36] = "Right Shift", [0x38] = "Alt",
+    [0x39] = "Space",     [0x3A] = "CapsLock",    [0x3B] = "F1",
+    [0x3C] = "F2",        [0x3D] = "F3",          [0x3E] = "F4",
+    [0x3F] = "F5",        [0x40] = "F6",          [0x41] = "F7",
+    [0x42] = "F8",        [0x43] = "F9",          [0x44] = "F10",
+    [0x57] = "F11",       [0x58] = "F12",         [0x45] = "NumLock",
+    [0x46] = "ScrollLock"};
 //
 // /* Verifica si el buffer está lleno */
 // uint8_t isBuffFull(struct buffer *buff) {

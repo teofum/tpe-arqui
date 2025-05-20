@@ -9,6 +9,16 @@ typedef struct {
   int writePos, readPos;
 } kbd_buffer_t;
 
+typedef struct {
+  uint8_t scancode;
+  uint8_t shift;
+  uint8_t shift_r;
+  uint8_t backspace;
+  uint8_t ctrl;
+  uint8_t alt;
+  uint8_t caplock;
+} kbd_event_t;
+
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */
