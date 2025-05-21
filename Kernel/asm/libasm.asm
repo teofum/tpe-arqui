@@ -20,8 +20,8 @@ SECTION .text
 EXTERN irqDispatcher
 %macro irqHandlerMaster 1
 	pushall
-  push rbp
-  mov rbp, rsp
+    push rbp
+    mov rbp, rsp
 
 	mov rdi, %1 ; pasaje de parametro
 	call irqDispatcher
@@ -30,8 +30,8 @@ EXTERN irqDispatcher
 	mov al, 20h
 	out 20h, al
 
-  mov rsp, rbp
-  pop rbp
+    mov rsp, rbp
+    pop rbp
 	popall
 	iretq
 %endmacro
