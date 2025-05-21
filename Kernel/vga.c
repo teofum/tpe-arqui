@@ -230,7 +230,6 @@ void vga_clear(color_t color) {
 
 void vga_pixel(uint16_t x, uint16_t y, color_t color) {
   uint8_t *fb = VGA_FRAMEBUFFER;
-
   uint64_t offset = pixelOffset(x, y);
   putpixel(fb, offset, color);
 }
@@ -259,9 +258,46 @@ void vga_char2masks(char c, uint64_t *masks, uint16_t offsetBits) {
   }
 }
 
+void vga_char(
+  uint16_t x0, uint16_t y0, char c, color_t color, color_t bgColor,
+  uint8_t flags
+) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+
+  for (uint16_t y = 0; y < active_font->charHeight; y++) {
+    uint64_t offset = pixelOffset(x0, y0 + y);
+
+    for (uint16_t x = 0; x < active_font->charWidth; x++) {
+      size_t charOffsetBits =
+        (c - ' ') * ACTIVE_FONT_BITS + y * active_font->charWidth + x;
+      size_t charOffsetWords = charOffsetBits >> 6;
+      charOffsetBits &= 0x3f;
+
+      uint64_t charBit = (active_font->characterData[charOffsetWords] &
+                          (1ull << (63 - charOffsetBits))) >>
+                         (63 - charOffsetBits);
+
+      if (charBit && !(flags & VGA_TEXT_NOFG)) { putpixel(fb, offset, color); }
+      if (!charBit && (flags & VGA_TEXT_BG)) { putpixel(fb, offset, bgColor); }
+
+      offset += OFFSET_X;
+    }
+  }
+}
+
 void vga_text(
-  uint16_t x, uint16_t y0, const char *string, color_t color, uint8_t flags
-) {}
+  uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bgColor,
+  uint8_t flags
+) {
+  size_t i = 0;
+  uint16_t x = x0;
+  while (string[i] != 0) {
+    vga_char(x, y0, string[i], color, bgColor, flags);
+    x += active_font->charWidth + active_font->spacing;
+
+    i++;
+  }
+}
 
 const vga_font_t *vga_font(const vga_font_t *font) {
   const vga_font_t *lastFont = active_font;

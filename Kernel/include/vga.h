@@ -82,6 +82,10 @@ typedef struct {
   const uint64_t *characterData;
 } vga_font_t;
 
+typedef enum {
+  VGA_TEXT_BG = 0x01,
+  VGA_TEXT_NOFG = 0x02,
+} vga_textflags_t;
 
 /*
  * Clear VRAM with a single solid color.
@@ -134,17 +138,20 @@ void vga_shade(
  */
 const vga_font_t *vga_font(const vga_font_t *font);
 
-typedef enum {
-  VGA_TEXT_BG = 0x01,
-} vga_textflags_t;
+
+void vga_char(
+  uint16_t x0, uint16_t y0, char c, color_t color, color_t bgColor,
+  uint8_t flags
+);
 
 /*
- * Draw a line of text at a specific screen position.
+ * Draw a line of text at a specific screen position using the current font.
  * This function does no bounds checking, the user must ensure the text doesn't
  * overflow the screen bounds.
  */
 void vga_text(
-  uint16_t x, uint16_t y0, const char *string, color_t color, uint8_t flags
+  uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bgColor,
+  uint8_t flags
 );
 
 #endif

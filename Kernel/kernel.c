@@ -150,5 +150,10 @@ int main() {
     }
   }
 
+  vga_text(
+    400, 400, "Hello world!", 0x00ff00ff, 0x0000ff00,
+    VGA_TEXT_BG | VGA_TEXT_NOFG
+  );
+
   return 0;
 }
