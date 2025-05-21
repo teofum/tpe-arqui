@@ -118,5 +118,19 @@ int main() {
   //
   // vga_setPalette(vga_pal_macintoshii);
 
+  uint32_t g = 0;
+  int d = 1;
+  while (1) {
+    g += d;
+    if (g == 255 || g == 0) d = -d;
+
+    for (uint32_t y = 0; y < VBE_mode_info->height; y++) {
+      for (uint32_t x = 0; x < VBE_mode_info->width; x++) {
+        color_t color = ((x * 256 / VBE_mode_info->width) << 16) + (g << 8) +
+                        (y * 256 / VBE_mode_info->height);
+        vga_pixel(x, y, color);
+      }
+    }
+  }
   return 0;
 }
