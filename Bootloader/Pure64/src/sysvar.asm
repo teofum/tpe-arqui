@@ -8,15 +8,15 @@
 
 ;CONFIG
 cfg_smpinit:		db 1	; By default SMP is enabled. Set to 0 to disable.
-cfg_vesa:		db 0	; By default VESA is disabled. Set to 1 to enable.
+cfg_vesa:		    db 1	; By default VESA is disabled. Set to 1 to enable.
 cfg_default:		db 0	; By default we don't need a config file so set to 0. If a config file is found set to 1.
-cfg_e820:		db 1	; By default E820 should be present. Pure64 will set this to 0 if not found/usable.
-cfg_mbr:		db 0	; Did we boot off of a disk with a proper MBR
-cfg_hdd:		db 0	; Was a bootable drive detected
+cfg_e820:		    db 1	; By default E820 should be present. Pure64 will set this to 0 if not found/usable.
+cfg_mbr:		    db 0	; Did we boot off of a disk with a proper MBR
+cfg_hdd:		    db 0	; Was a bootable drive detected
 
 ; Memory locations
-E820Map:		equ 0x0000000000004000
-InfoMap:		equ 0x0000000000005000
+E820Map:		    equ 0x0000000000004000
+InfoMap:		    equ 0x0000000000005000
 SystemVariables:	equ 0x0000000000005A00
 VBEModeInfoBlock:	equ 0x0000000000005C00	; 256 bytes
 ahci_cmdlist:		equ 0x0000000000070000	; 4096 bytes	0x070000 -> 0x071FFF

@@ -24,38 +24,52 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
-/*
- * VRAM address in memory
- */
-uint8_t *vram = (uint8_t *) 0xA0000;
+struct vbe_mode_info_structure {
+  uint16_t
+    attributes;// deprecated, only bit 7 should be of interest to you, and it indicates the mode supports a linear frame buffer.
+  uint8_t window_a;    // deprecated
+  uint8_t window_b;    // deprecated
+  uint16_t granularity;// deprecated; used while calculating bank numbers
+  uint16_t window_size;
+  uint16_t segment_a;
+  uint16_t segment_b;
+  uint32_t
+    win_func_ptr;// deprecated; used to switch banks from protected mode without returning to real mode
+  uint16_t pitch;// number of bytes per horizontal line
+  uint16_t width;// width in pixels
+  uint16_t height;// height in pixels
+  uint8_t w_char; // unused...
+  uint8_t y_char; // ...
+  uint8_t planes;
+  uint8_t bpp;  // bits per pixel in this mode
+  uint8_t banks;// deprecated; total number of banks in this mode
+  uint8_t memory_model;
+  uint8_t
+    bank_size;// deprecated; size of a bank, almost always 64 KB but may be 16 KB...
+  uint8_t image_pages;
+  uint8_t reserved0;
 
-/*
- * Graphics mode, 640x480 16 color. Just as God intended.
- */
-vga_mode_descriptor_t _vga_g_640x480x16 = {
-  {0xE3},
-  {0x03, 0x01, 0x08, 0x00, 0x06},
-  {0x5F, 0x4F, 0x50, 0x82, 0x54, 0x80, 0x0B, 0x3E, 0x00, 0x40, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0xEA, 0x0C, 0xDF, 0x28, 0x00, 0xE7, 0x04, 0xE3, 0xFF},
-  {0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x05, 0x0F, 0xFF},
-  {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07, 0x38, 0x39, 0x3A,
-   0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x01, 0x00, 0x0F, 0x00, 0x00}
-};
-const vga_mode_descriptor_t *vga_g_640x480x16 = &_vga_g_640x480x16;
+  uint8_t red_mask;
+  uint8_t red_position;
+  uint8_t green_mask;
+  uint8_t green_position;
+  uint8_t blue_mask;
+  uint8_t blue_position;
+  uint8_t reserved_mask;
+  uint8_t reserved_position;
+  uint8_t direct_color_attributes;
 
-/*
- * Text mode, 80x25
- */
-vga_mode_descriptor_t _vga_t_80x25 = {
-  {0x67},
-  {0x03, 0x00, 0x03, 0x00, 0x02},
-  {0x5F, 0x4F, 0x50, 0x82, 0x55, 0x81, 0xBF, 0x1F, 0x00, 0x4F, 0x0D, 0x0E, 0x00,
-   0x00, 0x00, 0x50, 0x9C, 0x0E, 0x8F, 0x28, 0x1F, 0x96, 0xB9, 0xA3, 0xFF},
-  {0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x0E, 0x00, 0xFF},
-  {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07, 0x38, 0x39, 0x3A,
-   0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x0C, 0x00, 0x0F, 0x08, 0x00}
-};
-const vga_mode_descriptor_t *vga_t_80x25 = &_vga_t_80x25;
+  uint32_t
+    framebuffer;// physical address of the linear frame buffer; write here to draw to the screen
+  uint32_t off_screen_mem_off;
+  uint16_t
+    off_screen_mem_size;// size of memory in the framebuffer but not being displayed on the screen
+  uint8_t reserved1[206];
+} __attribute__((packed));
+
+typedef struct vbe_mode_info_structure *VBEInfoPtr;
+
+VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 /*
  * Font data
@@ -86,137 +100,21 @@ const vga_font_t *vga_comicsans = &_vga_comicsans;
 const vga_font_t *active_font = &_vga_defaultFont;
 
 /*
- * Color palettes
- */
-const vga_palette_t vga_pal_macintoshii = {
-  vga_color(0xFF, 0xFF, 0xFF),// White
-  vga_color(0xFF, 0xFF, 0x00),// Yellow
-  vga_color(0xFF, 0x66, 0x00),// Orange
-  vga_color(0xDD, 0x00, 0x00),// Red
-  vga_color(0xFF, 0x00, 0x99),// Magenta
-  vga_color(0x33, 0x00, 0x99),// Purple
-  vga_color(0x00, 0x00, 0xCC),// Blue
-  vga_color(0x00, 0x99, 0xFF),// Cyan
-  vga_color(0x00, 0xAA, 0x00),// Green
-  vga_color(0x00, 0x66, 0x00),// Dark Green
-  vga_color(0x66, 0x33, 0x00),// Brown
-  vga_color(0x99, 0x66, 0x33),// Tan
-  vga_color(0xBB, 0xBB, 0xBB),// Light Grey
-  vga_color(0x88, 0x88, 0x88),// Medium Grey
-  vga_color(0x44, 0x44, 0x44),// Dark Grey
-  vga_color(0x00, 0x00, 0x00),// Black
-};
-
-extern void _vga_setmode(const vga_mode_descriptor_t *mode);
-extern void _vga_setplane(uint8_t plane);
-extern void _vga_setcolor(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
-extern void _vga_setpalette(uint8_t *bytes);
-
-void vga_setMode(const vga_mode_descriptor_t *mode) { _vga_setmode(mode); }
-
-void vga_gfxMode() { vga_setMode(vga_g_640x480x16); }
-
-void vga_textMode() { vga_setMode(vga_t_80x25); }
-
-/*
- * Internal function for optimized rendering. Draws a 64-pixel "horizontal
- * chunk" to the currently selected VRAM plane.
- * @param x     initial x coordinate, in 64-pixel chunks
- * @param w     line width, in 64-pixel chunks
- * @param y     y coordinate, in pixels
- * @param chunk chunk data for the current plane (1bit per pixel)
- */
-static inline void
-vga_hchunk(uint16_t x, uint16_t w, uint16_t y, uint64_t chunk) {
-  uint64_t *vram64 = (uint64_t *) vram;
-  uint16_t offset = x + VGA_WIDTH_CHUNKS * y;
-
-  for (uint16_t i = 0; i < w; i++) vram64[offset + i] = chunk;
-}
-
-/*
- * Similar to vga_hchunk, but with an additional mask parameter. Bits set to
- * zero in the mask are not drawn (VRAM contents are preserved).
- */
-static inline void
-vga_hchunkMasked(uint16_t x, uint16_t y, uint64_t chunk, uint64_t mask) {
-  uint64_t *vram64 = (uint64_t *) vram;
-  uint16_t offset = x + VGA_WIDTH_CHUNKS * y;
-
-  vram64[offset] = (chunk & mask) | (vram64[offset] & ~mask);
-}
-
-/*
  * Optimized function to draw a horizontal line by chunks, this is very fast.
  */
-static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, uint8_t color) {
-  uint64_t data[4] = color2data(color);
-
-  // Since we're dividing/moduloing by a power of two (64), we can use bitwise
-  // ops to save a bunch of slow integer divisions
-  uint16_t chunk0 = x0 >> 6;// x0 / 64
-  uint16_t chunk1 = x1 >> 6;// x1 / 64
-
-  uint64_t mask0 = 0xffffffffffffffff >> (x0 & 0x3f);
-  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x1 + 1) & 0x3f));
-
-  // Handle special case where line is drawn entirely within a single chunk
-  if (chunk0 == chunk1) mask0 &= mask1;
-
-  // Reverse mask bytes for correct endianness (i hate little endian)
-  mask0 = reversebytes(mask0);
-  mask1 = reversebytes(mask1);
-
-  uint16_t pchunk0, pchunk1;
-  for (uint8_t p = 0; p < 4; p++) {
-    pchunk0 = chunk0, pchunk1 = chunk1;
-    _vga_setplane(p);
-
-    // Draw first (partial) chunk
-    vga_hchunkMasked(pchunk0, y, data[p], mask0);
-    pchunk0++;
-
-    if (pchunk1 >= pchunk0) {
-      // Draw last (partial) chunk
-      vga_hchunkMasked(pchunk1, y, data[p], mask1);
-      pchunk1--;
-    }
-
-    if (pchunk1 >= pchunk0) {
-      // Draw chunks in between
-      vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y, data[p]);
-    }
-  }
-}
+static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, color_t color) {}
 
 /*
  * Optimized function to draw a vertical line. Faster than running Bresenham's
  * algorithm, but not as fast as horizontal drawing.
  */
-static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, uint8_t color) {
-  uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y0;
-  x &= 7;
-  uint8_t mask = 0x80 >> x;
-  uint8_t pmask = 1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-
-    uint16_t poffset = offset;
-    for (uint16_t y = y0; y <= y1; y++) {
-      vram[poffset] =
-        pmask & color ? vram[poffset] | mask : vram[poffset] & ~mask;
-      poffset += VGA_WIDTH >> 3;
-    }
-
-    pmask <<= 1;
-  }
-}
+static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color) {}
 
 /*
  * Bresenham's algorithm for |slope| < 1
  */
 static void
-vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
+vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
   int16_t dx = x1 - x0, dy = y1 - y0;
   int16_t yi = 1;
 
@@ -225,34 +123,34 @@ vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color) {
     dy = -dy;
   }
 
-  uint8_t pmask = 1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-    int16_t D = 2 * dy - dx;
-    int16_t y = y0;
-
-    for (int16_t x = x0; x <= x1; x++) {
-      uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
-      uint8_t mask = 0x80 >> (x & 7);
-      vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
-
-      if (D > 0) {
-        y += yi;
-        D += 2 * (dy - dx);
-      } else {
-        D += 2 * dy;
-      }
-    }
-
-    pmask <<= 1;
-  }
+  // uint8_t pmask = 1;
+  // for (uint8_t p = 0; p < 4; p++) {
+  //   _vga_setplane(p);
+  //   int16_t D = 2 * dy - dx;
+  //   int16_t y = y0;
+  //
+  //   for (int16_t x = x0; x <= x1; x++) {
+  //     uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
+  //     uint8_t mask = 0x80 >> (x & 7);
+  //     vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
+  //
+  //     if (D > 0) {
+  //       y += yi;
+  //       D += 2 * (dy - dx);
+  //     } else {
+  //       D += 2 * dy;
+  //     }
+  //   }
+  //
+  //   pmask <<= 1;
+  // }
 }
 
 /*
  * Bresenham's algorithm for |slope| > 1
  */
 static void
-vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int8_t color) {
+vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
   int16_t dx = x1 - x0, dy = y1 - y0;
   int16_t xi = 1;
 
@@ -261,31 +159,31 @@ vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int8_t color) {
     dx = -dx;
   }
 
-  uint8_t pmask = 1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-    int16_t D = 2 * dx - dy;
-    int16_t x = x0;
-
-    for (int16_t y = y0; y <= y1; y++) {
-      uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
-      uint8_t mask = 0x80 >> (x & 7);
-      vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
-
-      if (D > 0) {
-        x += xi;
-        D += 2 * (dx - dy);
-      } else {
-        D += 2 * dx;
-      }
-    }
-
-    pmask <<= 1;
-  }
+  // uint8_t pmask = 1;
+  // for (uint8_t p = 0; p < 4; p++) {
+  //   _vga_setplane(p);
+  //   int16_t D = 2 * dx - dy;
+  //   int16_t x = x0;
+  //
+  //   for (int16_t y = y0; y <= y1; y++) {
+  //     uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
+  //     uint8_t mask = 0x80 >> (x & 7);
+  //     vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
+  //
+  //     if (D > 0) {
+  //       x += xi;
+  //       D += 2 * (dx - dy);
+  //     } else {
+  //       D += 2 * dx;
+  //     }
+  //   }
+  //
+  //   pmask <<= 1;
+  // }
 }
 
 void vga_line(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
 ) {
   if (y1 == y0) {
     if (x1 == x0) {
@@ -319,177 +217,20 @@ void vga_line(
 }
 
 void vga_rect(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
-) {
-  // Very similar to vga_hline(), but we draw a bunch of horizontal lines at once
-  // The reason we don't just call hline in a loop is so we don't have to do
-  // the plane switching for each scanline
-  uint64_t data[4] = color2data(color);
-
-  uint16_t chunk0 = x0 >> 6;// x0 / 64
-  uint16_t chunk1 = x1 >> 6;// x1 / 64
-
-  uint64_t mask0 = 0xffffffffffffffff >> (x0 & 0x3f);
-  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x1 + 1) & 0x3f));
-
-  if (chunk0 == chunk1) mask0 &= mask1;
-
-  mask0 = reversebytes(mask0);
-  mask1 = reversebytes(mask1);
-
-  uint16_t pchunk0, pchunk1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-
-    for (uint16_t y = y0; y <= y1; y++) {
-      pchunk0 = chunk0, pchunk1 = chunk1;
-
-      // Draw first (partial) chunk
-      vga_hchunkMasked(pchunk0, y, data[p], mask0);
-      pchunk0++;
-
-      if (pchunk1 >= pchunk0) {
-        // Draw last (partial) chunk
-        vga_hchunkMasked(pchunk1, y, data[p], mask1);
-        pchunk1--;
-      }
-
-      if (pchunk1 >= pchunk0) {
-        // Draw chunks in between
-        vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y, data[p]);
-      }
-    }
-  }
-}
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+) {}
 
 void vga_frame(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
-) {
-  uint64_t data[4] = color2data(color);
-
-  uint16_t chunk0 = x0 >> 6;// x0 / 64
-  uint16_t chunk1 = x1 >> 6;// x1 / 64
-
-  uint64_t mask0 = 0xffffffffffffffff >> (x0 & 0x3f);
-  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x1 + 1) & 0x3f));
-
-  if (chunk0 == chunk1) mask0 &= mask1;
-
-  mask0 = reversebytes(mask0);
-  mask1 = reversebytes(mask1);
-
-  uint16_t pchunk0, pchunk1;
-  uint8_t pmask = 1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-
-    // Top and bottom lines
-    pchunk0 = chunk0, pchunk1 = chunk1;
-
-    // Draw first (partial) chunk
-    vga_hchunkMasked(pchunk0, y0, data[p], mask0);
-    vga_hchunkMasked(pchunk0, y1, data[p], mask0);
-    pchunk0++;
-
-    if (pchunk1 >= pchunk0) {
-      // Draw last (partial) chunk
-      vga_hchunkMasked(pchunk1, y0, data[p], mask1);
-      vga_hchunkMasked(pchunk1, y1, data[p], mask1);
-      pchunk1--;
-    }
-
-    if (pchunk1 >= pchunk0) {
-      // Draw chunks in between
-      vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y0, data[p]);
-      vga_hchunk(pchunk0, pchunk1 - pchunk0 + 1, y1, data[p]);
-    }
-
-    // Left and right lines
-    uint16_t offset0 = (x0 >> 3) + (VGA_WIDTH >> 3) * y0;
-    uint8_t mask0 = 0x80 >> (x0 & 7);
-    uint16_t offset1 = (x1 >> 3) + (VGA_WIDTH >> 3) * y0;
-    uint8_t mask1 = 0x80 >> (x1 & 7);
-
-    for (uint16_t y = y0; y <= y1; y++) {
-      vram[offset0] =
-        pmask & color ? vram[offset0] | mask0 : vram[offset0] & ~mask0;
-      vram[offset1] =
-        pmask & color ? vram[offset1] | mask1 : vram[offset1] & ~mask1;
-
-      offset0 += VGA_WIDTH >> 3;
-      offset1 += VGA_WIDTH >> 3;
-    }
-
-    pmask <<= 1;
-  }
-}
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+) {}
 
 void vga_shade(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color
-) {
-  uint64_t data[4] = color2data(color);
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+) {}
 
-  uint16_t chunk0 = x0 >> 6;// x0 / 64
-  uint16_t chunk1 = x1 >> 6;// x1 / 64
+void vga_clear(color_t color) {}
 
-  uint64_t mask0 = 0xffffffffffffffff >> (x0 & 0x3f);
-  uint64_t mask1 = 0xffffffffffffffff << (64 - ((x1 + 1) & 0x3f));
-
-  if (chunk0 == chunk1) mask0 &= mask1;
-
-  mask0 = reversebytes(mask0);
-  mask1 = reversebytes(mask1);
-
-  uint16_t pchunk0, pchunk1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-
-    for (uint16_t y = y0; y <= y1; y++) {
-      pchunk0 = chunk0, pchunk1 = chunk1;
-      uint64_t rowmask = (y - y0) & 1 ? 0x5555555555555555 : 0xaaaaaaaaaaaaaaaa;
-
-      // Draw first (partial) chunk
-      vga_hchunkMasked(pchunk0, y, data[p], mask0 & rowmask);
-      pchunk0++;
-
-      if (pchunk1 >= pchunk0) {
-        // Draw last (partial) chunk
-        vga_hchunkMasked(pchunk1, y, data[p], mask1 & rowmask);
-        pchunk1--;
-      }
-
-      for (uint16_t chunk = pchunk0; chunk <= pchunk1; chunk++) {
-        // Draw chunks in between
-        vga_hchunkMasked(chunk, y, data[p], rowmask);
-      }
-    }
-  }
-}
-
-void vga_clear(uint8_t color) {
-  uint64_t data[4] = color2data(color);
-
-  // Fill VRAM with this color
-  uint64_t *vram64 = (uint64_t *) vram;
-  uint16_t end = (VGA_WIDTH * VGA_HEIGHT) >> 6;// vram size in bytes / 8
-
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-    for (uint16_t offset = 0; offset < end; offset++) vram64[offset] = data[p];
-  }
-}
-
-void vga_pixel(uint16_t x, uint16_t y, uint8_t color) {
-  uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
-  x &= 7;
-  uint8_t mask = 0x80 >> x;
-  uint8_t pmask = 1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-    vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
-    pmask <<= 1;
-  }
-}
+void vga_pixel(uint16_t x, uint16_t y, color_t color) {}
 
 #define ACTIVE_FONT_BITS (active_font->charWidth * active_font->charHeight)
 
@@ -516,84 +257,11 @@ void vga_char2masks(char c, uint64_t *masks, uint16_t offsetBits) {
 }
 
 void vga_text(
-  uint16_t x, uint16_t y0, const char *string, uint8_t color, uint8_t flags
-) {
-  // First, calculate the size of the text to be drawn
-  size_t len = 0;
-  while (string[len] != 0) len++;
-  if (!len) return;
-
-  size_t drawWidth =
-    len * active_font->charWidth + (len - 1) * active_font->spacing;
-  size_t drawHeight = active_font->charHeight;
-
-  // Allocate memory for the chunks and zero it
-  uint64_t masks[VGA_WIDTH_CHUNKS * VGA_FONT_MAX_HEIGHT] = {0};
-
-  uint16_t chunk0 = x >> 6;
-  uint16_t chunk1 = (x + drawWidth) >> 6;
-  size_t hchunks = chunk1 - chunk0 + 1;
-
-  // Draw character bitmaps to masks
-  uint16_t maskOffset = x & 0x3f;
-  for (uint16_t i = 0; i < len; i++) {
-    char c = string[i];
-    if (c < ' ') continue;// Non printable character
-    vga_char2masks(
-      c, masks,
-      maskOffset + i * active_font->charWidth +
-        (i == 0 ? 0 : i - 1) * active_font->spacing
-    );
-  }
-
-  for (uint16_t i = 0; i < VGA_WIDTH_CHUNKS * VGA_FONT_MAX_HEIGHT; i++)
-    masks[i] = reversebytes(masks[i]);
-
-  // Draw background if flag set
-  if (flags & VGA_TEXT_BG) {
-    vga_rect(x, y0, x + drawWidth - 1, y0 + drawHeight - 1, color >> 4);
-  }
-
-  uint16_t y1 = y0 + drawHeight;
-  uint8_t pmask = 1;
-  for (uint8_t p = 0; p < 4; p++) {
-    _vga_setplane(p);
-
-    for (uint16_t y = y0; y < y1; y++) {
-      for (uint16_t ci = 0; ci < hchunks; ci++) {
-        vga_hchunkMasked(
-          chunk0 + ci, y, color & pmask ? 0xffffffffffffffff : 0x0,
-          masks[(y - y0) * VGA_WIDTH_CHUNKS + ci]
-        );
-      }
-    }
-    pmask <<= 1;
-  }
-}
+  uint16_t x, uint16_t y0, const char *string, color_t color, uint8_t flags
+) {}
 
 const vga_font_t *vga_font(const vga_font_t *font) {
   const vga_font_t *lastFont = active_font;
   active_font = font;
   return lastFont;
-}
-
-void vga_setColor(uint8_t idx, uint32_t color) {
-  uint8_t r = (color >> 12) & 0x3f, g = (color >> 6) & 0x3f, b = color & 0x3f;
-
-  // Adapt index for default palette
-  if (idx == 0x6) idx = 0x14;
-  else if (idx & 0x8)
-    idx |= 0x30;
-
-  _vga_setcolor(idx, r, g, b);
-}
-
-void vga_setPalette(const uint32_t *palette) {
-  uint8_t paletteBytes[VGA_PALETTE_SIZE * 3];
-  for (int i = 0; i < VGA_PALETTE_SIZE; i++) {
-    paletteBytes[3 * i + 0] = (palette[i] >> 12) & 0x3f;
-    paletteBytes[3 * i + 1] = (palette[i] >> 6) & 0x3f;
-    paletteBytes[3 * i + 2] = palette[i] & 0x3f;
-  }
-  _vga_setpalette(paletteBytes);
 }
