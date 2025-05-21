@@ -133,15 +133,21 @@ int main() {
 
   vga_clear(0x00000080);
 
-  vga_rect(200, 200, 400, 400, 0x00c0c0c0);
-  vga_shade(200, 200, 400, 400, 0x00ff0000);
-  vga_frame(200, 200, 400, 400, 0x0080ff80);
+  vga_rect(100, 100, 300, 300, 0x00c0c0c0);
+  vga_shade(100, 100, 300, 300, 0x00ff0000);
+  vga_frame(100, 100, 300, 300, 0x0080ff80);
 
-  for (uint32_t y = 200; y <= 400; y += 25) {
-    vga_line(600, y, 800, y, 0x00ffffff);
+  for (uint32_t y = 100; y <= 300; y += 25) {
+    vga_line(400, y, 600, y, 0x00ffffff);
   }
-  for (uint32_t x = 600; x <= 800; x += 25) {
-    vga_line(x, 200, x, 400, 0x00ffffff);
+  for (uint32_t x = 400; x <= 600; x += 25) {
+    vga_line(x, 100, x, 300, 0x00ffffff);
+  }
+
+  for (uint32_t y = 400; y <= 600; y += 25) {
+    for (uint32_t x = 100; x <= 300; x += 25) {
+      vga_line(200, 500, x, y, 0x0000ffff);
+    }
   }
 
   return 0;

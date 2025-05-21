@@ -83,6 +83,8 @@ static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color) {
  */
 static void
 vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+
   int16_t dx = x1 - x0, dy = y1 - y0;
   int16_t yi = 1;
 
@@ -91,27 +93,22 @@ vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
     dy = -dy;
   }
 
-  // uint8_t pmask = 1;
-  // for (uint8_t p = 0; p < 4; p++) {
-  //   _vga_setplane(p);
-  //   int16_t D = 2 * dy - dx;
-  //   int16_t y = y0;
-  //
-  //   for (int16_t x = x0; x <= x1; x++) {
-  //     uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
-  //     uint8_t mask = 0x80 >> (x & 7);
-  //     vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
-  //
-  //     if (D > 0) {
-  //       y += yi;
-  //       D += 2 * (dy - dx);
-  //     } else {
-  //       D += 2 * dy;
-  //     }
-  //   }
-  //
-  //   pmask <<= 1;
-  // }
+  int16_t D = 2 * dy - dx;
+  int16_t y = y0;
+
+  uint64_t offset = pixelOffset(x0, y0);
+  for (int16_t x = x0; x <= x1; x++) {
+    putpixel(fb, offset, color);
+
+    offset += OFFSET_X;
+    if (D > 0) {
+      y += yi;
+      offset += OFFSET_Y * yi;
+      D += 2 * (dy - dx);
+    } else {
+      D += 2 * dy;
+    }
+  }
 }
 
 /*
@@ -119,6 +116,8 @@ vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
  */
 static void
 vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+
   int16_t dx = x1 - x0, dy = y1 - y0;
   int16_t xi = 1;
 
@@ -127,27 +126,22 @@ vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
     dx = -dx;
   }
 
-  // uint8_t pmask = 1;
-  // for (uint8_t p = 0; p < 4; p++) {
-  //   _vga_setplane(p);
-  //   int16_t D = 2 * dx - dy;
-  //   int16_t x = x0;
-  //
-  //   for (int16_t y = y0; y <= y1; y++) {
-  //     uint16_t offset = (x >> 3) + (VGA_WIDTH >> 3) * y;
-  //     uint8_t mask = 0x80 >> (x & 7);
-  //     vram[offset] = pmask & color ? vram[offset] | mask : vram[offset] & ~mask;
-  //
-  //     if (D > 0) {
-  //       x += xi;
-  //       D += 2 * (dx - dy);
-  //     } else {
-  //       D += 2 * dx;
-  //     }
-  //   }
-  //
-  //   pmask <<= 1;
-  // }
+  int16_t D = 2 * dx - dy;
+  int16_t x = x0;
+
+  uint64_t offset = pixelOffset(x0, y0);
+  for (int16_t y = y0; y <= y1; y++) {
+    putpixel(fb, offset, color);
+
+    offset += OFFSET_Y;
+    if (D > 0) {
+      x += xi;
+      offset += OFFSET_X * xi;
+      D += 2 * (dx - dy);
+    } else {
+      D += 2 * dx;
+    }
+  }
 }
 
 void vga_line(
