@@ -21,6 +21,14 @@ typedef struct {
   uint8_t caplock;
 } kbd_event_t;
 
+
+/*
+ * Called by keyboard interrupt handler.
+ * Adds a scancode to the buffer, discarding oldest events fi we run out of
+ * space.
+ */
+void kbd_addKeyEvent(uint8_t scancode);
+
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */
@@ -40,5 +48,10 @@ int kbd_keypressed(uint8_t key);
  * Returns 1 if key was pressed since last pollEvents call.
  */
 int kbd_keyreleased(uint8_t key);
+
+/*
+ * tiene que retornar un evento
+ */
+kbd_event_t kbd_getKeyEvent();
 
 #endif

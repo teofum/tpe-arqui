@@ -1,5 +1,6 @@
 #include <defs.h>
 #include <interrupts.h>
+#include <kbd.h>
 
 idtDescriptor_t *idt = (idtDescriptor_t *) 0;
 void (*irqHandlers[MAX_INTERRUPTS])();
@@ -50,12 +51,26 @@ void setInterruptHandler(uint64_t irq, void (*handler)()) {
   if (irq < MAX_INTERRUPTS) irqHandlers[irq] = handler;
 }
 
+/* inicializa la tabla de interrupts */
+void initInterrupts() {
+  ;
+  setInterruptHandler(0x01, kbd_addKeyEvent);
+}
+
 /* Inicializa la tabla de syscalls */
 void initSyscalls() {
   // Ejemplos de syscalls a registrar:
   // registerSyscall(3, read);
   // registerSyscall(4, write);
   // etc.
+
+  /* SysCalls de teclado */
+  registerSyscall(0x10, kbd_pollEvents);
+  registerSyscall(0x11, kbd_keydown);
+  registerSyscall(0x12, kbd_keypressed);
+  registerSyscall(0x13, kbd_keyreleased);
+  registerSyscall(0x11, kbd_getKeyEvent);
+  /**/
 }
 
 /* Registra una syscall */
