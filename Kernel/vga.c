@@ -6,6 +6,8 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
+#define VGA_FRAMEBUFFER (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
+
 #define OFFSET_X (VBE_mode_info->bpp >> 3)
 #define OFFSET_Y (VBE_mode_info->pitch)
 #define pixelOffset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
@@ -13,6 +15,9 @@
 #define b(c) ((c) & 0xff)
 #define g(c) (((c) >> 8) & 0xff)
 #define r(c) (((c) >> 16) & 0xff)
+
+#define putpixel(fb, offset, color)                                            \
+  fb[offset] = b(color), fb[offset + 1] = g(color), fb[offset + 2] = r(color)
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
@@ -45,15 +50,33 @@ const vga_font_t *vga_comicsans = &_vga_comicsans;
 const vga_font_t *active_font = &_vga_defaultFont;
 
 /*
- * Optimized function to draw a horizontal line by chunks, this is very fast.
+ * Optimized function to draw a horizontal line.
  */
-static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, color_t color) {}
+static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, color_t color) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+  uint64_t step = OFFSET_X;
+
+  uint64_t offset = pixelOffset(x0, y);
+  for (uint16_t x = x0; x <= x1; x++) {
+    putpixel(fb, offset, color);
+    offset += step;
+  }
+}
 
 /*
  * Optimized function to draw a vertical line. Faster than running Bresenham's
  * algorithm, but not as fast as horizontal drawing.
  */
-static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color) {}
+static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+  uint64_t step = OFFSET_Y;
+
+  uint64_t offset = pixelOffset(x, y0);
+  for (uint16_t y = y0; y <= y1; y++) {
+    putpixel(fb, offset, color);
+    offset += step;
+  }
+}
 
 /*
  * Bresenham's algorithm for |slope| < 1
@@ -163,25 +186,59 @@ void vga_line(
 
 void vga_rect(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
-) {}
+) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+  uint64_t step = OFFSET_X;
+
+  for (uint16_t y = y0; y <= y1; y++) {
+    uint64_t lineStart = pixelOffset(x0, y);
+    uint64_t lineEnd = pixelOffset(x1, y);
+
+    for (uint64_t offset = lineStart; offset <= lineEnd; offset += step) {
+      putpixel(fb, offset, color);
+    }
+  }
+}
 
 void vga_frame(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
-) {}
+) {
+  vga_hline(x0, x1, y0, color);
+  vga_hline(x0, x1, y1, color);
+  vga_vline(x0, y0, y1, color);
+  vga_vline(x1, y0, y1, color);
+}
 
 void vga_shade(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
-) {}
+) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+  uint64_t step = OFFSET_X * 2;
 
-void vga_clear(color_t color) {}
+  for (uint16_t y = y0; y <= y1; y++) {
+    uint64_t lineStart = pixelOffset(x0 + (y & 1), y);
+    uint64_t lineEnd = pixelOffset(x1, y);
+
+    for (uint64_t offset = lineStart; offset <= lineEnd; offset += step) {
+      putpixel(fb, offset, color);
+    }
+  }
+}
+
+void vga_clear(color_t color) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+  uint64_t offset = 0;
+  uint64_t size = OFFSET_Y * VBE_mode_info->height;
+  uint64_t step = OFFSET_X;
+
+  for (; offset < size; offset += step) putpixel(fb, offset, color);
+}
 
 void vga_pixel(uint16_t x, uint16_t y, color_t color) {
-  uint8_t *fb = (uint8_t *) VBE_mode_info->framebuffer;
+  uint8_t *fb = VGA_FRAMEBUFFER;
 
   uint64_t offset = pixelOffset(x, y);
-  fb[offset] = b(color);
-  fb[offset + 1] = g(color);
-  fb[offset + 2] = r(color);
+  putpixel(fb, offset, color);
 }
 
 #define ACTIVE_FONT_BITS (active_font->charWidth * active_font->charHeight)

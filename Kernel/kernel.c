@@ -115,22 +115,34 @@ int main() {
   // for (int i = 0; i < 16; i++) {
   //   vga_rect(100 + 20 * i, 400, 100 + 20 * i + 19, 419, i);
   // }
+
+  // uint32_t g = 0;
+  // int d = 1;
+  // while (1) {
+  //   g += d;
+  //   if (g == 255 || g == 0) d = -d;
   //
-  // vga_setPalette(vga_pal_macintoshii);
+  //   for (uint32_t y = 0; y < VBE_mode_info->height; y++) {
+  //     for (uint32_t x = 0; x < VBE_mode_info->width; x++) {
+  //       color_t color = ((x * 256 / VBE_mode_info->width) << 16) + (g << 8) +
+  //                       (y * 256 / VBE_mode_info->height);
+  //       vga_pixel(x, y, color);
+  //     }
+  //   }
+  // }
 
-  uint32_t g = 0;
-  int d = 1;
-  while (1) {
-    g += d;
-    if (g == 255 || g == 0) d = -d;
+  vga_clear(0x00000080);
 
-    for (uint32_t y = 0; y < VBE_mode_info->height; y++) {
-      for (uint32_t x = 0; x < VBE_mode_info->width; x++) {
-        color_t color = ((x * 256 / VBE_mode_info->width) << 16) + (g << 8) +
-                        (y * 256 / VBE_mode_info->height);
-        vga_pixel(x, y, color);
-      }
-    }
+  vga_rect(200, 200, 400, 400, 0x00c0c0c0);
+  vga_shade(200, 200, 400, 400, 0x00ff0000);
+  vga_frame(200, 200, 400, 400, 0x0080ff80);
+
+  for (uint32_t y = 200; y <= 400; y += 25) {
+    vga_line(600, y, 800, y, 0x00ffffff);
   }
+  for (uint32_t x = 600; x <= 800; x += 25) {
+    vga_line(x, 200, x, 400, 0x00ffffff);
+  }
+
   return 0;
 }
