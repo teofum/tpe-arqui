@@ -13,12 +13,12 @@ typedef struct {
   uint8_t scancode;
   uint8_t isReleased;
 
-  uint8_t shift;
-  uint8_t shift_r;
-  uint8_t backspace;
-  uint8_t ctrl;
-  uint8_t alt;
-  uint8_t caplock;
+  uint8_t shift : 1;
+  uint8_t shift_r : 1;
+  uint8_t backspace : 1;
+  uint8_t ctrl : 1;
+  uint8_t alt : 1;
+  uint8_t caplock : 1;
 } kbd_event_t;
 
 
