@@ -150,10 +150,13 @@ int main() {
     }
   }
 
+  vga_gradient(400, 400, 600, 500, 0xaa5540, 0xc0aa80, VGA_GRAD_H);
+  vga_gradient(400, 500, 600, 600, 0xaa5540, 0xc0aa80, VGA_GRAD_V);
+
   vga_text(400, 400, "Hello world!", 0xff00ff, 0x00ff00, VGA_TEXT_INV);
 
-  vga_rect(50, 50, 500, 500, 0x80ff80ff, VGA_ALPHA_BLEND);
-  vga_rect(500, 50, 600, 500, 0x80ff80ff, 0);
+  // vga_rect(50, 50, 500, 500, 0x80ff80ff, VGA_ALPHA_BLEND);
+  // vga_rect(500, 50, 600, 500, 0x80ff80ff, 0);
 
   return 0;
 }

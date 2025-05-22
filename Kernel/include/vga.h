@@ -91,6 +91,10 @@ typedef enum {
   VGA_TEXT_NOFG = 0x02,  // Turn off foreground
   VGA_TEXT_INV = 0x03,   // Background + no foreground, "cutout" effect
 
+  // Reuse some bits that are never used together
+  VGA_GRAD_H = 0x00,// Horizontal gradient (left to right)
+  VGA_GRAD_V = 0x01,// Vertical gradient (top to bottom)
+
   VGA_ALPHA_NONE = 0x00, // Disable alpha blending
   VGA_ALPHA_BLEND = 0x04,// Enable alpha blending
 } vga_drawflags_t;
@@ -144,13 +148,27 @@ void vga_shade(
 );
 
 /*
+ * Draw a rectangle filled with a gradient.
+ * Set direction using the VGA_GRAD_X flags.
+ */
+void vga_gradient(
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color1,
+  color_t color2, uint8_t flags
+);
+
+/*
  * Set the font used for drawing text.
  * Returns a pointer to the previous font used, so it can be restored with
  * another call to vga_font.
  */
 const vga_font_t *vga_font(const vga_font_t *font);
 
-
+/*
+ * Draw a single character to VRAM at the specified position using the current
+ * font.
+ * This function does no bounds checking, use must ensure the character is in
+ * screen bounds.
+ */
 void vga_char(
   uint16_t x0, uint16_t y0, char c, color_t color, color_t bgColor,
   uint8_t flags

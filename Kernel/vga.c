@@ -187,6 +187,21 @@ static void vga_lineHi(
   }
 }
 
+void vga_clear(color_t color) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+  uint64_t offset = 0;
+  uint64_t size = OFFSET_Y * VBE_mode_info->height;
+  uint64_t step = OFFSET_X;
+
+  for (; offset < size; offset += step) putpixel(fb, offset, color);
+}
+
+void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+  uint64_t offset = pixelOffset(x, y);
+  blendpixel(fb, offset, color, flags);
+}
+
 void vga_line(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
   uint8_t flags
@@ -266,19 +281,29 @@ void vga_shade(
   }
 }
 
-void vga_clear(color_t color) {
+void vga_gradient(
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color1,
+  color_t color2, uint8_t flags
+) {
   uint8_t *fb = VGA_FRAMEBUFFER;
-  uint64_t offset = 0;
-  uint64_t size = OFFSET_Y * VBE_mode_info->height;
   uint64_t step = OFFSET_X;
 
-  for (; offset < size; offset += step) putpixel(fb, offset, color);
-}
+  for (uint16_t y = y0; y <= y1; y++) {
+    uint64_t lineStart = pixelOffset(x0, y);
+    uint64_t lineEnd = pixelOffset(x1, y);
 
-void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags) {
-  uint8_t *fb = VGA_FRAMEBUFFER;
-  uint64_t offset = pixelOffset(x, y);
-  blendpixel(fb, offset, color, flags);
+    for (uint64_t offset = lineStart, x = x0; offset <= lineEnd;
+         offset += step, x++) {
+      uint32_t t = (flags & VGA_GRAD_V) ? (y - y0) * 0xff / (y1 - y0)
+                                        : (x - x0) * 0xff / (x1 - x0);
+
+      color1 = (color1 & 0xffffff) | ((0xff - t) << 24);
+      color2 = (color2 & 0xffffff) | (t << 24);
+      color_t color = fast_premul(color1) + fast_premul(color2);
+
+      blendpixel(fb, offset, color, flags);
+    }
+  }
 }
 
 void vga_char(
