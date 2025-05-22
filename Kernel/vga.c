@@ -12,6 +12,8 @@
 #define OFFSET_Y (VBE_mode_info->pitch)
 #define pixelOffset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
 
+#define TAB_SIZE 8
+
 #define b(c) ((c) & 0xff)
 #define g(c) (((c) >> 8) & 0xff)
 #define r(c) (((c) >> 16) & 0xff)
@@ -342,10 +344,71 @@ void vga_text(
   uint8_t flags
 ) {
   size_t i = 0;
-  uint16_t x = x0;
-  while (string[i] != 0) {
-    vga_char(x, y0, string[i], color, bgColor, flags);
-    x += active_font->charWidth + active_font->spacing;
+  uint16_t x = x0, y = y0;
+  uint16_t advance = active_font->charWidth + active_font->spacing;
+  char c;
+  while ((c = string[i]) != 0) {
+    if (c == '\n') {
+      x = x0;
+      y += active_font->lineHeight;
+    } else if (c == '\t') {
+      x += advance * TAB_SIZE - (x % (advance * TAB_SIZE));
+    } else {
+      vga_char(x, y, c, color, bgColor, flags);
+      x += advance;
+    }
+
+    i++;
+  }
+}
+
+void vga_textWrap(
+  uint16_t x0, uint16_t y0, int16_t maxw, const char *str, color_t color,
+  color_t bgColor, uint8_t flags
+) {
+  uint16_t xmax = maxw < 0 ? maxw + VBE_mode_info->width : maxw + x0;
+
+  size_t i = 0;
+  uint16_t x = x0, y = y0;
+  uint16_t advance = active_font->charWidth + active_font->spacing;
+  char c;
+
+  int wrapNext = 0;
+  while ((c = str[i]) != 0) {
+    if (flags & VGA_WRAP_WORD && wrapNext) {
+      // Lookahead word, break if necessary
+      uint16_t xend = x;
+      char d;
+      for (size_t j = i; (d = str[j]) != ' ' && d != '\n' && d != '\t'; j++) {
+        xend += advance;
+        if (xend > xmax) {
+          x = x0;
+          y += active_font->lineHeight;
+          break;
+        }
+      }
+    }
+
+    if (c == '\n') {
+      x = x0;
+      y += active_font->lineHeight;
+      wrapNext = 1;
+    } else if (c == '\t') {
+      x += advance * TAB_SIZE - (x % (advance * TAB_SIZE));
+      wrapNext = 1;
+    } else if (c != ' ' || x > x0) {
+      vga_char(x, y, c, color, bgColor, flags);
+      x += advance;
+      wrapNext = c == ' ';
+
+      if (x >= xmax) {
+        x = x0;
+        y += active_font->lineHeight;
+        wrapNext = 0;
+      }
+    } else {
+      wrapNext = 0;
+    }
 
     i++;
   }

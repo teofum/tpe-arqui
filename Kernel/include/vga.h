@@ -97,6 +97,8 @@ typedef enum {
 
   VGA_ALPHA_NONE = 0x00, // Disable alpha blending
   VGA_ALPHA_BLEND = 0x04,// Enable alpha blending
+
+  VGA_WRAP_WORD = 0x08,// Wrap text by words instead of characters
 } vga_drawflags_t;
 
 /*
@@ -176,12 +178,25 @@ void vga_char(
 
 /*
  * Draw a line of text at a specific screen position using the current font.
+ * Accepts newline characters, drawing multiple lines.
  * This function does no bounds checking, the user must ensure the text doesn't
  * overflow the screen bounds.
  */
 void vga_text(
   uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bgColor,
   uint8_t flags
+);
+
+/*
+ * Draw text starting at the specified position on screen, wrapping to a new
+ * line if the text is longer, in pixels, than maxw. Set maxw to a negative
+ * value to wrap at that offset from screen end.
+ * This function does no bounds checking, the user must ensure the text doesn't
+ * overflow the screen bounds.
+ */
+void vga_textWrap(
+  uint16_t x0, uint16_t y0, int16_t maxw, const char *string, color_t color,
+  color_t bgColor, uint8_t flags
 );
 
 #endif

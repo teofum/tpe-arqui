@@ -153,10 +153,21 @@ int main() {
   vga_gradient(400, 400, 600, 500, 0xaa5540, 0xc0aa80, VGA_GRAD_H);
   vga_gradient(400, 500, 600, 600, 0xaa5540, 0xc0aa80, VGA_GRAD_V);
 
-  vga_text(400, 400, "Hello world!", 0xff00ff, 0x00ff00, VGA_TEXT_INV);
+  vga_text(700, 100, "Hello world!", 0xff00ff, 0x00ff00, VGA_TEXT_INV);
+  vga_text(700, 140, "This is some text\nin multiple lines!", 0xffffff, 0, 0);
+  vga_text(
+    700, 180, "This\ttext\thas\ttab\tstops\n|\t|\t|\t|\t|", 0xffffff, 0, 0
+  );
 
-  // vga_rect(50, 50, 500, 500, 0x80ff80ff, VGA_ALPHA_BLEND);
-  // vga_rect(500, 50, 600, 500, 0x80ff80ff, 0);
+  const char *longtext =
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
+    "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim "
+    "veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea "
+    "commodo consequat.";
+
+  vga_textWrap(700, 400, 200, longtext, 0xffffff, 0, VGA_WRAP_WORD);
+
+  vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
 
   return 0;
 }
