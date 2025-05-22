@@ -87,6 +87,10 @@ extern const vga_font_t *vga_fontTinyBold;
 extern const vga_font_t *vga_fontSmall;
 extern const vga_font_t *vga_fontDefault;
 extern const vga_font_t *vga_fontLarge;
+extern const vga_font_t *vga_fontAlt;
+extern const vga_font_t *vga_fontAltBold;
+extern const vga_font_t *vga_fontFuture;
+extern const vga_font_t *vga_fontOld;
 
 /*
  * Flags used by drawing functions

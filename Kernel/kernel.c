@@ -134,6 +134,14 @@ int main() {
   vga_text(700, 178 + 28, "Hello world!", 0xffffff, 0, 0);
   vga_font(vga_fontLarge);
   vga_text(700, 178 + 44, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontAlt);
+  vga_text(700, 182 + 68, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontAltBold);
+  vga_text(700, 182 + 84, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontFuture);
+  vga_text(700, 186 + 100, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontOld);
+  vga_text(700, 186 + 110, "Hello world!", 0xffffff, 0, 0);
   vga_font(font);
 
   const char *longtext =

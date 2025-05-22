@@ -78,6 +78,42 @@ vga_font_t _vga_fontLarge = {
 };
 const vga_font_t *vga_fontLarge = &_vga_fontLarge;
 
+vga_font_t _vga_fontAlt = {
+  .charWidth = 8,
+  .charHeight = 16,
+  .lineHeight = 16,
+  .spacing = 0,
+  .characterData = _vga_fontdata_toshiba_txl2_8x16
+};
+const vga_font_t *vga_fontAlt = &_vga_fontAlt;
+
+vga_font_t _vga_fontAltBold = {
+  .charWidth = 8,
+  .charHeight = 16,
+  .lineHeight = 16,
+  .spacing = 0,
+  .characterData = _vga_fontdata_toshiba_txl1_8x16
+};
+const vga_font_t *vga_fontAltBold = &_vga_fontAltBold;
+
+vga_font_t _vga_fontFuture = {
+  .charWidth = 8,
+  .charHeight = 8,
+  .lineHeight = 10,
+  .spacing = 0,
+  .characterData = _vga_fontdata_eagle2_8x8
+};
+const vga_font_t *vga_fontFuture = &_vga_fontFuture;
+
+
+vga_font_t _vga_fontOld = {
+  .charWidth = 8,
+  .charHeight = 8,
+  .lineHeight = 10,
+  .spacing = 0,
+  .characterData = _vga_fontdata_eagle3_8x8
+};
+const vga_font_t *vga_fontOld = &_vga_fontOld;
 /*
  * Active font for text drawing
  */
