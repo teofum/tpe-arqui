@@ -82,6 +82,12 @@ typedef struct {
   const uint64_t *characterData;
 } vga_font_t;
 
+extern const vga_font_t *vga_fontTiny;
+extern const vga_font_t *vga_fontTinyBold;
+extern const vga_font_t *vga_fontSmall;
+extern const vga_font_t *vga_fontDefault;
+extern const vga_font_t *vga_fontLarge;
+
 /*
  * Flags used by drawing functions
  */

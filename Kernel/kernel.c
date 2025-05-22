@@ -97,40 +97,6 @@ int main() {
   setInterruptHandler(0, timer_handler);
   load_idt();
 
-  // Initialize VGA driver
-  // vga_gfxMode();
-  //
-  // // Draw some test graphics
-  // vga_clear(0x00);
-  //
-  // vga_shade(58, 78, 408, 218, 0x00);
-  // vga_rect(50, 70, 400, 210, 0x07);
-  // vga_frame(50, 70, 400, 210, 0x00);
-  //
-  // const vga_font_t *lastfont = vga_font(vga_comicsans);
-  // vga_text(58, 78, "Hello world!", 0x00, 0);
-  // vga_font(lastfont);
-  // vga_text(58, 78 + 24, "This is a longer string of text", 0x4c, VGA_TEXT_BG);
-  //
-  // for (int i = 0; i < 16; i++) {
-  //   vga_rect(100 + 20 * i, 400, 100 + 20 * i + 19, 419, i);
-  // }
-
-  // uint32_t g = 0;
-  // int d = 1;
-  // while (1) {
-  //   g += d;
-  //   if (g == 255 || g == 0) d = -d;
-  //
-  //   for (uint32_t y = 0; y < VBE_mode_info->height; y++) {
-  //     for (uint32_t x = 0; x < VBE_mode_info->width; x++) {
-  //       color_t color = ((x * 256 / VBE_mode_info->width) << 16) + (g << 8) +
-  //                       (y * 256 / VBE_mode_info->height);
-  //       vga_pixel(x, y, color);
-  //     }
-  //   }
-  // }
-
   vga_clear(0x00000080);
 
   vga_rect(100, 100, 300, 300, 0xc0c0c0, 0);
@@ -153,11 +119,22 @@ int main() {
   vga_gradient(400, 400, 600, 500, 0xaa5540, 0xc0aa80, VGA_GRAD_H);
   vga_gradient(400, 500, 600, 600, 0xaa5540, 0xc0aa80, VGA_GRAD_V);
 
-  vga_text(700, 100, "Hello world!", 0xff00ff, 0x00ff00, VGA_TEXT_INV);
-  vga_text(700, 140, "This is some text\nin multiple lines!", 0xffffff, 0, 0);
+  vga_text(700, 100, "This is some text\nin multiple lines!", 0xffffff, 0, 0);
   vga_text(
-    700, 180, "This\ttext\thas\ttab\tstops\n|\t|\t|\t|\t|", 0xffffff, 0, 0
+    700, 132, "This\ttext\thas\ttab\tstops\n|\t|\t|\t|\t|", 0xffffff, 0, 0
   );
+
+  const vga_font_t *font = vga_font(vga_fontTiny);
+  vga_text(700, 174, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontTinyBold);
+  vga_text(700, 174 + 8, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontSmall);
+  vga_text(700, 178 + 16, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontDefault);
+  vga_text(700, 178 + 28, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontLarge);
+  vga_text(700, 178 + 44, "Hello world!", 0xffffff, 0, 0);
+  vga_font(font);
 
   const char *longtext =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "

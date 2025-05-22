@@ -23,7 +23,8 @@
 #define putpixel(fb, offset, color)                                            \
   fb[offset] = b(color), fb[offset + 1] = g(color), fb[offset + 2] = r(color)
 
-#define ACTIVE_FONT_BITS (active_font->charWidth * active_font->charHeight)
+#define ACTIVE_FONT_BITS                                                       \
+  ((((active_font->charWidth + 7) >> 3) << 3) * active_font->charHeight)
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
@@ -32,28 +33,55 @@ VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
  */
 #include <fontdata.h>
 
-vga_font_t _vga_defaultFont = {
+vga_font_t _vga_fontTiny = {
+  .charWidth = 6,
+  .charHeight = 8,
+  .lineHeight = 8,
+  .spacing = 0,
+  .characterData = _vga_fontdata_hp_lx100_6x8
+};
+const vga_font_t *vga_fontTiny = &_vga_fontTiny;
+
+vga_font_t _vga_fontTinyBold = {
+  .charWidth = 8,
+  .charHeight = 8,
+  .lineHeight = 8,
+  .spacing = 0,
+  .characterData = _vga_fontdata_hp_lx100_8x8
+};
+const vga_font_t *vga_fontTinyBold = &_vga_fontTinyBold;
+
+vga_font_t _vga_fontSmall = {
+  .charWidth = 6,
+  .charHeight = 12,
+  .lineHeight = 12,
+  .spacing = 0,
+  .characterData = _vga_fontdata_dos_ank_6x12
+};
+const vga_font_t *vga_fontSmall = &_vga_fontSmall;
+
+vga_font_t _vga_fontDefault = {
   .charWidth = 8,
   .charHeight = 16,
   .lineHeight = 16,
   .spacing = 0,
   .characterData = _vga_fontdata_dos_ank_8x16
 };
-const vga_font_t *vga_defaultFont = &_vga_defaultFont;
+const vga_font_t *vga_fontDefault = &_vga_fontDefault;
 
-vga_font_t _vga_comicsans = {
-  .charWidth = 16,
+vga_font_t _vga_fontLarge = {
+  .charWidth = 12,
   .charHeight = 24,
   .lineHeight = 24,
   .spacing = 0,
-  .characterData = _vga_fontdata_comicsans
+  .characterData = _vga_fontdata_dos_ank_12x24
 };
-const vga_font_t *vga_comicsans = &_vga_comicsans;
+const vga_font_t *vga_fontLarge = &_vga_fontLarge;
 
 /*
  * Active font for text drawing
  */
-const vga_font_t *active_font = &_vga_defaultFont;
+const vga_font_t *active_font = &_vga_fontDefault;
 
 /*
  * Alpha premultiply using evil bit manipulation tricks.
@@ -318,8 +346,9 @@ void vga_char(
     uint64_t offset = pixelOffset(x0, y0 + y);
 
     for (uint16_t x = 0; x < active_font->charWidth; x++) {
-      size_t charOffsetBits =
-        (c - ' ') * ACTIVE_FONT_BITS + y * active_font->charWidth + x;
+      size_t charOffsetBits = (c - ' ') * ACTIVE_FONT_BITS +
+                              y * (((active_font->charWidth + 7) >> 3) << 3) +
+                              x;
       size_t charOffsetWords = charOffsetBits >> 6;
       charOffsetBits &= 0x3f;
 
