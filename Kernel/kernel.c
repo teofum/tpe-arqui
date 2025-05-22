@@ -133,27 +133,27 @@ int main() {
 
   vga_clear(0x00000080);
 
-  vga_rect(100, 100, 300, 300, 0x00c0c0c0);
-  vga_shade(100, 100, 300, 300, 0x00ff0000);
-  vga_frame(100, 100, 300, 300, 0x0080ff80);
+  vga_rect(100, 100, 300, 300, 0xc0c0c0, 0);
+  vga_shade(100, 100, 300, 300, 0xff0000, 0);
+  vga_frame(100, 100, 300, 300, 0x80ff80, 0);
 
   for (uint32_t y = 100; y <= 300; y += 25) {
-    vga_line(400, y, 600, y, 0x00ffffff);
+    vga_line(400, y, 600, y, 0xffffff, 0);
   }
   for (uint32_t x = 400; x <= 600; x += 25) {
-    vga_line(x, 100, x, 300, 0x00ffffff);
+    vga_line(x, 100, x, 300, 0xffffff, 0);
   }
 
   for (uint32_t y = 400; y <= 600; y += 25) {
     for (uint32_t x = 100; x <= 300; x += 25) {
-      vga_line(200, 500, x, y, 0x0000ffff);
+      vga_line(200, 500, x, y, 0x00ffff, 0);
     }
   }
 
-  vga_text(
-    400, 400, "Hello world!", 0x00ff00ff, 0x0000ff00,
-    VGA_TEXT_BG | VGA_TEXT_NOFG
-  );
+  vga_text(400, 400, "Hello world!", 0xff00ff, 0x00ff00, VGA_TEXT_INV);
+
+  vga_rect(50, 50, 500, 500, 0x80ff80ff, VGA_ALPHA_BLEND);
+  vga_rect(500, 50, 600, 500, 0x80ff80ff, 0);
 
   return 0;
 }

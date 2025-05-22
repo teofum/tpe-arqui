@@ -82,10 +82,18 @@ typedef struct {
   const uint64_t *characterData;
 } vga_font_t;
 
+/*
+ * Flags used by drawing functions
+ */
 typedef enum {
+  VGA_TEXT_NORMAL = 0x00,
   VGA_TEXT_BG = 0x01,
   VGA_TEXT_NOFG = 0x02,
-} vga_textflags_t;
+  VGA_TEXT_INV = 0x03,
+
+  VGA_ALPHA_NONE = 0x00,
+  VGA_ALPHA_BLEND = 0x04,
+} vga_drawflags_t;
 
 /*
  * Clear VRAM with a single solid color.
@@ -99,7 +107,7 @@ void vga_clear(color_t color);
  * Plotting individual pixels is quite slow; using provided driver functions
  * for primitives where available is recommended.
  */
-void vga_pixel(uint16_t x, uint16_t y, color_t color);
+void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags);
 
 /*
  * Draw a line between two points.
@@ -107,28 +115,32 @@ void vga_pixel(uint16_t x, uint16_t y, color_t color);
  * with Bresenham's algorithm.
  */
 void vga_line(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 );
 
 /*
  * Draw a filled rectangle.
  */
 void vga_rect(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 );
 
 /*
  * Draw a stroked rectangle.
  */
 void vga_frame(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 );
 
 /*
  * Draw a shaded rectangle.
  */
 void vga_shade(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 );
 
 /*

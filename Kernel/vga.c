@@ -16,8 +16,12 @@
 #define g(c) (((c) >> 8) & 0xff)
 #define r(c) (((c) >> 16) & 0xff)
 
+#define rgba(r, g, b, a) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
+
 #define putpixel(fb, offset, color)                                            \
   fb[offset] = b(color), fb[offset + 1] = g(color), fb[offset + 2] = r(color)
+
+#define ACTIVE_FONT_BITS (active_font->charWidth * active_font->charHeight)
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
@@ -30,7 +34,7 @@ vga_font_t _vga_defaultFont = {
   .charWidth = 8,
   .charHeight = 16,
   .lineHeight = 16,
-  .spacing = 1,
+  .spacing = 0,
   .characterData = _vga_fontdata_dos_ank_8x16
 };
 const vga_font_t *vga_defaultFont = &_vga_defaultFont;
@@ -50,30 +54,67 @@ const vga_font_t *vga_comicsans = &_vga_comicsans;
 const vga_font_t *active_font = &_vga_defaultFont;
 
 /*
+ * Alpha premultiply using evil bit manipulation tricks.
+ * Ref: https://arxiv.org/pdf/2202.02864
+ */
+static inline color_t fast_premul(color_t color) {
+  uint32_t alpha = color >> 24;
+
+  color |= 0xff000000;
+  uint64_t rbga =
+    ((uint64_t) (color & 0x00ff00ff) << 32) | ((color >> 8) & 0x00ff00ff);
+
+  rbga *= alpha;
+  rbga += 0x0080008000800080;
+  rbga += (rbga >> 8) & 0x00ff00ff00ff00ff;
+  rbga &= 0xff00ff00ff00ff00;
+
+  return rbga | (rbga >> 40);
+}
+
+/*
+ * Plot a single pixel into VRAM, alpha blending with the background if the
+ * alpha blending flag is set.
+ */
+static inline void
+blendpixel(uint8_t *fb, uint64_t offset, color_t color, uint8_t flags) {
+  if (flags & VGA_ALPHA_BLEND) {
+    uint8_t *c = &fb[offset];
+    uint32_t current = rgba(c[2], c[1], c[0], 0xff - (color >> 24));
+
+    uint32_t blended = fast_premul(current) + fast_premul(color);
+    putpixel(fb, offset, blended);
+  } else {
+    putpixel(fb, offset, color);
+  }
+}
+
+/*
  * Optimized function to draw a horizontal line.
  */
-static void vga_hline(uint16_t x0, uint16_t x1, uint16_t y, color_t color) {
+static void
+vga_hline(uint16_t x0, uint16_t x1, uint16_t y, color_t color, uint8_t flags) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t step = OFFSET_X;
 
   uint64_t offset = pixelOffset(x0, y);
   for (uint16_t x = x0; x <= x1; x++) {
-    putpixel(fb, offset, color);
+    blendpixel(fb, offset, color, flags);
     offset += step;
   }
 }
 
 /*
- * Optimized function to draw a vertical line. Faster than running Bresenham's
- * algorithm, but not as fast as horizontal drawing.
+ * Optimized function to draw a vertical line.
  */
-static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color) {
+static void
+vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color, uint8_t flags) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t step = OFFSET_Y;
 
   uint64_t offset = pixelOffset(x, y0);
   for (uint16_t y = y0; y <= y1; y++) {
-    putpixel(fb, offset, color);
+    blendpixel(fb, offset, color, flags);
     offset += step;
   }
 }
@@ -81,8 +122,9 @@ static void vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color) {
 /*
  * Bresenham's algorithm for |slope| < 1
  */
-static void
-vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
+static void vga_lineLo(
+  int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color, uint8_t flags
+) {
   uint8_t *fb = VGA_FRAMEBUFFER;
 
   int16_t dx = x1 - x0, dy = y1 - y0;
@@ -98,7 +140,7 @@ vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
 
   uint64_t offset = pixelOffset(x0, y0);
   for (int16_t x = x0; x <= x1; x++) {
-    putpixel(fb, offset, color);
+    blendpixel(fb, offset, color, flags);
 
     offset += OFFSET_X;
     if (D > 0) {
@@ -114,8 +156,9 @@ vga_lineLo(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
 /*
  * Bresenham's algorithm for |slope| > 1
  */
-static void
-vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
+static void vga_lineHi(
+  int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color, uint8_t flags
+) {
   uint8_t *fb = VGA_FRAMEBUFFER;
 
   int16_t dx = x1 - x0, dy = y1 - y0;
@@ -131,7 +174,7 @@ vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
 
   uint64_t offset = pixelOffset(x0, y0);
   for (int16_t y = y0; y <= y1; y++) {
-    putpixel(fb, offset, color);
+    blendpixel(fb, offset, color, flags);
 
     offset += OFFSET_Y;
     if (D > 0) {
@@ -145,41 +188,43 @@ vga_lineHi(int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color) {
 }
 
 void vga_line(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 ) {
   if (y1 == y0) {
     if (x1 == x0) {
-      vga_pixel(x0, y0, color);
+      vga_pixel(x0, y0, color, flags);
     } else if (x1 > x0) {
-      vga_hline(x0, x1, y0, color);
+      vga_hline(x0, x1, y0, color, flags);
     } else {
-      vga_hline(x1, x0, y0, color);
+      vga_hline(x1, x0, y0, color, flags);
     }
   } else if (x1 == x0) {
     if (y1 > y0) {
-      vga_vline(x0, y0, y1, color);
+      vga_vline(x0, y0, y1, color, flags);
     } else {
-      vga_vline(x0, y1, y0, color);
+      vga_vline(x0, y1, y0, color, flags);
     }
   } else {
     if (abs(x1 - x0) > abs(y1 - y0)) {
       if (x1 > x0) {
-        vga_lineLo(x0, y0, x1, y1, color);
+        vga_lineLo(x0, y0, x1, y1, color, flags);
       } else {
-        vga_lineLo(x1, y1, x0, y0, color);
+        vga_lineLo(x1, y1, x0, y0, color, flags);
       }
     } else {
       if (y1 > y0) {
-        vga_lineHi(x0, y0, x1, y1, color);
+        vga_lineHi(x0, y0, x1, y1, color, flags);
       } else {
-        vga_lineHi(x1, y1, x0, y0, color);
+        vga_lineHi(x1, y1, x0, y0, color, flags);
       }
     }
   }
 }
 
 void vga_rect(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 ) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t step = OFFSET_X;
@@ -189,22 +234,24 @@ void vga_rect(
     uint64_t lineEnd = pixelOffset(x1, y);
 
     for (uint64_t offset = lineStart; offset <= lineEnd; offset += step) {
-      putpixel(fb, offset, color);
+      blendpixel(fb, offset, color, flags);
     }
   }
 }
 
 void vga_frame(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 ) {
-  vga_hline(x0, x1, y0, color);
-  vga_hline(x0, x1, y1, color);
-  vga_vline(x0, y0, y1, color);
-  vga_vline(x1, y0, y1, color);
+  vga_hline(x0, x1, y0, color, flags);
+  vga_hline(x0, x1, y1, color, flags);
+  vga_vline(x0, y0, y1, color, flags);
+  vga_vline(x1, y0, y1, color, flags);
 }
 
 void vga_shade(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
+  uint8_t flags
 ) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t step = OFFSET_X * 2;
@@ -214,7 +261,7 @@ void vga_shade(
     uint64_t lineEnd = pixelOffset(x1, y);
 
     for (uint64_t offset = lineStart; offset <= lineEnd; offset += step) {
-      putpixel(fb, offset, color);
+      blendpixel(fb, offset, color, flags);
     }
   }
 }
@@ -228,34 +275,10 @@ void vga_clear(color_t color) {
   for (; offset < size; offset += step) putpixel(fb, offset, color);
 }
 
-void vga_pixel(uint16_t x, uint16_t y, color_t color) {
+void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t offset = pixelOffset(x, y);
-  putpixel(fb, offset, color);
-}
-
-#define ACTIVE_FONT_BITS (active_font->charWidth * active_font->charHeight)
-
-void vga_char2masks(char c, uint64_t *masks, uint16_t offsetBits) {
-  for (uint16_t y = 0; y < active_font->charHeight; y++) {
-    for (uint16_t x0 = 0; x0 < active_font->charWidth; x0++) {
-      size_t charOffsetBits =
-        (c - ' ') * ACTIVE_FONT_BITS + y * active_font->charWidth + x0;
-      size_t charOffsetWords = charOffsetBits >> 6;
-      charOffsetBits &= 0x3f;
-
-      uint16_t x = x0 + offsetBits;
-      uint16_t xWord = x >> 6;
-      x &= 0x3f;
-
-      uint64_t charBit = (active_font->characterData[charOffsetWords] &
-                          (1ull << (63 - charOffsetBits))) >>
-                         (63 - charOffsetBits);
-
-      // uint16_t idx = y * VGA_WIDTH_CHUNKS + xWord;
-      // masks[idx] = masks[idx] | (charBit << (63 - x));
-    }
-  }
+  blendpixel(fb, offset, color, flags);
 }
 
 void vga_char(
@@ -277,8 +300,12 @@ void vga_char(
                           (1ull << (63 - charOffsetBits))) >>
                          (63 - charOffsetBits);
 
-      if (charBit && !(flags & VGA_TEXT_NOFG)) { putpixel(fb, offset, color); }
-      if (!charBit && (flags & VGA_TEXT_BG)) { putpixel(fb, offset, bgColor); }
+      if (charBit && !(flags & VGA_TEXT_NOFG)) {
+        blendpixel(fb, offset, color, flags);
+      }
+      if (!charBit && (flags & VGA_TEXT_BG)) {
+        blendpixel(fb, offset, bgColor, flags);
+      }
 
       offset += OFFSET_X;
     }
