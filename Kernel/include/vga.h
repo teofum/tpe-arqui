@@ -86,13 +86,13 @@ typedef struct {
  * Flags used by drawing functions
  */
 typedef enum {
-  VGA_TEXT_NORMAL = 0x00,
-  VGA_TEXT_BG = 0x01,
-  VGA_TEXT_NOFG = 0x02,
-  VGA_TEXT_INV = 0x03,
+  VGA_TEXT_NORMAL = 0x00,// Draw text normally
+  VGA_TEXT_BG = 0x01,    // Draw background color
+  VGA_TEXT_NOFG = 0x02,  // Turn off foreground
+  VGA_TEXT_INV = 0x03,   // Background + no foreground, "cutout" effect
 
-  VGA_ALPHA_NONE = 0x00,
-  VGA_ALPHA_BLEND = 0x04,
+  VGA_ALPHA_NONE = 0x00, // Disable alpha blending
+  VGA_ALPHA_BLEND = 0x04,// Enable alpha blending
 } vga_drawflags_t;
 
 /*
