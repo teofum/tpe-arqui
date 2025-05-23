@@ -1,11 +1,11 @@
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
-#include <stdint.h>
 #include <libasm.h>
+#include <stdint.h>
 
 #define ID_TIMER_TICK 0x20
-//#define ID_KEYBOARD 0x21
+#define ID_KEYBOARD 0x21
 #define ID_SYSCALL 0x80
 
 #define MAX_INTERRUPTS 256
@@ -21,10 +21,12 @@ typedef struct {
 
 void load_idt(void);
 
+void initInterrupts();
+
 /* Handlers de interrupciones */
 void _irq00Handler(void);
 void _irq80Handler(void);
-// void _irq01Handler(void);
+void _irq01Handler(void);
 // void _exception0Handler(void);
 
 /* Manejo de IRQs */
@@ -42,4 +44,3 @@ extern void _cli(void);
 extern void _sti(void);
 
 #endif /* INTERRUPTS_H */
-

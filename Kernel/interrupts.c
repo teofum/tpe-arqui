@@ -1,6 +1,7 @@
 #include <defs.h>
 #include <interrupts.h>
 #include <kbd.h>
+#include <time.h>
 
 idtDescriptor_t *idt = (idtDescriptor_t *) 0;
 void (*irqHandlers[MAX_INTERRUPTS])();
@@ -22,20 +23,20 @@ static void setup_IDT_Entry(int index, uint64_t offset) {
 
 #pragma pack(pop) /* Reestablece la alineación actual */
 
-/* Carga la IDT con las interrupciones configuradas */
+/* Carga la IDT con las interrupciones configuradas *///////////////////////////////////////////////////////////////
 void load_idt() {
   _cli();
 
   // IRQ 0: Timer tick
-  setup_IDT_Entry(ID_TIMER_TICK, (uint64_t) &_irq00Handler);
+  // setup_IDT_Entry(ID_TIMER_TICK, (uint64_t) &_irq00Handler);
 
   // IRQ 1: Teclado (comentado por ahora)
-  // setup_IDT_Entry(ID_KEYBOARD, (uint64_t) &_irq01Handler);
+  setup_IDT_Entry(ID_KEYBOARD, (uint64_t) &_irq01Handler);
 
   // Syscalls
   setup_IDT_Entry(ID_SYSCALL, (uint64_t) &_irq80Handler);
 
-  picMasterMask(0xFE);
+  picMasterMask(0xFC);
   picSlaveMask(0xFF);
 
   _sti();
@@ -46,15 +47,15 @@ void irqDispatcher(uint64_t irq) {
   if (irq < MAX_INTERRUPTS) irqHandlers[irq]();
 }
 
-/* Registra un handler para una IRQ */
+/* Registra un handler para una IRQ *///////////////////////////////////////////////////////////////
 void setInterruptHandler(uint64_t irq, void (*handler)()) {
   if (irq < MAX_INTERRUPTS) irqHandlers[irq] = handler;
 }
 
-/* inicializa la tabla de interrupts */
+/* inicializa la tabla de interrupts *///////////////////////////////////////////////////////////////
 void initInterrupts() {
-  ;
-  setInterruptHandler(0x01, kbd_addKeyEvent);
+  // setInterruptHandler(0x00, timer_handler);
+  setInterruptHandler(0x21, kbd_addKeyEvent);
 }
 
 /* Inicializa la tabla de syscalls */

@@ -27,7 +27,7 @@ typedef struct {
  * Adds a scancode to the buffer, discarding oldest events fi we run out of
  * space.
  */
-void kbd_addKeyEvent(uint8_t scancode);
+void kbd_addKeyEvent();
 
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state

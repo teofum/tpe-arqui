@@ -14,11 +14,10 @@ void haltcpu(void);
 void picMasterMask(uint8_t mask);
 void picSlaveMask(uint8_t mask);
 
-/* Handlers de interrupciones */
-void _irq00Handler(void);
+/* Handlers de interrupciones *///esto no se si borrarlo, lo pase a interrupts.h
+// void _irq00Handler(void);
 // void _irq01Handler(void);
-void _irq80Handler(void);
+// void _irq80Handler(void);
 // void _exception0Handler(void);
 
 #endif /* LIBASM_H */
-

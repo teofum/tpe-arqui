@@ -1,12 +1,14 @@
 #include "kbd.h"
-#include "time.h"
 #include "vga.h"
 #include <interrupts.h>
+#include <kbd.h>
 #include <lib.h>
 #include <moduleLoader.h>
 #include <naiveConsole.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
+
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -94,30 +96,44 @@ int main() {
   ncPrint((char *) sampleDataModuleAddress);
   ncNewline();
 
-  initSyscalls();
-  setInterruptHandler(0, timer_handler);
+
+  ncClear();
+  ncPrint("[start]");
+  ncNewline();
+
+  // initSyscalls();
+  initInterrupts();
+  // setInterruptHandler(0, timer_handler);
   load_idt();
 
-  // Initialize VGA driver
-  vga_gfxMode();
-
-  // Draw some test graphics
-  vga_clear(0x00);
-
-  vga_shade(58, 78, 408, 218, 0x00);
-  vga_rect(50, 70, 400, 210, 0x07);
-  vga_frame(50, 70, 400, 210, 0x00);
-
-  const vga_font_t *lastfont = vga_font(vga_comicsans);
-  vga_text(58, 78, "Hello world!", 0x00, 0);
-  vga_font(lastfont);
-  vga_text(58, 78 + 24, "This is a longer string of text", 0x4c, VGA_TEXT_BG);
-
-  for (int i = 0; i < 16; i++) {
-    vga_rect(100 + 20 * i, 400, 100 + 20 * i + 19, 419, i);
+  int i = 0;
+  while (1) {
+    int sc = 0;
+    while (sc == 0) { sc = kbd_getKeyEvent().scancode; }
+    ncPrintHex(sc);
   }
 
-  vga_setPalette(vga_pal_macintoshii);
+
+  // // Initialize VGA driver
+  // vga_gfxMode();
+
+  // // Draw some test graphics
+  // vga_clear(0x00);
+
+  // vga_shade(58, 78, 408, 218, 0x00);
+  // vga_rect(50, 70, 400, 210, 0x07);
+  // vga_frame(50, 70, 400, 210, 0x00);
+
+  // const vga_font_t *lastfont = vga_font(vga_comicsans);
+  // vga_text(58, 78, "Hello world!", 0x00, 0);
+  // vga_font(lastfont);
+  // vga_text(58, 78 + 24, "This is a longer string of text", 0x4c, VGA_TEXT_BG);
+
+  // for (int i = 0; i < 16; i++) {
+  //   vga_rect(100 + 20 * i, 400, 100 + 20 * i + 19, 419, i);
+  // }
+
+  // vga_setPalette(vga_pal_macintoshii);
 
   return 0;
 }

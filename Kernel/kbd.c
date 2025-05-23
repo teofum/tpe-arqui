@@ -1,11 +1,14 @@
+#include <stdint.h>////////////SON PARA TESTEAR
+#include <string.h>////////////
+
 #include <kbd.h>
 #include <string.h>
 
 typedef enum {
-  SC_CTRL = 0x1D, // Left Ctrl
+  SC_CTRL = 0x1D,// Left Ctrl
   SC_LSHIFT = 0x2A,
   SC_RSHIFT = 0x36,
-  SC_ALT = 0x38, // Left Alt
+  SC_ALT = 0x38,// Left Alt
   SC_CAPLOCK = 0x3A,
 } ScancodeSpecial;
 
@@ -18,9 +21,9 @@ typedef enum {
 #define next(x) x = (x + 1) % KBD_BUFFER_SIZE
 
 kbd_buffer_t kbd_buffer = {
-    .data = {0},
-    .writePos = 0,
-    .readPos = 0,
+  .data = {0},
+  .writePos = 0,
+  .readPos = 0,
 };
 
 uint8_t kbd_state[128] = {0};
@@ -34,13 +37,15 @@ extern uint8_t _kbd_readState();
  * Adds a scancode to the buffer, discarding oldest events fi we run out of
  * space.
  */
-void kbd_addKeyEvent(uint8_t scancode) {
-  kbd_buffer.data[kbd_buffer.writePos] = scancode;
+void kbd_addKeyEvent() {/////////////////////////////////no esta entrando a esta
+  ncPrint("sddke");
+  uint8_t sc = _kbd_read();
+  kbd_buffer.data[kbd_buffer.writePos] = sc;
   next(kbd_buffer.writePos);
 
   // If we ran into the start of the queue, get rid of the older events
-  if (kbd_buffer.writePos == kbd_buffer.readPos)
-    next(kbd_buffer.readPos);
+  if (kbd_buffer.writePos == kbd_buffer.readPos) next(kbd_buffer.readPos);
+  return;
 }
 
 void kbd_pollEvents() {
@@ -48,10 +53,10 @@ void kbd_pollEvents() {
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
-    if (scancodeToKey(scancode) == SC_CAPLOCK) { //  togle caplock on press
+    if (scancodeToKey(scancode) == SC_CAPLOCK) {//  togle caplock on press
       if (!(isRelease(scancode))) {
         kbd_state[scancodeToKey(scancode)] =
-            !(kbd_state[scancodeToKey(scancode)]);
+          !(kbd_state[scancodeToKey(scancode)]);
       }
     }
     kbd_state[scancodeToKey(scancode)] = isRelease(scancode) ? 0 : 1;
@@ -74,6 +79,11 @@ int kbd_keyreleased(uint8_t key) {
  */
 kbd_event_t kbd_getKeyEvent() {
   kbd_event_t kbd_event = {0};
+
+  // testing     /////////////////////////////////////aca entra///////////////////
+  kbd_event.scancode = kbd_buffer.data[kbd_buffer.readPos];
+  return kbd_event;
+  ////////////
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
@@ -100,6 +110,7 @@ kbd_event_t kbd_getKeyEvent() {
       return kbd_event;
     }
   }
+  return kbd_event;
 }
 
 // /*
