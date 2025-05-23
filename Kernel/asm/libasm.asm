@@ -1,19 +1,27 @@
 SECTION .text
 
 %macro pushall 0
-	push rbx
-	push r12
-	push r13
-	push r14
-	push r15
+    push rax
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
 %endmacro
 
 %macro popall 0
-	pop r15
-	pop r14
-	pop r13
-	pop r12
-	pop rbx
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rax
 %endmacro
 
 ; Macro para handlers de IRQ
@@ -23,12 +31,12 @@ EXTERN irqDispatcher
     push rbp
     mov rbp, rsp
 
-	mov rdi, %1 ; pasaje de parametro
+	mov rdi, %1
 	call irqDispatcher
 
-	; signal pic EOI (End of Interrupt)
-	mov al, 20h
-	out 20h, al
+	; Signal PIC EOI (End of Interrupt)
+	mov al, 0x20
+	out 0x20, al
 
     mov rsp, rbp
     pop rbp
@@ -68,7 +76,7 @@ cpuVendor:
 
 GLOBAL _hlt
 _hlt:
-  sti
+    sti
 	hlt
 	ret
 
@@ -118,7 +126,7 @@ GLOBAL _irq00Handler
 _irq00Handler:
 	irqHandlerMaster 0
 
-; Keyboard handler (comentado por ahora)
+; Keyboard handler
 GLOBAL _irq01Handler
 _irq01Handler:
 	irqHandlerMaster 1

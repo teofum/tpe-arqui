@@ -103,7 +103,6 @@ int main() {
 
   // initSyscalls();
   initInterrupts();
-  // setInterruptHandler(0, timer_handler);
   load_idt();
 
   int i = 0;
