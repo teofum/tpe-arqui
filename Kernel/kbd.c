@@ -38,6 +38,7 @@ extern uint8_t _kbd_read();
  */
 void kbd_addKeyEvent() {
   uint8_t sc = _kbd_read();
+
   kbd_buffer.data[kbd_buffer.writePos] = sc;
   next(kbd_buffer.writePos);
 
