@@ -26,8 +26,8 @@ idt_descriptor_t *idt = (idt_descriptor_t *) 0;
 void (*irqHandlers[MAX_INTERRUPTS])();
 void *syscallDispatchTable[MAX_SYSCALLS];
 
-extern void picMasterMask(uint8_t mask);
-extern void picSlaveMask(uint8_t mask);
+extern void _picMasterMask(uint8_t mask);
+extern void _picSlaveMask(uint8_t mask);
 extern void _cli(void);
 extern void _sti(void);
 
@@ -59,8 +59,8 @@ void loadIDT() {
   // Syscalls
   setup_IDT_Entry(ID_SYSCALL, (uint64_t) &_irq80Handler);
 
-  picMasterMask(0xFC);
-  picSlaveMask(0xFF);
+  _picMasterMask(0xFC);
+  _picSlaveMask(0xFF);
 
   _sti();
 }

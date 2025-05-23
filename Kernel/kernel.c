@@ -103,7 +103,7 @@ int main() {
 
   // initSyscalls();
   initInterrupts();
-  load_idt();
+  loadIDT();
 
   int i = 0;
   while (1) {
