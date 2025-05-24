@@ -159,7 +159,7 @@ int main() {
 
   while (1) {
     char sc = 0;
-    while (sc == 0) { sc = kbd_getKeyEvent().scancode; }
+    while (sc == 0) sc = kbd_getKeyEvent().scancode;
 
     char buf[] = "Pressed: X";
     buf[9] = sc;

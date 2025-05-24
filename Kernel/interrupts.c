@@ -36,8 +36,8 @@ struct {
   uint64_t rsi, rdi, rsp, rbp;
   uint64_t r8, r9, r10, r11, r12, r13, r14, r15;
   uint64_t rip, rflags;
-  uint16_t cs, ss, ds, es, fs, gs;
   uint64_t cr0, cr2, cr3, cr4, cr8;
+  uint16_t cs, ss, ds, es, fs, gs;
 } registerState;
 
 extern void _picMasterMask(uint8_t mask);
@@ -48,6 +48,8 @@ extern void _sti(void);
 extern void _irq00Handler();
 extern void _irq01Handler();
 extern void _irq80Handler();
+
+extern void _kbd_irqHandler();
 
 /* Configura una entrada en la IDT */
 static void setup_IDT_Entry(int index, uint64_t offset) {
@@ -90,7 +92,7 @@ static void setInterruptHandler(uint64_t irq, void (*handler)()) {
 /* inicializa la tabla de interrupts */
 void initInterrupts() {
   setInterruptHandler(0x00, timer_handler);
-  setInterruptHandler(0x01, kbd_addKeyEvent);
+  setInterruptHandler(0x01, _kbd_irqHandler);
 }
 
 /* Registra una syscall */
@@ -118,4 +120,12 @@ void initSyscalls() {
   registerSyscall(0x27, vga_font);
   registerSyscall(0x28, vga_text);
   registerSyscall(0x29, vga_textWrap);
+}
+
+void showCPUState() {
+  vga_gradient(104, 64, 920, 256, 0x0020a0, 0x2040c0, VGA_GRAD_V);
+  vga_frame(104, 64, 920, 256, 0xffffff, 0);
+
+  char sc = 0;
+  while (!sc) sc = kbd_getKeyEvent().scancode;
 }

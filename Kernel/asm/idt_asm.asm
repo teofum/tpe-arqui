@@ -72,9 +72,36 @@ _irq00Handler:
 	irqHandlerMaster 0
 
 ; Keyboard handler
+; Special handling to alter CPU state as little as possible
+; for state dump function
 global _irq01Handler
+extern kbd_addKeyEvent
+extern _regdump
 _irq01Handler:
-	irqHandlerMaster 1
+	pushall
+
+    mov rax, 0
+    in  al, 0x60
+
+	; Signal PIC EOI (End of Interrupt)
+    push rax
+	mov al, 0x20
+	out 0x20, al
+    pop rax
+
+    cmp al, 0x3B ; if F1 is pressed, dump registers
+    jne .keyEvent
+
+    call _regdump
+    jmp .exit
+
+.keyEvent:
+    mov rdi, rax
+    call kbd_addKeyEvent
+
+.exit:
+	popall
+	iretq
 
 ; Syscall handler (IRQ 80h)
 global _irq80Handler
