@@ -96,6 +96,7 @@ int main() {
   ncPrint((char *) sampleDataModuleAddress);
   ncNewline();
 
+  initSyscalls();
   initInterrupts();
   loadIDT();
 
