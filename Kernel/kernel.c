@@ -1,11 +1,12 @@
-#include "time.h"
-#include "vga.h"
+#include <time.h>
+#include <vga.h>
 #include <interrupts.h>
 #include <lib.h>
 #include <moduleLoader.h>
 #include <naiveConsole.h>
 #include <stdint.h>
 #include <string.h>
+#include <audio.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -118,5 +119,8 @@ int main() {
 
   vga_setPalette(vga_pal_macintoshii);
 
+  audio_play(440);
+
   return 0;
 }
+
