@@ -2,6 +2,7 @@
 #include <defs.h>
 #include <interrupts.h>
 #include <kbd.h>
+#include <stdint.h>
 #include <time.h>
 
 #define ID_TIMER_TICK 0x20
@@ -26,6 +27,18 @@ typedef struct {
 idt_descriptor_t *idt = (idt_descriptor_t *) 0;
 void (*irqHandlers[MAX_INTERRUPTS])();
 void *syscallDispatchTable[MAX_SYSCALLS];
+
+/*
+ * Static memory location for CPU state dump
+ */
+struct {
+  uint64_t rax, rbx, rcx, rdx;
+  uint64_t rsi, rdi, rsp, rbp;
+  uint64_t r8, r9, r10, r11, r12, r13, r14, r15;
+  uint64_t rip, rflags;
+  uint16_t cs, ss, ds, es, fs, gs;
+  uint64_t cr0, cr2, cr3, cr4, cr8;
+} registerState;
 
 extern void _picMasterMask(uint8_t mask);
 extern void _picSlaveMask(uint8_t mask);
