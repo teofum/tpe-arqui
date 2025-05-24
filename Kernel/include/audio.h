@@ -24,4 +24,3 @@ void audio_shutdown(void);
 void audio_beep(uint16_t frequency, uint16_t duration);
 
 #endif /* AUDIO_H */
-

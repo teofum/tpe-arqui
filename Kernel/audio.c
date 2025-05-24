@@ -13,16 +13,18 @@ extern uint8_t inb(uint16_t port);
 extern void outb(uint16_t port, uint8_t value);
 
 /* Constantes relacionadas con el PC Speaker */
-#define PIT_CHANNEL2_DATA_PORT     0x42    /* Puerto de datos del canal 2 para el PIT */
-#define PIT_MODE_COMMAND_PORT      0x43    /* Puerto de comandos de modo del PIT */
-#define PC_SPEAKER_PORT            0x61    /* Puerto de control del PC Speaker */
+#define PIT_CHANNEL2_DATA_PORT                                                 \
+  0x42                             /* Puerto de datos del canal 2 para el PIT */
+#define PIT_MODE_COMMAND_PORT 0x43 /* Puerto de comandos de modo del PIT */
+#define PC_SPEAKER_PORT 0x61       /* Puerto de control del PC Speaker */
 
 /* Constantes relacionadas con el PIT */
-#define PIT_OSCILLATOR_FREQ        1193180 /* Frecuencia base para el PIT en Hz */
-#define PIT_CHANNEL2_MODE          0xB6    /* Modo para el canal 2: generador de onda cuadrada */
+#define PIT_OSCILLATOR_FREQ 1193180 /* Frecuencia base para el PIT en Hz */
+#define PIT_CHANNEL2_MODE                                                      \
+  0xB6 /* Modo para el canal 2: generador de onda cuadrada */
 
 /* Bits de control del Speaker */
-#define SPEAKER_ENABLE_BIT         0x03    /* Bits para habilitar el PC speaker*/
+#define SPEAKER_ENABLE_BIT 0x03 /* Bits para habilitar el PC speaker*/
 
 
 void audio_play(uint16_t frequency) {
@@ -36,8 +38,8 @@ void audio_play(uint16_t frequency) {
   /* Configura el canal 2 del PIT a la frecuencia deseada */
   /* PIT recibe de a 8 bits --> Byte bajo primero, alto despues por LE */
   outb(PIT_MODE_COMMAND_PORT, PIT_CHANNEL2_MODE);
-  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t)(divisor));		    /* Byte bajo */
-  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t)(divisor >> 8));  /* Byte alto */
+  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t) (divisor));      /* Byte bajo */
+  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t) (divisor >> 8)); /* Byte alto */
 
   /* Conecta el canal 2 del PIT al PC Speaker habilitando los bits 0-1 */
   uint8_t tmp = inb(PC_SPEAKER_PORT);
@@ -52,14 +54,10 @@ void audio_stop(void) {
 }
 
 void audio_beep(uint16_t frequency, uint16_t duration) {
-  if (frequency > 1)
-    audio_play(frequency);
+  if (frequency > 1) audio_play(frequency);
 
   //timer_wait(duration); Revisar funciones de time.c
   audio_stop();
 }
 
-void audio_shutdown(void) {
-  audio_stop();
-}
-
+void audio_shutdown(void) { audio_stop(); }
