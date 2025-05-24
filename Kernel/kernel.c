@@ -96,43 +96,77 @@ int main() {
   ncPrint((char *) sampleDataModuleAddress);
   ncNewline();
 
-
-  ncClear();
-  ncPrint("[start]");
-  ncNewline();
-
-  // initSyscalls();
+  initSyscalls();
   initInterrupts();
   loadIDT();
 
-  int i = 0;
-  while (1) {
-    int sc = 0;
-    while (sc == 0) { sc = kbd_getKeyEvent().scancode; }
-    ncPrintHex(sc);
+  vga_clear(0x00000080);
+
+  vga_rect(100, 100, 300, 300, 0xc0c0c0, 0);
+  vga_shade(100, 100, 300, 300, 0xff0000, 0);
+  vga_frame(100, 100, 300, 300, 0x80ff80, 0);
+
+  for (uint32_t y = 100; y <= 300; y += 25) {
+    vga_line(400, y, 600, y, 0xffffff, 0);
+  }
+  for (uint32_t x = 400; x <= 600; x += 25) {
+    vga_line(x, 100, x, 300, 0xffffff, 0);
   }
 
+  for (uint32_t y = 400; y <= 600; y += 25) {
+    for (uint32_t x = 100; x <= 300; x += 25) {
+      vga_line(200, 500, x, y, 0x00ffff, 0);
+    }
+  }
 
-  // // Initialize VGA driver
-  // vga_gfxMode();
+  vga_gradient(400, 400, 600, 500, 0xaa5540, 0xc0aa80, VGA_GRAD_H);
+  vga_gradient(400, 500, 600, 600, 0xaa5540, 0xc0aa80, VGA_GRAD_V);
 
-  // // Draw some test graphics
-  // vga_clear(0x00);
+  vga_text(700, 100, "This is some text\nin multiple lines!", 0xffffff, 0, 0);
+  vga_text(
+    700, 132, "This\ttext\thas\ttab\tstops\n|\t|\t|\t|\t|", 0xffffff, 0, 0
+  );
 
-  // vga_shade(58, 78, 408, 218, 0x00);
-  // vga_rect(50, 70, 400, 210, 0x07);
-  // vga_frame(50, 70, 400, 210, 0x00);
+  const vga_font_t *font = vga_font(vga_fontTiny);
+  vga_text(700, 174, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontTinyBold);
+  vga_text(700, 174 + 8, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontSmall);
+  vga_text(700, 178 + 16, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontDefault);
+  vga_text(700, 178 + 28, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontLarge);
+  vga_text(700, 178 + 44, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontAlt);
+  vga_text(700, 182 + 68, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontAltBold);
+  vga_text(700, 182 + 84, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontFuture);
+  vga_text(700, 186 + 100, "Hello world!", 0xffffff, 0, 0);
+  vga_font(vga_fontOld);
+  vga_text(700, 186 + 110, "Hello world!", 0xffffff, 0, 0);
+  vga_font(font);
 
-  // const vga_font_t *lastfont = vga_font(vga_comicsans);
-  // vga_text(58, 78, "Hello world!", 0x00, 0);
-  // vga_font(lastfont);
-  // vga_text(58, 78 + 24, "This is a longer string of text", 0x4c, VGA_TEXT_BG);
+  const char *longtext =
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
+    "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim "
+    "veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea "
+    "commodo consequat.";
 
-  // for (int i = 0; i < 16; i++) {
-  //   vga_rect(100 + 20 * i, 400, 100 + 20 * i + 19, 419, i);
-  // }
+  vga_textWrap(700, 400, 200, longtext, 0xffffff, 0, VGA_WRAP_WORD);
 
-  // vga_setPalette(vga_pal_macintoshii);
+  vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
+
+  while (1) {
+    char sc = 0;
+    while (sc == 0) { sc = kbd_getKeyEvent().scancode; }
+
+    char buf[] = "Pressed: X";
+    buf[9] = sc;
+    vga_gradient(10, 10, 110, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
+    vga_frame(10, 10, 110, 36, 0xffffff, 0);
+    vga_text(14, 18, buf, 0xffffff, 0, 0);
+  }
 
   return 0;
 }

@@ -1,3 +1,4 @@
+#include "vga.h"
 #include <defs.h>
 #include <interrupts.h>
 #include <kbd.h>
@@ -86,10 +87,22 @@ static void registerSyscall(uint64_t id, void *syscall) {
 
 /* Inicializa la tabla de syscalls */
 void initSyscalls() {
-  /* SysCalls de teclado */
+  /* Keyboard */
   registerSyscall(0x10, kbd_pollEvents);
   registerSyscall(0x11, kbd_keydown);
   registerSyscall(0x12, kbd_keypressed);
   registerSyscall(0x13, kbd_keyreleased);
   registerSyscall(0x11, kbd_getKeyEvent);
+
+  /* Video */
+  registerSyscall(0x20, vga_clear);
+  registerSyscall(0x21, vga_pixel);
+  registerSyscall(0x22, vga_line);
+  registerSyscall(0x23, vga_rect);
+  registerSyscall(0x24, vga_frame);
+  registerSyscall(0x25, vga_shade);
+  registerSyscall(0x26, vga_gradient);
+  registerSyscall(0x27, vga_font);
+  registerSyscall(0x28, vga_text);
+  registerSyscall(0x29, vga_textWrap);
 }
