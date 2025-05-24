@@ -96,6 +96,8 @@ int main() {
   ncPrint((char *) sampleDataModuleAddress);
   ncNewline();
 
+  initInterrupts();
+  loadIDT();
 
   vga_clear(0x00000080);
 
@@ -155,13 +157,13 @@ int main() {
   vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
 
   while (1) {
-    uint8_t sc = 0;
+    char sc = 0;
     while (sc == 0) { sc = kbd_getKeyEvent().scancode; }
 
     char buf[] = "Pressed: X";
     buf[9] = sc;
-    vga_gradient(10, 10, 90, 36, 0x000080, 0x0020a0, 0);
-    vga_frame(10, 10, 90, 36, 0xffffff, 0);
+    vga_gradient(10, 10, 110, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
+    vga_frame(10, 10, 110, 36, 0xffffff, 0);
     vga_text(14, 18, buf, 0xffffff, 0, 0);
   }
 
