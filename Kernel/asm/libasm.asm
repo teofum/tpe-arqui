@@ -79,6 +79,7 @@ _regdump:
     mov [registerState + 0x70], r14
     mov [registerState + 0x78], r15
 
+    ; TODO figure out how to read these
     ;mov [registerState + 0x80], rip
     ;mov [registerState + 0x88], rflags
 

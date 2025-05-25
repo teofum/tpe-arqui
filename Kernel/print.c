@@ -27,8 +27,6 @@ int32_t sprintf(char *buf, const char *fmt, ...) {
   int32_t len = 0;
 
   char t_char = 0;
-  int32_t t_i32 = 0;
-  uint32_t t_u32 = 0;
   int64_t t_i64 = 0;
   uint64_t t_u64 = 0;
   uint8_t base = 10;
@@ -44,7 +42,7 @@ int32_t sprintf(char *buf, const char *fmt, ...) {
       int done = 0;
       char padding = ' ';
       uint8_t minLength = 0;
-      int printBase = 0;
+      int printBase = 0, islong = 0;
 
       while (!done) {
         c = *fmt++;
@@ -68,6 +66,9 @@ int32_t sprintf(char *buf, const char *fmt, ...) {
         }
 
         switch (c) {
+          case 'l':
+            islong = 1;
+            break;
           case '%':
             buf[len++] = '%';
             done = 1;
@@ -79,10 +80,12 @@ int32_t sprintf(char *buf, const char *fmt, ...) {
             break;
           case 's':
             done = 1;
+            // TODO: strings
             break;
           case 'd':
-            t_i32 = va_arg(args, int32_t);
+            t_i64 = islong ? va_arg(args, int64_t) : va_arg(args, int32_t);
             done = 1;
+            // TODO: signed integer support
             break;
           case 'u':
           case 'x':
@@ -93,9 +96,9 @@ int32_t sprintf(char *buf, const char *fmt, ...) {
             }
 
             base = (c == 'x') ? 16 : (c == 'b') ? 2 : 10;
-            t_u32 = va_arg(args, uint32_t);
-            t_u32 = utostr(buffer, t_u32, base, minLength, padding);
-            for (int i = 0; i < t_u32; i++) buf[len++] = buffer[i];
+            t_u64 = islong ? va_arg(args, uint64_t) : va_arg(args, uint32_t);
+            t_u64 = utostr(buffer, t_u64, base, minLength, padding);
+            for (int i = 0; i < t_u64; i++) buf[len++] = buffer[i];
             done = 1;
             break;
         }
