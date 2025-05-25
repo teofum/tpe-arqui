@@ -5,10 +5,9 @@
 #include <lib.h>
 #include <moduleLoader.h>
 #include <naiveConsole.h>
+#include <print.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
-
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -161,10 +160,10 @@ int main() {
     char sc = 0;
     while (sc == 0) sc = kbd_getKeyEvent().scancode;
 
-    char buf[] = "Pressed: X";
-    buf[9] = sc;
-    vga_gradient(10, 10, 110, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
-    vga_frame(10, 10, 110, 36, 0xffffff, 0);
+    char buf[20];
+    sprintf(buf, "Pressed: %#02x", sc);
+    vga_gradient(10, 10, 130, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
+    vga_frame(10, 10, 130, 36, 0xffffff, 0);
     vga_text(14, 18, buf, 0xffffff, 0, 0);
   }
 
