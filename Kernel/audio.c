@@ -1,5 +1,6 @@
 #include <audio.h>
-// #include <time.h> Falta implementarlo bien
+#include <stdint.h>
+#include <time.h> // Falta implementarlo bien?
 
 /* Funciones externas de audio_asm */
 /**
@@ -53,11 +54,21 @@ void audio_stop(void) {
   outb(PC_SPEAKER_PORT, tmp);
 }
 
+// Con el time.c de la catedra
+static void audio_delay(uint16_t ms) {
+    uint16_t start = ticks_elapsed();
+    uint16_t elapsed;
+
+    do {
+        elapsed = ticks_elapsed() - start;
+    } while (elapsed < ms);
+}
+
 void audio_beep(uint16_t frequency, uint16_t duration) {
   if (frequency > 1) audio_play(frequency);
-
-  //timer_wait(duration); Revisar funciones de time.c
+  audio_delay(duration);
   audio_stop();
 }
 
 void audio_shutdown(void) { audio_stop(); }
+

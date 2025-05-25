@@ -119,7 +119,7 @@ int main() {
 
   vga_setPalette(vga_pal_macintoshii);
 
-  audio_play(440);
+  audio_beep(440, 20);
 
   return 0;
 }
