@@ -8,14 +8,14 @@ int utostr(
   int32_t len = 0;
 
   do {
-    digits[63 - ndigits++] = n % base;
+    digits[ndigits++] = n % base;
     n /= base;
   } while (n > 0);
 
   for (int i = 0; i < minLength - ndigits; i++) buf[len++] = padding;
 
   for (int i = 0; i < ndigits; i++) {
-    uint8_t digit = digits[63 - i];
+    uint8_t digit = digits[ndigits - 1 - i];
     buf[len++] = digit >= 10 ? 'A' + (digit - 10) : '0' + digit;
   }
 
