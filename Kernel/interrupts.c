@@ -50,8 +50,6 @@ extern void _irq00Handler();
 extern void _irq01Handler();
 extern void _irq80Handler();
 
-extern void _kbd_irqHandler();
-
 /* Configura una entrada en la IDT */
 static void setup_IDT_Entry(int index, uint64_t offset) {
   idt[index].selector = 0x08;
@@ -93,7 +91,8 @@ static void setInterruptHandler(uint64_t irq, void (*handler)()) {
 /* inicializa la tabla de interrupts */
 void initInterrupts() {
   setInterruptHandler(0x00, timer_handler);
-  setInterruptHandler(0x01, _kbd_irqHandler);
+  // Keyboard interrupt (0x01) is handled specially for register dump function,
+  // so it doesn't have an entry in the interrupt dispatch table
 }
 
 /* Registra una syscall */

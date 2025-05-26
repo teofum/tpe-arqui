@@ -78,7 +78,7 @@ global _irq01Handler
 extern kbd_addKeyEvent
 extern _regdump
 _irq01Handler:
-	pushall
+    push rax     ; Preserve RAX value for statedump
 
     mov rax, 0
     in  al, 0x60
@@ -92,15 +92,31 @@ _irq01Handler:
     cmp al, 0x3B ; if F1 is pressed, dump registers
     jne .keyEvent
 
+    mov rax, [rsp + 8 * 1] ; RIP
+    push rax
+    mov rax, [rsp + 8 * 3] ; CS
+    push rax
+    mov rax, [rsp + 8 * 5] ; RFLAGS
+    push rax
+    mov rax, [rsp + 8 * 7] ; RSP (old)
+    push rax
+    mov rax, [rsp + 8 * 9] ; SS
+    push rax
+
     call _regdump
+    add rsp, 48 ; yeet the stack
     jmp .exit
 
 .keyEvent:
+	pushall
+
+    pop rdi      ; Pop old RAX value out of the stack then discard it
     mov rdi, rax
     call kbd_addKeyEvent
 
-.exit:
 	popall
+
+.exit:
 	iretq
 
 ; Syscall handler (IRQ 80h)

@@ -60,6 +60,7 @@ extern showCPUState
 _regdump:
     cli
 
+    mov rax, [rsp + 8 * 6]
     mov [registerState + 0x00], rax
     mov [registerState + 0x08], rbx
     mov [registerState + 0x10], rcx
@@ -67,7 +68,8 @@ _regdump:
 
     mov [registerState + 0x20], rsi
     mov [registerState + 0x28], rdi
-    mov [registerState + 0x30], rsp
+    mov rax, [rsp + 8 * 2]  ; RSP (before jumping into IRQ handler)
+    mov [registerState + 0x30], rax
     mov [registerState + 0x38], rbp
 
     mov [registerState + 0x40], r8
@@ -79,15 +81,10 @@ _regdump:
     mov [registerState + 0x70], r14
     mov [registerState + 0x78], r15
 
-    ; abuse a call instruction to read RIP
-    call .cursed ; This pushes RIP onto the stack
-.cursed:
-    pop rax ; We then pop into RAX so we can MOV it to memory
+    mov rax, [rsp + 8 * 5] ; RIP (before jumping into IRQ handler)
     mov [registerState + 0x80], rax
 
-    ; get the flags register
-    pushfq
-    pop rax
+    mov rax, [rsp + 8 * 3] ; RFLAGS
     mov [registerState + 0x88], rax
 
     ; TODO figure out how to read control registers
@@ -97,8 +94,10 @@ _regdump:
     ;mov [registerState + 0xA8], cr4
     ;mov [registerState + 0xB0], cr8
 
-    mov [registerState + 0xB8], cs
-    mov [registerState + 0xBA], ss
+    mov rax, [rsp + 8 * 4] ; CS
+    mov [registerState + 0xB8], ax
+    mov rax, [rsp + 8 * 1] ; SS
+    mov [registerState + 0xBA], ax
     mov [registerState + 0xBC], ds
     mov [registerState + 0xBE], es
     mov [registerState + 0xC0], fs
