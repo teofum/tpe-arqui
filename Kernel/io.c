@@ -1,3 +1,4 @@
+#include "kbd.h"
 #include "vga.h"
 #include <io.h>
 #include <string.h>
@@ -63,6 +64,11 @@ void io_clear() {
 }
 
 uint32_t io_read(char *buf, uint32_t len) {
-  // TODO
-  return 0;
+  uint32_t readChars = 0;
+  int c;
+  while ((c = kbd_getchar()) != -1 && readChars < len) {
+    if (c != 0) buf[readChars++] = c;
+  }
+
+  return readChars;
 }

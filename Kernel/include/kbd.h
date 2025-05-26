@@ -41,8 +41,14 @@ int kbd_keypressed(uint8_t key);
 int kbd_keyreleased(uint8_t key);
 
 /*
- * tiene que retornar un evento
+ * Returns the next keyboard event.
  */
 kbd_event_t kbd_getKeyEvent();
+
+/*
+ * Returns the ASCII character corresponding to the next keyboard event.
+ * If there are no events in queue, returns -1.
+ */
+int kbd_getchar();
 
 #endif

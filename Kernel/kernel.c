@@ -157,21 +157,25 @@ int main() {
 
   vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
 
+  char buf[20];
   while (1) {
-    char key = 0;
-    while (key == 0) key = kbd_getKeyEvent().key;
+    uint32_t read = io_read(buf, 20);
+    if (read > 0) io_write(buf, read);
 
-    char buf[20];
-    sprintf(buf, "Pressed: %#02x\n", key);
+    // char key = 0;
+    // while (key == 0) key = kbd_getKeyEvent().key;
+
+    // char buf[20];
+    // sprintf(buf, "Pressed: %#02x\n", key);
     // vga_gradient(10, 10, 130, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
     // vga_frame(10, 10, 130, 36, 0xffffff, 0);
     // vga_text(14, 18, buf, 0xffffff, 0, 0);
-    if (key == 0x01) {
-      io_clear();
-      vga_clear(0);
-    } else {
-      io_writes(buf);
-    }
+    // if (key == 0x01) {
+    //   io_clear();
+    //   vga_clear(0);
+    // } else {
+    //   io_writes(buf);
+    // }
   }
 
   return 0;
