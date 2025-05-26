@@ -36,7 +36,12 @@ void io_putc(char c) {
 uint32_t io_writes(const char *str) {
   char c;
   while ((c = *str++)) {
-    if (c != '\n') stdoutBuf[line][cursor++] = c;
+    if (c == '\b') {
+      stdoutBuf[line][cursor] = 0;
+      if (cursor > 0) cursor--;
+      stdoutBuf[line][cursor] = ' ';
+    } else if (c != '\n')
+      stdoutBuf[line][cursor++] = c;
     if (cursor == LINE_LENGTH || c == '\n') nextline();
   }
 
@@ -48,7 +53,13 @@ uint32_t io_write(const char *str, uint32_t len) {
   char c;
   for (int i = 0; i < len; i++) {
     c = *str++;
-    if (c != '\n') stdoutBuf[line][cursor++] = c;
+    if (c == '\b') {
+      stdoutBuf[line][cursor] = 0;
+      if (cursor > 0) cursor--;
+      stdoutBuf[line][cursor] = ' ';
+    } else if (c != '\n') {
+      stdoutBuf[line][cursor++] = c;
+    }
     if (cursor == LINE_LENGTH || c == '\n') nextline();
   }
 
