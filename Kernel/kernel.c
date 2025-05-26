@@ -1,12 +1,12 @@
-#include <time.h>
-#include <vga.h>
+#include <audio.h>
 #include <interrupts.h>
 #include <lib.h>
 #include <moduleLoader.h>
 #include <naiveConsole.h>
 #include <stdint.h>
 #include <string.h>
-#include <audio.h>
+#include <time.h>
+#include <vga.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -123,4 +123,3 @@ int main() {
 
   return 0;
 }
-
