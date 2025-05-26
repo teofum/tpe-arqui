@@ -9,14 +9,14 @@ typedef enum {
   SC_LSHIFT = 0x2A,
   SC_RSHIFT = 0x36,
   SC_ALT = 0x38,// Left Alt
-  SC_CAPLOCK = 0x3A,
+  SC_CAPSLOCK = 0x3A,
 } ScancodeSpecial;
 
 #define scancodeToKey(x) ((x) & 0x7f)
 #define isRelease(x) ((x) & 0x80)
 #define isSpecial(x)                                                           \
   (((x) == SC_CTRL) || ((x) == SC_LSHIFT) || ((x) == SC_RSHIFT) ||             \
-   ((x) == SC_ALT) || ((x) == SC_CAPLOCK))
+   ((x) == SC_ALT) || ((x) == SC_CAPSLOCK))
 
 #define next(x) x = (x + 1) % KBD_BUFFER_SIZE
 
@@ -48,12 +48,6 @@ void kbd_pollEvents() {
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
-    if (scancodeToKey(scancode) == SC_CAPLOCK) {//  togle caplock on press
-      if (!(isRelease(scancode))) {
-        kbd_state[scancodeToKey(scancode)] =
-          !(kbd_state[scancodeToKey(scancode)]);
-      }
-    }
     kbd_state[scancodeToKey(scancode)] = isRelease(scancode) ? 0 : 1;
     next(kbd_buffer.readPos);
   }
@@ -93,7 +87,7 @@ kbd_event_t kbd_getKeyEvent() {
       kbd_event.isReleased = isRelease(scancode);
 
       kbd_event.alt = kbd_state[SC_ALT];
-      kbd_event.caplock = kbd_state[SC_CAPLOCK];
+      kbd_event.caplock = kbd_state[SC_CAPSLOCK];
       kbd_event.ctrl = kbd_state[SC_CTRL];
       kbd_event.shift = kbd_state[SC_LSHIFT];
       kbd_event.shift_r = kbd_state[SC_RSHIFT];

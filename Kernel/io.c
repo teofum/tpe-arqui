@@ -61,3 +61,8 @@ void io_clear() {
   }
   line = cursor = 0;
 }
+
+uint32_t io_read(char *buf, uint32_t len) {
+  // TODO
+  return 0;
+}

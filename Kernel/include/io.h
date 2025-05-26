@@ -10,8 +10,6 @@ uint32_t io_write(const char *str, uint32_t len);
 
 void io_clear();
 
-char io_getc();
-
-uint32_t io_read(char *str, uint32_t len);
+uint32_t io_read(char *buf, uint32_t len);
 
 #endif
