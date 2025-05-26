@@ -87,12 +87,16 @@ _regdump:
     mov rax, [rsp + 8 * 3] ; RFLAGS
     mov [registerState + 0x88], rax
 
-    ; TODO figure out how to read control registers
-    ;mov [registerState + 0x90], cr0
-    ;mov [registerState + 0x98], cr2
-    ;mov [registerState + 0xA0], cr3
-    ;mov [registerState + 0xA8], cr4
-    ;mov [registerState + 0xB0], cr8
+    mov rax, cr0
+    mov [registerState + 0x90], rax
+    mov rax, cr2
+    mov [registerState + 0x98], rax
+    mov rax, cr3
+    mov [registerState + 0xA0], rax
+    mov rax, cr4
+    mov [registerState + 0xA8], rax
+    mov rax, cr8
+    mov [registerState + 0xB0], rax
 
     mov rax, [rsp + 8 * 4] ; CS
     mov [registerState + 0xB8], ax
