@@ -79,10 +79,18 @@ _regdump:
     mov [registerState + 0x70], r14
     mov [registerState + 0x78], r15
 
-    ; TODO figure out how to read these
-    ;mov [registerState + 0x80], rip
-    ;mov [registerState + 0x88], rflags
+    ; abuse a call instruction to read RIP
+    call .cursed ; This pushes RIP onto the stack
+.cursed:
+    pop rax ; We then pop into RAX so we can MOV it to memory
+    mov [registerState + 0x80], rax
 
+    ; get the flags register
+    pushfq
+    pop rax
+    mov [registerState + 0x88], rax
+
+    ; TODO figure out how to read control registers
     ;mov [registerState + 0x90], cr0
     ;mov [registerState + 0x98], cr2
     ;mov [registerState + 0xA0], cr3
