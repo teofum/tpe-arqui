@@ -1,3 +1,4 @@
+#include "io.h"
 #include "kbd.h"
 #include "vga.h"
 #include <interrupts.h>
@@ -161,10 +162,11 @@ int main() {
     while (sc == 0) sc = kbd_getKeyEvent().scancode;
 
     char buf[20];
-    sprintf(buf, "Pressed: %#02x", sc);
-    vga_gradient(10, 10, 130, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
-    vga_frame(10, 10, 130, 36, 0xffffff, 0);
-    vga_text(14, 18, buf, 0xffffff, 0, 0);
+    sprintf(buf, "Pressed: %#02x\n", sc);
+    // vga_gradient(10, 10, 130, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
+    // vga_frame(10, 10, 130, 36, 0xffffff, 0);
+    // vga_text(14, 18, buf, 0xffffff, 0, 0);
+    io_writes(buf);
   }
 
   return 0;
