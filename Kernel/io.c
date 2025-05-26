@@ -9,7 +9,7 @@ char stdoutBuf[MAX_LINES][LINE_LENGTH + 1] = {0};
 uint32_t line = 0;
 uint32_t cursor = 0;
 
-void nextline() {
+static void nextline() {
   cursor = 0;
   if (line < MAX_LINES - 1) {
     line++;
@@ -20,8 +20,8 @@ void nextline() {
   }
 }
 
-void drawStdout() {
-  for (int i = 0; i < MAX_LINES; i++)
+static void drawStdout() {
+  for (int i = 0; i <= line; i++)
     vga_text(0, i * 16, stdoutBuf[i], 0xffffff, 0x000000, VGA_TEXT_BG);
 }
 
@@ -53,4 +53,11 @@ uint32_t io_write(const char *str, uint32_t len) {
 
   drawStdout();
   return 0;
+}
+
+void io_clear() {
+  for (int i = 0; i <= line; i++) {
+    for (int j = 0; j < LINE_LENGTH; j++) stdoutBuf[i][j] = 0;
+  }
+  line = cursor = 0;
 }
