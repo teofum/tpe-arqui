@@ -17,7 +17,7 @@ unsigned int hours_elapsed() {
   return minutes_elapsed() / 60;
 }//((ticks/TICKS_PER_SECOND)%3600)/60
 
-Time getTime(unsigned int ticks) {
+Time getTimeElapsed(unsigned int ticks) {
   Time t;
   unsigned int total_seconds = ticks / TICKS_PER_SECOND;
 
@@ -26,4 +26,18 @@ Time getTime(unsigned int ticks) {
   t.seconds = total_seconds % 60;
 
   return t;
+}
+
+// RTC ///////////////////////////////
+
+uint8_t get_format(uint8_t num) {//chequiar, lo saque de un tp q me pasaron
+  int dec = num & 240;
+  dec = dec >> 4;
+  int units = num & 15;
+  return dec * 10 + units;
+}
+
+uint8_t rtc_getTime(int descriptor) {
+  uint8_t toReturn = asm_rtc_GetTime(descriptor);
+  return get_format(toReturn);
 }
