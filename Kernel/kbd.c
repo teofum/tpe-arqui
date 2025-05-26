@@ -28,6 +28,7 @@ kbd_buffer_t kbd_buffer = {
 
 uint8_t kbd_state[128] = {0};
 uint8_t kbd_lastState[128] = {0};
+uint8_t kbd_capslock = 0;
 
 /*
  * Called by keyboard interrupt handler.
@@ -63,34 +64,31 @@ int kbd_keyreleased(uint8_t key) {
   return (!kbd_state[key] && kbd_lastState[key]);
 }
 
-/*
- * tiene que retornar un evento
- */
 kbd_event_t kbd_getKeyEvent() {
   kbd_event_t kbd_event = {0};
-  kbd_event.scancode = 0;
+  kbd_event.key = 0;
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
     next(kbd_buffer.readPos);
 
+    uint8_t key = scancodeToKey(scancode);
     if ((isSpecial(scancode) != 0) || isRelease(scancode)) {
-      // es una especial o un release ? actualiza el estado del teclado:;
-
-      kbd_state[scancodeToKey(scancode)] = isRelease(scancode) ? 0 : 1;
+      if (scancode == SC_CAPSLOCK) {
+        // Special handling for caps lock, it acts as a toggle
+        if (!isRelease(scancode)) kbd_capslock = !kbd_capslock;
+      }
+      kbd_state[key] = isRelease(scancode) ? 0 : 1;
     } else {
-      // es un press no especial ? lo actualiza en el estado y lo meta al
-      // y lo meta al state:;
-
-      kbd_state[scancodeToKey(scancode)] = 1;
-      kbd_event.scancode = scancodeToKey(scancode);
+      kbd_state[key] = 1;
+      kbd_event.key = key;
       kbd_event.isReleased = isRelease(scancode);
 
       kbd_event.alt = kbd_state[SC_ALT];
-      kbd_event.caplock = kbd_state[SC_CAPSLOCK];
       kbd_event.ctrl = kbd_state[SC_CTRL];
       kbd_event.shift = kbd_state[SC_LSHIFT];
       kbd_event.shift_r = kbd_state[SC_RSHIFT];
+      kbd_event.capslock = kbd_capslock;
 
       return kbd_event;
     }

@@ -10,15 +10,14 @@ typedef struct {
 } kbd_buffer_t;
 
 typedef struct {
-  uint8_t scancode;
+  uint8_t key;
   uint8_t isReleased;
 
   uint8_t shift : 1;
   uint8_t shift_r : 1;
-  uint8_t backspace : 1;
   uint8_t ctrl : 1;
   uint8_t alt : 1;
-  uint8_t caplock : 1;
+  uint8_t capslock : 1;
 } kbd_event_t;
 
 /*

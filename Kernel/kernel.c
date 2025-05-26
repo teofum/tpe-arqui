@@ -158,15 +158,15 @@ int main() {
   vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
 
   while (1) {
-    char sc = 0;
-    while (sc == 0) sc = kbd_getKeyEvent().scancode;
+    char key = 0;
+    while (key == 0) key = kbd_getKeyEvent().key;
 
     char buf[20];
-    sprintf(buf, "Pressed: %#02x\n", sc);
+    sprintf(buf, "Pressed: %#02x\n", key);
     // vga_gradient(10, 10, 130, 36, 0x0020a0, 0x2040c0, VGA_GRAD_V);
     // vga_frame(10, 10, 130, 36, 0xffffff, 0);
     // vga_text(14, 18, buf, 0xffffff, 0, 0);
-    if (sc == 0x01) {
+    if (key == 0x01) {
       io_clear();
       vga_clear(0);
     } else {
