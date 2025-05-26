@@ -29,16 +29,12 @@ kbd_buffer_t kbd_buffer = {
 uint8_t kbd_state[128] = {0};
 uint8_t kbd_lastState[128] = {0};
 
-extern uint8_t _kbd_read();
-
 /*
  * Called by keyboard interrupt handler.
  * Adds a scancode to the buffer, discarding oldest events fi we run out of
  * space.
  */
-void kbd_addKeyEvent() {
-  uint8_t sc = _kbd_read();
-
+void kbd_addKeyEvent(uint8_t sc) {
   kbd_buffer.data[kbd_buffer.writePos] = sc;
   next(kbd_buffer.writePos);
 

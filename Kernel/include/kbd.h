@@ -21,14 +21,6 @@ typedef struct {
   uint8_t caplock : 1;
 } kbd_event_t;
 
-
-/*
- * Called by keyboard interrupt handler.
- * Adds a scancode to the buffer, discarding oldest events fi we run out of
- * space.
- */
-void kbd_addKeyEvent();
-
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */

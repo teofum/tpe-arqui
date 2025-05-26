@@ -376,6 +376,9 @@ void vga_char(
   uint16_t x0, uint16_t y0, char c, color_t color, color_t bgColor,
   uint8_t flags
 ) {
+  // Skip non printable characters
+  if (c < ' ' || c == 0x7f) return;
+
   uint8_t *fb = VGA_FRAMEBUFFER;
 
   for (uint16_t y = 0; y < active_font->charHeight; y++) {
