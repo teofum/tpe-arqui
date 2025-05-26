@@ -23,11 +23,24 @@ static void nextline() {
 
 static void drawStdout() {
   for (int i = 0; i <= line; i++)
-    vga_text(0, i * 16, stdoutBuf[i], 0xffffff, 0x000000, VGA_TEXT_BG);
+    vga_text(
+      0, i * vga_getfont()->lineHeight, stdoutBuf[i], 0xffffff, 0x000000,
+      VGA_TEXT_BG
+    );
 }
 
 void io_putc(char c) {
-  if (c != '\n') stdoutBuf[line][cursor++] = c;
+  if (c == '\b') {
+    if (cursor > 0) cursor--;
+    stdoutBuf[line][cursor] = 0;
+    uint16_t cx = vga_getfont()->charWidth;
+    uint16_t cy = vga_getfont()->lineHeight;
+    vga_rect(
+      cursor * cx, line * cy, (cursor + 1) * cx - 1, (line + 1) * cy - 1,
+      0x000000, 0
+    );
+  } else if (c != '\n')
+    stdoutBuf[line][cursor++] = c;
   if (cursor == LINE_LENGTH || c == '\n') nextline();
 
   drawStdout();
@@ -37,9 +50,14 @@ uint32_t io_writes(const char *str) {
   char c;
   while ((c = *str++)) {
     if (c == '\b') {
-      stdoutBuf[line][cursor] = 0;
       if (cursor > 0) cursor--;
-      stdoutBuf[line][cursor] = ' ';
+      stdoutBuf[line][cursor] = 0;
+      uint16_t cx = vga_getfont()->charWidth;
+      uint16_t cy = vga_getfont()->lineHeight;
+      vga_rect(
+        cursor * cx, line * cy, (cursor + 1) * cx - 1, (line + 1) * cy - 1,
+        0x000000, 0
+      );
     } else if (c != '\n')
       stdoutBuf[line][cursor++] = c;
     if (cursor == LINE_LENGTH || c == '\n') nextline();
@@ -54,9 +72,14 @@ uint32_t io_write(const char *str, uint32_t len) {
   for (int i = 0; i < len; i++) {
     c = *str++;
     if (c == '\b') {
-      stdoutBuf[line][cursor] = 0;
       if (cursor > 0) cursor--;
-      stdoutBuf[line][cursor] = ' ';
+      stdoutBuf[line][cursor] = 0;
+      uint16_t cx = vga_getfont()->charWidth;
+      uint16_t cy = vga_getfont()->lineHeight;
+      vga_rect(
+        cursor * cx, line * cy, (cursor + 1) * cx - 1, (line + 1) * cy - 1,
+        0x000000, 0
+      );
     } else if (c != '\n') {
       stdoutBuf[line][cursor++] = c;
     }

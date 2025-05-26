@@ -487,3 +487,5 @@ const vga_font_t *vga_font(const vga_font_t *font) {
   active_font = font;
   return lastFont;
 }
+
+const vga_font_t *vga_getfont() { return active_font; }
