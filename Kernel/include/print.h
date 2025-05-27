@@ -5,4 +5,6 @@
 
 int32_t sprintf(char *buf, const char *fmt, ...);
 
+int32_t printf(const char *fmt, ...);
+
 #endif

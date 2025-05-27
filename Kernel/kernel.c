@@ -1,7 +1,5 @@
-#include "io.h"
-#include "kbd.h"
-#include "vga.h"
 #include <interrupts.h>
+#include <io.h>
 #include <kbd.h>
 #include <lib.h>
 #include <moduleLoader.h>
@@ -9,6 +7,7 @@
 #include <print.h>
 #include <stdint.h>
 #include <string.h>
+#include <vga.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -22,7 +21,7 @@ static const uint64_t PageSize = 0x1000;
 static void *const sampleCodeModuleAddress = (void *) 0x400000;
 static void *const sampleDataModuleAddress = (void *) 0x500000;
 
-typedef int (*EntryPoint)();
+typedef int (*entrypoint_t)();
 
 void clearBSS(void *bssAddress, uint64_t bssSize) {
   memset(bssAddress, 0, bssSize);
@@ -79,23 +78,6 @@ void *initializeKernelBinary() {
 }
 
 int main() {
-  ncPrint("[Kernel Main]");
-  ncNewline();
-  ncPrint("  Sample code module at 0x");
-  ncPrintHex((uint64_t) sampleCodeModuleAddress);
-  ncNewline();
-  ncPrint("  Calling the sample code module returned: ");
-  ncPrintHex(((EntryPoint) sampleCodeModuleAddress)());
-  ncNewline();
-  ncNewline();
-
-  ncPrint("  Sample data module at 0x");
-  ncPrintHex((uint64_t) sampleDataModuleAddress);
-  ncNewline();
-  ncPrint("  Sample data module contents: ");
-  ncPrint((char *) sampleDataModuleAddress);
-  ncNewline();
-
   initSyscalls();
   initInterrupts();
   loadIDT();
@@ -156,6 +138,22 @@ int main() {
   vga_textWrap(700, 400, 200, longtext, 0xffffff, 0, VGA_WRAP_WORD);
 
   vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
+
+  io_writes("[Kernel Main]\n");
+  printf(
+    "Sample code module at %#016llx\n", (uint64_t) sampleCodeModuleAddress
+  );
+  printf(
+    "  Calling the sample code module returned: %#08x\n\n",
+    ((entrypoint_t) sampleCodeModuleAddress)()
+  );
+
+  // ncPrint("  Sample data module at 0x");
+  // ncPrintHex((uint64_t) sampleDataModuleAddress);
+  // ncNewline();
+  // ncPrint("  Sample data module contents: ");
+  // ncPrint((char *) sampleDataModuleAddress);
+  // ncNewline();
 
   char buf[20];
   while (1) {

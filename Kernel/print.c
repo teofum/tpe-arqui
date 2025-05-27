@@ -1,3 +1,4 @@
+#include "io.h"
 #include <print.h>
 
 int utostr(
@@ -23,7 +24,7 @@ int utostr(
   return len;
 }
 
-int32_t sprintf(char *buf, const char *fmt, ...) {
+static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
   int32_t len = 0;
 
   char t_char = 0;
@@ -32,9 +33,6 @@ int32_t sprintf(char *buf, const char *fmt, ...) {
   uint8_t base = 10;
 
   static char buffer[256];
-
-  va_list args;
-  va_start(args, fmt);
 
   char c;
   while ((c = *fmt++)) {
@@ -108,8 +106,28 @@ int32_t sprintf(char *buf, const char *fmt, ...) {
     }
   }
 
-  va_end(args);
-
   buf[len] = 0;
+  return len;
+}
+
+int32_t sprintf(char *buf, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+
+  int32_t len = vsprintf(buf, fmt, args);
+
+  va_end(args);
+  return len;
+}
+
+int32_t printf(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+
+  static char buf[512];
+  int32_t len = vsprintf(buf, fmt, args);
+  io_write(buf, len);
+
+  va_end(args);
   return len;
 }
