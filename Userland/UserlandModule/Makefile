@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-MODULE=0000-sampleCodeModule.bin
+MODULE=0000-userlandModule.bin
 SOURCES=$(wildcard [^_]*.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 OBJECTS=$(foreach I,$(SOURCES:.c=.o),build/$I)
@@ -12,7 +12,7 @@ LOADEROBJECT=$(foreach I,$(LOADERSRC:.c=.o),build/$I)
 all: $(MODULE)
 
 $(MODULE): out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
-	$(LD) $(LDFLAGS) -T sampleCodeModule.ld -o ../$(MODULE) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
+	$(LD) $(LDFLAGS) -T userlandModule.ld -o ../$(MODULE) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
 
 build/%.o: %.c
 	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@

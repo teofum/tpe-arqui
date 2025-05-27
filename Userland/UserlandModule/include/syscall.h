@@ -8,8 +8,9 @@ typedef enum {
   SYS_WRITE = 0x04,
   SYS_WRITES = 0x05,
   SYS_PUTC = 0x06,
+  SYS_CLEAR = 0x07,
 } syscall_t;
 
-extern void _syscall(uint64_t n, ...);
+extern uint64_t _syscall(uint64_t n, ...);
 
 #endif

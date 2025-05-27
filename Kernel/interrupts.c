@@ -108,6 +108,7 @@ void initSyscalls() {
   registerSyscall(0x04, io_write);
   registerSyscall(0x05, io_writes);
   registerSyscall(0x06, io_putc);
+  registerSyscall(0x07, io_clear);
 
   /* Keyboard */
   registerSyscall(0x10, kbd_pollEvents);
