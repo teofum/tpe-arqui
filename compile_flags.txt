@@ -1,1 +1,2 @@
 -IKernel/include
+-IUserland/SampleCodeModule/include
