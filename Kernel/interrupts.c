@@ -228,6 +228,8 @@ void showCPUState() {
   sprintf(buf, "gs: %#04x", registerState.gs);
   vga_text(left + 616, top + 128, buf, 0xffffff, 0, 0);
 
+  vga_present();
+
   char key = 0;
   while (!key) key = kbd_getKeyEvent().key;
 }
