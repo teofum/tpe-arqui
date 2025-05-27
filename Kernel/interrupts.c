@@ -1,3 +1,4 @@
+#include "io.h"
 #include "vga.h"
 #include <defs.h>
 #include <interrupts.h>
@@ -102,12 +103,18 @@ static void registerSyscall(uint64_t id, void *syscall) {
 
 /* Inicializa la tabla de syscalls */
 void initSyscalls() {
+  /* Virtual terminal I/O */
+  registerSyscall(0x03, io_read);
+  registerSyscall(0x04, io_write);
+  registerSyscall(0x05, io_writes);
+  registerSyscall(0x06, io_putc);
+
   /* Keyboard */
   registerSyscall(0x10, kbd_pollEvents);
   registerSyscall(0x11, kbd_keydown);
   registerSyscall(0x12, kbd_keypressed);
   registerSyscall(0x13, kbd_keyreleased);
-  registerSyscall(0x11, kbd_getKeyEvent);
+  registerSyscall(0x14, kbd_getKeyEvent);
 
   /* Video */
   registerSyscall(0x20, vga_clear);
@@ -120,6 +127,7 @@ void initSyscalls() {
   registerSyscall(0x27, vga_font);
   registerSyscall(0x28, vga_text);
   registerSyscall(0x29, vga_textWrap);
+  registerSyscall(0x2A, vga_present);
 }
 
 void showCPUState() {
