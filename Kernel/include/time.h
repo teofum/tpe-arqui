@@ -47,5 +47,7 @@ uint8_t rtc_getTime(int descriptor);
 
 DateTime_t rtc_getDateTime();
 
+DateTime_t rtc_getLocalTime(void);
 
 #endif
+

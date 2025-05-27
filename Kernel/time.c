@@ -59,6 +59,43 @@ DateTime_t rtc_getDateTime() {
   return dt;
 }
 
+static uint8_t is_leap_year(uint8_t year) {
+  return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+static uint8_t days_in_month(uint8_t month, uint8_t year) {
+  static const uint8_t days[] = {31, 28, 31, 30, 31, 30,
+                                 31, 31, 30, 31, 30, 31};
+
+  if (month == 2 && is_leap_year(year)) { return 29; }
+
+  return days[month - 1];
+}
+
+DateTime_t rtc_getLocalTime(void) {
+  DateTime_t dt = rtc_getDateTime();// Get UTC time
+
+  // Argentina (UTC-3)
+  if (dt.hours >= 3) {
+    dt.hours -= 3;
+  } else {
+    dt.hours = 24 + dt.hours - 3;
+    if (dt.day > 1) {
+      dt.day--;
+    } else {
+      if (dt.month > 1) {
+        dt.month--;
+        dt.day = days_in_month(dt.month, dt.year);
+      } else {
+        dt.month = 12;
+        dt.day = 31;
+        if (dt.year > 0) { dt.year--; }
+      }
+    }
+  }
+
+  return dt;
+}
 
 /// utils //////////////////////////////////////////////////
 
@@ -93,3 +130,4 @@ void uint8_to_string(uint8_t value, char *buffer) {
 /// Ejemplo de uso //////////////
 // char longtext[4] = {0};
 // uint8_to_string(rtc_getDateTime().minutes, longtext);
+
