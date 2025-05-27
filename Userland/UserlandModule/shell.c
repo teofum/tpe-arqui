@@ -18,7 +18,7 @@ typedef struct {
 command_t commands[CMDS_SIZE] = {0};
 
 static int echo(const char *args) {
-  printf("%s\n", args);
+  printf("%s\n", args != NULL ? args : "");
 
   return 0;
 }
