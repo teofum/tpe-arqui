@@ -234,4 +234,10 @@ void vga_textWrap(
  */
 void vga_present();
 
+/*
+ * Copy contents between two framebuffers.
+ * Set either framebuffer to NULL to use the default framebuffer.
+ */
+void vga_copy(uint8_t *dst, uint8_t *src);
+
 #endif

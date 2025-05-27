@@ -60,8 +60,9 @@ void io_putc(char c) {
   putcImpl(c);
 
   vga_font(lastFont);
-  vga_present();
+  vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  vga_present();
 }
 
 static const char *parseColorEscape(const char *str) {
@@ -117,8 +118,9 @@ uint32_t io_writes(const char *str) {
   background = DEFAULT_BG;
   foreground = DEFAULT_FG;
   vga_font(lastFont);
-  vga_present();
+  vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  vga_present();
   return 0;
 }
 
@@ -139,16 +141,18 @@ uint32_t io_write(const char *str, uint32_t len) {
   background = DEFAULT_BG;
   foreground = DEFAULT_FG;
   vga_font(lastFont);
-  vga_present();
+  vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  vga_present();
   return 0;
 }
 
 void io_clear() {
   vga_setFramebuffer(textFramebuffer);
   vga_clear(0x000000);
-  vga_present();
+  vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  vga_present();
 
   cur_x = cur_y = 0;
 }
