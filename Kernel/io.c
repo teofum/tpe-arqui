@@ -3,14 +3,17 @@
 #include <io.h>
 #include <string.h>
 
-#define TEXT_BG 0x000000
-#define TEXT_FG 0xffffff
+#define DEFAULT_BG 0x000000
+#define DEFAULT_FG 0xffffff
 
 uint8_t textFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3] = {0};
 const vga_font_t *textFont;
 
 uint32_t cur_y = 0;
 uint32_t cur_x = 0;
+
+uint32_t background = DEFAULT_BG;
+uint32_t foreground = DEFAULT_FG;
 
 static void nextline() {
   cur_x = 0;
@@ -27,7 +30,7 @@ static void nextline() {
     );
 
     vga_rect(
-      0, VGA_HEIGHT - offsetLines, VGA_WIDTH - 1, VGA_HEIGHT - 1, TEXT_BG, 0
+      0, VGA_HEIGHT - offsetLines, VGA_WIDTH - 1, VGA_HEIGHT - 1, DEFAULT_BG, 0
     );
 
     cur_y -= offsetLines;
@@ -39,10 +42,10 @@ static inline void putcImpl(char c) {
     if (cur_x > 0) cur_x -= textFont->charWidth;
     vga_rect(
       cur_x, cur_y, cur_x + textFont->charWidth - 1,
-      cur_y + textFont->charHeight - 1, TEXT_BG, 0
+      cur_y + textFont->charHeight - 1, DEFAULT_BG, 0
     );
   } else if (c != '\n') {
-    vga_char(cur_x, cur_y, c, TEXT_FG, TEXT_BG, VGA_TEXT_BG);
+    vga_char(cur_x, cur_y, c, foreground, background, VGA_TEXT_BG);
     cur_x += textFont->charWidth;
   }
   if (cur_x >= VGA_WIDTH || c == '\n') nextline();
@@ -61,13 +64,56 @@ void io_putc(char c) {
   vga_setFramebuffer(NULL);
 }
 
+static const char *parseColorEscape(const char *str) {
+  char c;
+
+  // Color escape sequence
+  uint8_t mode = 0;
+  color_t color = 0x000000;
+  color_t channel = 0, shift = 16;
+  while ((c = *str++) && c != ';') {
+    if (c == 'b' || c == 'B') {
+      mode = 1;
+    } else if (c == 'f' || c == 'F') {
+      mode = 0;
+    } else if (c == 'r' || c == 'R') {
+      color = mode == 0 ? DEFAULT_FG : DEFAULT_BG;
+    } else if (c == ',') {
+      color |= channel << shift;
+      shift -= 8;
+      channel = 0;
+    } else if (c >= '0' && c <= '9') {
+      if (channel > 0 || c != '0') {
+        channel *= 10;
+        channel += c - '0';
+      }
+    }
+  }
+
+  if (mode == 0) {
+    foreground = color;
+  } else {
+    background = color;
+  }
+
+  return str;
+}
+
 uint32_t io_writes(const char *str) {
   vga_setFramebuffer(textFramebuffer);
   const vga_font_t *lastFont = vga_font(textFont);
 
   char c;
-  while ((c = *str++)) { putcImpl(c); }
+  while ((c = *str++)) {
+    if (c == 0x1A) {
+      str = parseColorEscape(str);
+    } else {
+      putcImpl(c);
+    }
+  }
 
+  background = DEFAULT_BG;
+  foreground = DEFAULT_FG;
   vga_font(lastFont);
   vga_present();
   vga_setFramebuffer(NULL);
@@ -79,11 +125,17 @@ uint32_t io_write(const char *str, uint32_t len) {
   const vga_font_t *lastFont = vga_font(textFont);
 
   char c;
-  for (int i = 0; i < len; i++) {
-    c = *str++;
-    putcImpl(c);
+  const char *end = str + len;
+  while (str < end && (c = *str++)) {
+    if (c == 0x1A) {
+      str = parseColorEscape(str);
+    } else {
+      putcImpl(c);
+    }
   }
 
+  background = DEFAULT_BG;
+  foreground = DEFAULT_FG;
   vga_font(lastFont);
   vga_present();
   vga_setFramebuffer(NULL);

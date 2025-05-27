@@ -136,7 +136,9 @@ static int runCommand(const char *cmd) {
   }
   if (retcode == RET_UNKNOWN_CMD) {
     printf(
+      "\x1A 192,0,64;\x1A B64,0,0;"
       "Unrecognized command '%s'\n"
+      "\x1A R;\x1A BR;"
       "Type 'help' for a list of available commands\n",
       cmdName
     );
