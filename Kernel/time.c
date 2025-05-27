@@ -89,7 +89,7 @@ DateTime_t rtc_getLocalTime(void) {
       } else {
         dt.month = 12;
         dt.day = 31;
-        if (dt.year > 0) { dt.year--; }
+        dt.year--;
       }
     }
   }
