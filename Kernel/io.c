@@ -70,7 +70,8 @@ static const char *parseColorEscape(const char *str) {
   // Color escape sequence
   uint8_t mode = 0;
   color_t color = 0x000000;
-  color_t channel = 0, shift = 16;
+  color_t channel = 0;
+  uint8_t shift = 16;
   while ((c = *str++) && c != ';') {
     if (c == 'b' || c == 'B') {
       mode = 1;
@@ -89,6 +90,7 @@ static const char *parseColorEscape(const char *str) {
       }
     }
   }
+  color |= channel;
 
   if (mode == 0) {
     foreground = color;

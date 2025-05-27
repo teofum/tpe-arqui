@@ -48,15 +48,15 @@ size_t nFonts = sizeof(fonts) / sizeof(font_entry_t);
 static int setfont(const char *name) {
   if (name == NULL) {
     printf(
-      "Missing font name\n"
-      "Usage: setfont <font name>\n"
-      "Type 'setfont ls' for a list of fonts\n"
+      COL_RED "Missing font name\n" COL_RESET "Usage: setfont <font name>\n"
+              "Hint: Type " COL_YELLOW "'setfont ls'" COL_RESET
+              " for a list of fonts\n"
     );
     return 1;
   }
 
   if (strcmp(name, "ls") == 0) {
-    for (int i = 0; i < nFonts; i++) { printf("%s\n", fonts[i].name); }
+    for (int i = 0; i < nFonts; i++) { printf(COL_BLUE "%s\n", fonts[i].name); }
     return 0;
   }
 
@@ -68,8 +68,8 @@ static int setfont(const char *name) {
   }
 
   printf(
-    "Unknown font name '%s'\n"
-    "Type 'setfont ls' for a list of fonts\n",
+    COL_RED "Unknown font name '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
+            "'setfont ls'" COL_RESET " for a list of fonts\n",
     name
   );
 
@@ -136,16 +136,14 @@ static int runCommand(const char *cmd) {
   }
   if (retcode == RET_UNKNOWN_CMD) {
     printf(
-      "\x1A 192,0,64;\x1A B64,0,0;"
-      "Unrecognized command '%s'\n"
-      "\x1A R;\x1A BR;"
-      "Type 'help' for a list of available commands\n",
+      COL_RED "Unrecognized command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
+              "'help'" COL_RESET " for a list of available commands\n",
       cmdName
     );
   } else if (retcode == RET_EXIT) {
     return 1;
   } else if (retcode != 0) {
-    printf("[%u] ", retcode);
+    printf("[" COL_RED "%u" COL_RESET "] ", retcode);
   }
 
 
