@@ -142,6 +142,8 @@ static int runCommand(const char *cmd) {
     );
   } else if (retcode == RET_EXIT) {
     return 1;
+  } else if (retcode != 0) {
+    printf("[%u] ", retcode);
   }
 
 
