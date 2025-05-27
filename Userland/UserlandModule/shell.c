@@ -29,6 +29,8 @@ static void writePrompt() { printf("> "); }
 
 static void readCommand(char *buf) {
   int inputEnd = 0;
+  char *start = buf;
+
   while (!inputEnd) {
     int len = _syscall(SYS_READ, buf);
     for (int i = 0; i < len; i++) {
@@ -44,6 +46,18 @@ static void readCommand(char *buf) {
 
   *buf = 0;
   _syscall(SYS_PUTC, '\n');
+
+  // Handle backspaces, etc
+  buf = start;
+  int j = 0;
+  for (int i = 0; buf[i]; i++) {
+    if (buf[i] == '\b') {
+      if (j > 0) j--;
+    } else {
+      buf[j++] = buf[i];
+    }
+  }
+  buf[j] = 0;
 }
 
 static int runCommand(const char *cmd) {
