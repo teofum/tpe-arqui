@@ -106,9 +106,11 @@ void initSyscalls() {
   /* Virtual terminal I/O */
   registerSyscall(0x03, io_read);
   registerSyscall(0x04, io_write);
-  registerSyscall(0x05, io_writes);
-  registerSyscall(0x06, io_putc);
-  registerSyscall(0x07, io_clear);
+  // 0x05, 0x06 reserved for future syscalls (open, close)
+  registerSyscall(0x07, io_writes);
+  registerSyscall(0x08, io_putc);
+  registerSyscall(0x09, io_clear);
+  registerSyscall(0x0A, io_setfont);
 
   /* Keyboard */
   registerSyscall(0x10, kbd_pollEvents);

@@ -3,8 +3,6 @@
 #include <strings.h>
 #include <syscall.h>
 
-#define CMDS_SIZE 64
-
 typedef enum {
   RET_EXIT = -1,
   RET_UNKNOWN_CMD = -255,
@@ -14,8 +12,6 @@ typedef struct {
   const char *cmd;
   int (*entryPoint)(const char *args);
 } command_t;
-
-command_t commands[CMDS_SIZE] = {0};
 
 static int echo(const char *args) {
   printf("%s\n", args != NULL ? args : "");
@@ -29,6 +25,43 @@ static int clear() {
   _syscall(SYS_CLEAR);
   return 0;
 }
+
+typedef struct {
+  const char *name;
+  io_font_t id;
+} font_entry_t;
+
+font_entry_t fonts[] = {
+  {"default", IO_FONT_DEFAULT},
+  {"tiny", IO_FONT_TINY},
+  {"tiny bold", IO_FONT_TINY_BOLD},
+  {"small", IO_FONT_SMALL},
+  {"large", IO_FONT_LARGE},
+  {"alt", IO_FONT_ALT},
+  {"alt bold", IO_FONT_ALT_BOLD},
+  {"future", IO_FONT_FUTURE},
+  {"old", IO_FONT_OLD},
+};
+size_t nFonts = sizeof(fonts) / sizeof(font_entry_t);
+
+static int setfont(const char *name) {
+  for (int i = 0; i < nFonts; i++) {
+    if (strcmp(name, fonts[i].name) == 0) {
+      _syscall(SYS_FONT, fonts[i].id);
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+command_t commands[] = {
+  {"echo", echo},
+  {"exit", exit},
+  {"clear", clear},
+  {"setfont", setfont},
+};
+size_t nCommands = sizeof(commands) / sizeof(command_t);
 
 static void writePrompt() { printf("> "); }
 
@@ -74,7 +107,7 @@ static int runCommand(const char *cmd) {
   // Linear search all commands. Not super efficient, but the number of
   // commands is quite small so we don't need to worry too much.
   int retcode = RET_UNKNOWN_CMD;
-  for (int i = 0; i < CMDS_SIZE && commands[i].cmd; i++) {
+  for (int i = 0; i < nCommands; i++) {
     if (strcmp(cmdName, commands[i].cmd) == 0) {
       retcode = commands[i].entryPoint(cmd);
       break;

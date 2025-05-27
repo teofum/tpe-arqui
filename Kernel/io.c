@@ -52,19 +52,23 @@ void io_init() { textFont = vga_fontDefault; }
 
 void io_putc(char c) {
   vga_setFramebuffer(textFramebuffer);
+  const vga_font_t *lastFont = vga_font(textFont);
 
   putcImpl(c);
 
+  vga_font(lastFont);
   vga_present();
   vga_setFramebuffer(NULL);
 }
 
 uint32_t io_writes(const char *str) {
   vga_setFramebuffer(textFramebuffer);
+  const vga_font_t *lastFont = vga_font(textFont);
 
   char c;
   while ((c = *str++)) { putcImpl(c); }
 
+  vga_font(lastFont);
   vga_present();
   vga_setFramebuffer(NULL);
   return 0;
@@ -72,6 +76,7 @@ uint32_t io_writes(const char *str) {
 
 uint32_t io_write(const char *str, uint32_t len) {
   vga_setFramebuffer(textFramebuffer);
+  const vga_font_t *lastFont = vga_font(textFont);
 
   char c;
   for (int i = 0; i < len; i++) {
@@ -79,6 +84,7 @@ uint32_t io_write(const char *str, uint32_t len) {
     putcImpl(c);
   }
 
+  vga_font(lastFont);
   vga_present();
   vga_setFramebuffer(NULL);
   return 0;
@@ -101,4 +107,40 @@ uint32_t io_read(char *buf, uint32_t len) {
   }
 
   return readChars;
+}
+
+void io_setfont(io_font_t font) {
+  // We use an enum here so we can call this from a syscall, since we don't
+  // have the pointers to VGA font data in userland
+  switch (font) {
+    case IO_FONT_DEFAULT:
+      textFont = vga_fontDefault;
+      break;
+    case IO_FONT_TINY:
+      textFont = vga_fontTiny;
+      break;
+    case IO_FONT_TINY_BOLD:
+      textFont = vga_fontTinyBold;
+      break;
+    case IO_FONT_SMALL:
+      textFont = vga_fontSmall;
+      break;
+    case IO_FONT_LARGE:
+      textFont = vga_fontLarge;
+      break;
+    case IO_FONT_ALT:
+      textFont = vga_fontAlt;
+      break;
+    case IO_FONT_ALT_BOLD:
+      textFont = vga_fontAltBold;
+      break;
+    case IO_FONT_FUTURE:
+      textFont = vga_fontFuture;
+      break;
+    case IO_FONT_OLD:
+      textFont = vga_fontOld;
+      break;
+  }
+
+  nextline();
 }
