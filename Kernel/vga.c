@@ -6,12 +6,9 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
-#define VGA_WIDTH 1024
-#define VGA_HEIGHT 768
-
 #define VGA_PHYSICAL_FRAMEBUFFER                                               \
   (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
-#define VGA_FRAMEBUFFER _framebuffer
+#define VGA_FRAMEBUFFER activeFramebuffer
 
 #define OFFSET_X (VBE_mode_info->bpp >> 3)
 #define OFFSET_Y (VBE_mode_info->pitch)
@@ -34,6 +31,7 @@
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 uint8_t _framebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+uint8_t *activeFramebuffer;
 
 /*
  * Font data
@@ -258,6 +256,12 @@ static void vga_lineHi(
       D += 2 * dx;
     }
   }
+}
+
+void vga_init() { activeFramebuffer = _framebuffer; }
+
+void vga_setFramebuffer(uint8_t *fb) {
+  activeFramebuffer = fb == NULL ? _framebuffer : fb;
 }
 
 void vga_clear(color_t color) {

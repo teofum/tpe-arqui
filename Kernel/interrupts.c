@@ -129,6 +129,7 @@ void initSyscalls() {
   registerSyscall(0x28, vga_text);
   registerSyscall(0x29, vga_textWrap);
   registerSyscall(0x2A, vga_present);
+  registerSyscall(0x2B, vga_setFramebuffer);
 }
 
 void showCPUState() {

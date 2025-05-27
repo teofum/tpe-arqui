@@ -2,6 +2,9 @@
 #define VGA_H
 #include <stdint.h>
 
+#define VGA_WIDTH 1024
+#define VGA_HEIGHT 768
+
 #define VGA_FONT_MAX_HEIGHT 24
 
 typedef uint32_t color_t;
@@ -110,6 +113,10 @@ typedef enum {
 
   VGA_WRAP_WORD = 0x08,// Wrap text by words instead of characters
 } vga_drawflags_t;
+
+void vga_init();
+
+void vga_setFramebuffer(uint8_t *fb);
 
 /*
  * Clear VRAM with a single solid color.

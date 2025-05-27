@@ -25,6 +25,11 @@ static int echo(const char *args) {
 
 static int exit() { return RET_EXIT; }
 
+static int clear() {
+  _syscall(SYS_CLEAR);
+  return 0;
+}
+
 static void writePrompt() { printf("> "); }
 
 static void readCommand(char *buf) {
@@ -64,6 +69,8 @@ static int runCommand(const char *cmd) {
   char cmdName[256];
   cmd = strsplit(cmdName, cmd, ' ');
 
+  if (cmdName[0] == 0) return 0;
+
   // Linear search all commands. Not super efficient, but the number of
   // commands is quite small so we don't need to worry too much.
   int retcode = RET_UNKNOWN_CMD;
@@ -101,6 +108,11 @@ int startShell() {
     .entryPoint = echo,
   };
   commands[1] = cmd_echo;
+  command_t cmd_clear = {
+    .cmd = "clear",
+    .entryPoint = clear,
+  };
+  commands[2] = cmd_clear;
 
   // Run the shell
   int exit = 0;

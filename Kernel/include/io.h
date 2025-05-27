@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+void io_init();
+
 void io_putc(char c);
 
 uint32_t io_writes(const char *str);
