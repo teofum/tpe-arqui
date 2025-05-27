@@ -176,6 +176,11 @@ void vga_gradient(
 const vga_font_t *vga_font(const vga_font_t *font);
 
 /*
+ * Get the font used for drawing text
+ */
+const vga_font_t *vga_getfont();
+
+/*
  * Draw a single character to VRAM at the specified position using the current
  * font.
  * This function does no bounds checking, use must ensure the character is in
