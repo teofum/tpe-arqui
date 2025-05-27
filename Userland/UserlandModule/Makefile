@@ -15,7 +15,7 @@ $(MODULE): out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
 	$(LD) $(LDFLAGS) -T userlandModule.ld -o ../$(MODULE) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
 
 build/%.o: %.c
-	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@
+	$(GCC) $(GCCFLAGS) -I./include -I../include -c $< -o $@
 
 build/%.o: asm/%.asm
 	$(ASM) $(ASMFLAGS) $< -o $@

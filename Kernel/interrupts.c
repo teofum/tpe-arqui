@@ -118,6 +118,7 @@ void initSyscalls() {
   registerSyscall(0x12, kbd_keypressed);
   registerSyscall(0x13, kbd_keyreleased);
   registerSyscall(0x14, kbd_getKeyEvent);
+  registerSyscall(0x15, kbd_getchar);
 
   /* Video */
   registerSyscall(0x20, vga_clear);

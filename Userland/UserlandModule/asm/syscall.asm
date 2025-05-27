@@ -13,74 +13,110 @@ _syscall:
     
     ret
 
-global sys_vga_clear
-sys_vga_clear:
+global kbd_pollEvents
+kbd_pollEvents:
+    mov rax, 0x10
+    int 0x80
+    ret
+
+global kbd_keydown
+kbd_keydown:
+    mov rax, 0x11
+    int 0x80
+    ret
+
+global kbd_keypressed
+kbd_keypressed:
+    mov rax, 0x12
+    int 0x80
+    ret
+
+global kbd_keyreleased
+kbd_keyreleased:
+    mov rax, 0x13
+    int 0x80
+    ret
+
+global kbd_getKeyEvent
+kbd_getKeyEvent:
+    mov rax, 0x14
+    int 0x80
+    ret
+
+global kbd_getchar
+kbd_getchar:
+    mov rax, 0x15
+    int 0x80
+    ret
+
+global vga_clear
+vga_clear:
     mov rax, 0x20
     int 0x80
     ret
 
-global sys_vga_pixel
-sys_vga_pixel:
+global vga_pixel
+vga_pixel:
     mov rax, 0x21
     int 0x80
     ret
 
-global sys_vga_line
-sys_vga_line:
+global vga_line
+vga_line:
     mov rax, 0x22
     int 0x80
     ret
 
-global sys_vga_rect
-sys_vga_rect:
+global vga_rect
+vga_rect:
     mov rax, 0x23
     int 0x80
     ret
 
-global sys_vga_frame
-sys_vga_frame:
+global vga_frame
+vga_frame:
     mov rax, 0x24
     int 0x80
     ret
 
-global sys_vga_shade
-sys_vga_shade:
+global vga_shade
+vga_shade:
     mov rax, 0x25
     int 0x80
     ret
 
-global sys_vga_gradient
-sys_vga_gradient:
+global vga_gradient
+vga_gradient:
     mov rax, 0x26
     int 0x80
     ret
 
-global sys_vga_font
-sys_vga_font:
+global vga_font
+vga_font:
     mov rax, 0x27
     int 0x80
     ret
 
-global sys_vga_text
-sys_vga_text:
+global vga_text
+vga_text:
     mov rax, 0x28
     int 0x80
     ret
 
-global sys_vga_textWrap
-sys_vga_textWrap:
+global vga_textWrap
+vga_textWrap:
     mov rax, 0x29
     int 0x80
     ret
 
-global sys_vga_present
-sys_vga_present:
+global vga_present
+vga_present:
     mov rax, 0x2A
     int 0x80
     ret
 
-global sys_vga_setFramebuffer
-sys_vga_setFramebuffer:
+global vga_setFramebuffer
+vga_setFramebuffer:
     mov rax, 0x2B
     int 0x80
     ret

@@ -114,8 +114,14 @@ typedef enum {
   VGA_WRAP_WORD = 0x08,// Wrap text by words instead of characters
 } vga_drawflags_t;
 
+/*
+ * Initialize the video driver.
+ */
 void vga_init();
 
+/*
+ * Set the active framebuffer. Call with NULL to set the default framebuffer.
+ */
 void vga_setFramebuffer(uint8_t *fb);
 
 /*
@@ -168,6 +174,7 @@ void vga_shade(
 
 /*
  * Draw a rectangle filled with a gradient.
+ * The 'colors' parameter takes two colors in the high and low dwords.
  * Set direction using the VGA_GRAD_X flags.
  */
 void vga_gradient(
@@ -215,12 +222,16 @@ void vga_text(
  * value to wrap at that offset from screen end.
  * This function does no bounds checking, the user must ensure the text doesn't
  * overflow the screen bounds.
+ * The 'colors' parameter takes two colors in the high and low dwords.
  */
 void vga_textWrap(
   uint16_t x0, uint16_t y0, int16_t maxw, const char *string, uint64_t colors,
   uint8_t flags
 );
 
+/*
+ * Present the current framebuffer to the screen. 
+ */
 void vga_present();
 
 #endif
