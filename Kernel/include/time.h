@@ -16,7 +16,7 @@ typedef struct {
   int hours;
   int minutes;
   int seconds;
-} Time_t;
+} time_t;
 
 typedef struct {
   uint8_t year;
@@ -25,7 +25,7 @@ typedef struct {
   uint8_t hours;
   uint8_t minutes;
   uint8_t seconds;
-} DateTime_t;
+} dateTime_t;
 
 
 void timer_handler();
@@ -38,16 +38,12 @@ unsigned int minutes_elapsed();
 
 unsigned int hours_elapsed();
 
-Time_t getTimeElapsed(unsigned int ticks);
-
-
-extern uint8_t asm_rtc_GetTime(uint64_t descriptor);// de rtc.asm
+time_t getTimeElapsed(unsigned int ticks);
 
 uint8_t rtc_getTime(int descriptor);
 
-DateTime_t rtc_getDateTime();
+dateTime_t rtc_getDateTime();
 
-DateTime_t rtc_getLocalTime(void);
+dateTime_t rtc_getLocalTime(void);
 
 #endif
-
