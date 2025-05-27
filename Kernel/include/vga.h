@@ -214,4 +214,6 @@ void vga_textWrap(
   color_t bgColor, uint8_t flags
 );
 
+void vga_present();
+
 #endif

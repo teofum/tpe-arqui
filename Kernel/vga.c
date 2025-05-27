@@ -6,7 +6,12 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
-#define VGA_FRAMEBUFFER (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
+#define VGA_WIDTH 1024
+#define VGA_HEIGHT 768
+
+#define VGA_PHYSICAL_FRAMEBUFFER                                               \
+  (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
+#define VGA_FRAMEBUFFER _framebuffer
 
 #define OFFSET_X (VBE_mode_info->bpp >> 3)
 #define OFFSET_Y (VBE_mode_info->pitch)
@@ -27,6 +32,8 @@
   ((((active_font->charWidth + 7) >> 3) << 3) * active_font->charHeight)
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
+
+uint8_t _framebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
 
 /*
  * Font data
@@ -489,3 +496,7 @@ const vga_font_t *vga_font(const vga_font_t *font) {
 }
 
 const vga_font_t *vga_getfont() { return active_font; }
+
+void vga_present() {
+  memcpy(VGA_PHYSICAL_FRAMEBUFFER, VGA_FRAMEBUFFER, VGA_WIDTH * VGA_HEIGHT * 3);
+}

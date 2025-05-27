@@ -139,6 +139,8 @@ int main() {
 
   vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
 
+  vga_present();
+
   io_writes("[Kernel Main]\n");
   printf(
     "Sample code module at %#016llx\n", (uint64_t) sampleCodeModuleAddress

@@ -28,6 +28,8 @@ static void drawStdout() {
       0, i * vga_getfont()->lineHeight, stdoutBuf[i], 0xffffff, 0x000000,
       VGA_TEXT_BG
     );
+
+  vga_present();
 }
 
 void io_putc(char c) {
