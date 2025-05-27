@@ -359,11 +359,14 @@ void vga_shade(
 }
 
 void vga_gradient(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color1,
-  color_t color2, uint8_t flags
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint64_t colors,
+  uint8_t flags
 ) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t step = OFFSET_X;
+
+  color_t color1 = colors >> 32;
+  color_t color2 = colors & 0xffffffff;
 
   for (uint16_t y = y0; y <= y1; y++) {
     uint64_t lineStart = pixelOffset(x0, y);
@@ -442,10 +445,13 @@ void vga_text(
 }
 
 void vga_textWrap(
-  uint16_t x0, uint16_t y0, int16_t maxw, const char *str, color_t color,
-  color_t bgColor, uint8_t flags
+  uint16_t x0, uint16_t y0, int16_t maxw, const char *str, uint64_t colors,
+  uint8_t flags
 ) {
   uint16_t xmax = maxw < 0 ? maxw + VBE_mode_info->width : maxw + x0;
+
+  color_t color = colors >> 32;
+  color_t bgColor = colors & 0xffffffff;
 
   size_t i = 0;
   uint16_t x = x0, y = y0;

@@ -3,6 +3,8 @@
 #include <strings.h>
 #include <syscall.h>
 
+#include <gfxdemo.h>
+
 typedef enum {
   RET_EXIT = -1,
   RET_UNKNOWN_CMD = -255,
@@ -81,6 +83,7 @@ command_t commands[] = {
   {"exit", "Exit the shell and return to kernel", exit},
   {"clear", "Clear stdout", clear},
   {"setfont", "Set text font", setfont},
+  {"gfxdemo", "Graphics mode demo", gfxdemo},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 

@@ -137,7 +137,7 @@ void initSyscalls() {
 void showCPUState() {
   uint16_t top = 96, left = 104;
 
-  vga_gradient(104, 64, 920, 320, 0x0020a0, 0x2040c0, VGA_GRAD_V);
+  vga_gradient(104, 64, 920, 320, (0x0020a0ull << 32) | 0x2040c0, VGA_GRAD_V);
   vga_frame(104, 64, 920, 320, 0xffffff, 0);
   vga_text(left + 328, 80, "== CPU state dump ==", 0, 0xffffff, VGA_TEXT_INV);
   vga_text(left + 308, top + 192, "Press any key to continue", 0xffffff, 0, 0);

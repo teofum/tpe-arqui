@@ -171,8 +171,8 @@ void vga_shade(
  * Set direction using the VGA_GRAD_X flags.
  */
 void vga_gradient(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color1,
-  color_t color2, uint8_t flags
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint64_t colors,
+  uint8_t flags
 );
 
 /*
@@ -217,8 +217,8 @@ void vga_text(
  * overflow the screen bounds.
  */
 void vga_textWrap(
-  uint16_t x0, uint16_t y0, int16_t maxw, const char *string, color_t color,
-  color_t bgColor, uint8_t flags
+  uint16_t x0, uint16_t y0, int16_t maxw, const char *string, uint64_t colors,
+  uint8_t flags
 );
 
 void vga_present();
