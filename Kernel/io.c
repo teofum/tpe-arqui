@@ -141,6 +141,4 @@ void io_setfont(io_font_t font) {
       textFont = vga_fontOld;
       break;
   }
-
-  nextline();
 }

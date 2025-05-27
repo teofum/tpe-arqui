@@ -10,6 +10,7 @@ typedef enum {
 
 typedef struct {
   const char *cmd;
+  const char *desc;
   int (*entryPoint)(const char *args);
 } command_t;
 
@@ -45,6 +46,20 @@ font_entry_t fonts[] = {
 size_t nFonts = sizeof(fonts) / sizeof(font_entry_t);
 
 static int setfont(const char *name) {
+  if (name == NULL) {
+    printf(
+      "Missing font name\n"
+      "Usage: setfont <font name>\n"
+      "Type 'setfont ls' for a list of fonts\n"
+    );
+    return 1;
+  }
+
+  if (strcmp(name, "ls") == 0) {
+    for (int i = 0; i < nFonts; i++) { printf("%s\n", fonts[i].name); }
+    return 0;
+  }
+
   for (int i = 0; i < nFonts; i++) {
     if (strcmp(name, fonts[i].name) == 0) {
       _syscall(SYS_FONT, fonts[i].id);
@@ -52,14 +67,20 @@ static int setfont(const char *name) {
     }
   }
 
-  return 1;
+  printf(
+    "Unknown font name '%s'\n"
+    "Type 'setfont ls' for a list of fonts\n",
+    name
+  );
+
+  return 2;
 }
 
 command_t commands[] = {
-  {"echo", echo},
-  {"exit", exit},
-  {"clear", clear},
-  {"setfont", setfont},
+  {"echo", "Print the command's arguments to stdout", echo},
+  {"exit", "Exit the shell and return to kernel", exit},
+  {"clear", "Clear stdout", clear},
+  {"setfont", "Set text font", setfont},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
