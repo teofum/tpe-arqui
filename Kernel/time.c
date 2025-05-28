@@ -1,11 +1,16 @@
 #include <time.h>
+#include <vga.h>
 
 
 extern uint8_t asm_rtc_GetTime(uint64_t descriptor);// de rtc.asm
 
 unsigned long ticks = 0;
 
-void timer_handler() { ticks++; }
+void timer_handler() {
+  ticks++;
+  if (!(ticks % (TICKS_PER_SECOND / 8))) { drawClock(); }
+}
+
 
 unsigned int ticks_elapsed() { return ticks; }
 
@@ -93,4 +98,26 @@ dateTime_t rtc_getLocalTime(void) {
   }
 
   return dt;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+void drawClock() {
+  dateTime_t t = rtc_getLocalTime();
+
+  vga_font(vga_fontAlt);
+  char buff[8] = {0};
+  vga_rect(
+    (VGA_WIDTH - (7 * vga_fontAlt->charWidth)), 000, VGA_WIDTH,
+    vga_fontAlt->lineHeight, 0xff303030, 0
+  );
+
+  sprintf(buff, "[%u:%u]", t.hours, t.minutes);
+  // habria que hacer que llene con 0s a los numeros a 2 digitos
+  // si el numero de minutos es <10 te lo hace de 1 digito
+
+  vga_text(
+    (VGA_WIDTH - (7 * vga_fontAlt->charWidth)), 000, buff, 0xffffff, 0, 0
+  );
+  vga_present();
 }
