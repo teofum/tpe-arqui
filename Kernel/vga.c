@@ -30,7 +30,24 @@
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
+/*
+ * Default framebuffer.
+ * This is the main framebuffer used by the video driver, unless a different
+ * one is requested.
+ * Applications may wish to use a separate framebuffer, for example to preserve
+ * its contents even if other things are drawn to the screen.
+ * Because of a lack of dynamic memory allocation, the driver is not able to
+ * provide new framebuffers. Instead, the application must reserve enough
+ * memory for its own framebuffer.
+ */
 uint8_t _framebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+
+/*
+ * Pointer to the active framebuffer. This is the framebuffer being drawn to
+ * and presented to the screen.
+ * Applications that use their own framebuffer may either present it to the
+ * screen directly, or copy it to the main framebuffer using vga_copy.
+ */
 uint8_t *activeFramebuffer;
 
 /*

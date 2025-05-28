@@ -121,6 +121,13 @@ void vga_init();
 
 /*
  * Set the active framebuffer. Call with NULL to set the default framebuffer.
+ * Applications may wish to use a separate framebuffer, for example to preserve
+ * its contents even if other things are drawn to the screen.
+ * Because of a lack of dynamic memory allocation, the driver is not able to
+ * provide new framebuffers. Instead, the application must reserve enough
+ * memory for its own framebuffer.
+ * Applications that use their own framebuffer may either present it to the
+ * screen directly, or copy it to the main framebuffer using vga_copy.
  */
 void vga_setFramebuffer(uint8_t *fb);
 

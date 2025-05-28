@@ -6,12 +6,25 @@
 #define DEFAULT_BG 0x000000
 #define DEFAULT_FG 0xffffff
 
+/*
+ * The I/O subsystem keeps its own framebuffer, so it can preserve text written
+ * to the screen after graphics mode functions are used (for example, writing
+ * to the main framebuffer directly).
+ * This takes up a bunch of memory (2.25 MB), but it allows us to both draw
+ * text very efficiently and preserve it when an application uses graphics mode.
+ */
 uint8_t textFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3] = {0};
 const vga_font_t *textFont;
 
+/*
+ * Text drawing cursor
+ */
 uint32_t cur_y = 0;
 uint32_t cur_x = 0;
 
+/*
+ * Foreground and background colors
+ */
 uint32_t background = DEFAULT_BG;
 uint32_t foreground = DEFAULT_FG;
 

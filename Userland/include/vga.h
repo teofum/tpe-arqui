@@ -23,6 +23,21 @@ typedef enum {
   VGA_WRAP_WORD = 0x08,// Wrap text by words instead of characters
 } vga_drawflags_t;
 
+/*
+ * Set the active framebuffer. Call with NULL to set the default framebuffer.
+ * Applications may wish to use a separate framebuffer, for example to preserve
+ * its contents even if other things are drawn to the screen.
+ * Because of a lack of dynamic memory allocation, the driver is not able to
+ * provide new framebuffers. Instead, the application must reserve enough
+ * memory for its own framebuffer.
+ * Applications that use their own framebuffer may either present it to the
+ * screen directly, or copy it to the main framebuffer using vga_copy.
+ */
+extern void vga_setFramebuffer(uint8_t *fb);
+
+/*
+ * Clear VRAM with a single solid color.
+ */
 extern void vga_clear(color_t color);
 
 /*
@@ -129,5 +144,11 @@ extern void vga_textWrap(
  * Present the current framebuffer to the screen. 
  */
 extern void vga_present();
+
+/*
+ * Copy contents between two framebuffers.
+ * Set either framebuffer to NULL to use the default framebuffer.
+ */
+extern void vga_copy(uint8_t *dst, uint8_t *src);
 
 #endif

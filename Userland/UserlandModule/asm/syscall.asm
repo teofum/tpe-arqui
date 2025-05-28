@@ -121,3 +121,9 @@ vga_setFramebuffer:
     int 0x80
     ret
 
+global vga_copy
+vga_copy:
+    mov rax, 0x2C
+    int 0x80
+    ret
+
