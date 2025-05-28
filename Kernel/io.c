@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define DEFAULT_BG 0x000000
-#define DEFAULT_FG 0xffffff
+#define DEFAULT_FG 0xd8d8d8
 
 /*
  * The I/O subsystem keeps its own framebuffer, so it can preserve text written
