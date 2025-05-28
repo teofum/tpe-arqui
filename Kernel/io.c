@@ -217,4 +217,25 @@ void io_setfont(io_font_t font) {
       textFont = vga_fontOld;
       break;
   }
+
+  vga_setFramebuffer(textFramebuffer);
+  int32_t remaining = VGA_HEIGHT - (int32_t) (cur_y + textFont->lineHeight);
+  if (remaining <= 0) {
+    uint16_t offsetLines = -remaining;
+
+    uint32_t offset = offsetLines * VGA_WIDTH * 3;
+    memcpy(
+      textFramebuffer, textFramebuffer + offset,
+      VGA_WIDTH * VGA_HEIGHT * 3 - offset
+    );
+
+    vga_rect(
+      0, VGA_HEIGHT - offsetLines, VGA_WIDTH - 1, VGA_HEIGHT - 1, DEFAULT_BG, 0
+    );
+
+    cur_y -= offsetLines;
+  }
+  vga_copy(NULL, textFramebuffer);
+  vga_setFramebuffer(NULL);
+  vga_present();
 }
