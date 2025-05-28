@@ -3,6 +3,8 @@
 #include <io.h>
 #include <string.h>
 
+#define TAB_SIZE 8
+
 #define DEFAULT_BG 0x000000
 #define DEFAULT_FG 0xd8d8d8
 
@@ -57,6 +59,9 @@ static inline void putcImpl(char c) {
       cur_x, cur_y, cur_x + textFont->charWidth - 1,
       cur_y + textFont->charHeight - 1, DEFAULT_BG, 0
     );
+  } else if (c == '\t') {
+    cur_x += (TAB_SIZE * textFont->charWidth) -
+             (cur_x % (TAB_SIZE * textFont->charWidth));
   } else if (c != '\n') {
     vga_char(cur_x, cur_y, c, foreground, background, VGA_TEXT_BG);
     cur_x += textFont->charWidth;
