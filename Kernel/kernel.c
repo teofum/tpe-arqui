@@ -6,6 +6,7 @@
 #include <naiveConsole.h>
 #include <print.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <vga.h>
 
@@ -89,7 +90,19 @@ int main() {
   // Initialize stdout
   io_init();
 
-  ((entrypoint_t) sampleCodeModuleAddress)();
+  while (1) {
+    int ret = ((entrypoint_t) sampleCodeModuleAddress)();
+    printf(
+      "\x1A 195,248,132;[Kernel] \x1A R;"
+      "Userland module exited with code \x1A 255,197,96;%#08x\n"
+      "\x1A 195,248,132;[Kernel] \x1A R;"
+      "Press any key to restart shell\n",
+      ret
+    );
+
+    int key = 0;
+    while (!key) { key = kbd_getKeyEvent().key; }
+  }
 
   return 0;
 }
