@@ -7,18 +7,12 @@
 #define scancodeToKey(x) ((x) & 0x7f)
 #define isRelease(x) ((x) & 0x80)
 #define isSpecial(x)                                                           \
-  (((x) == SC_CTRL) || ((x) == SC_LSHIFT) || ((x) == SC_RSHIFT) ||             \
-   ((x) == SC_ALT) || ((x) == SC_CAPSLOCK))
+  (((x) == KEY_LEFT_CTRL) || ((x) == KEY_RIGHT_CTRL) ||                        \
+   ((x) == KEY_LEFT_SHIFT) || ((x) == KEY_RIGHT_SHIFT) ||                      \
+   ((x) == KEY_LEFT_ALT) || ((x) == KEY_RIGHT_ALT) || ((x) == KEY_LEFT_GUI) || \
+   ((x) == KEY_RIGHT_GUI) || ((x) == KEY_CAPSLOCK))
 
 #define next(x) x = (x + 1) % KBD_BUFFER_SIZE
-
-typedef enum {
-  SC_CTRL = 0x1D,// Left Ctrl
-  SC_LSHIFT = 0x2A,
-  SC_RSHIFT = 0x36,
-  SC_ALT = 0x38,// Left Alt
-  SC_CAPSLOCK = 0x3A,
-} ScancodeSpecial;
 
 typedef enum {
   SC_EXT_MM_PREV = 0x10,
@@ -255,10 +249,14 @@ kbd_event_t kbd_getKeyEvent() {
       kbd_event.key = key;
       kbd_event.isReleased = isRelease(scancode);
 
-      kbd_event.alt = kbd_state[SC_ALT];
-      kbd_event.ctrl = kbd_state[SC_CTRL];
-      kbd_event.shift = kbd_state[SC_LSHIFT];
-      kbd_event.shift_r = kbd_state[SC_RSHIFT];
+      kbd_event.alt = kbd_state[KEY_LEFT_ALT];
+      kbd_event.alt_r = kbd_state[KEY_RIGHT_ALT];
+      kbd_event.ctrl = kbd_state[KEY_LEFT_CTRL];
+      kbd_event.ctrl_r = kbd_state[KEY_RIGHT_CTRL];
+      kbd_event.shift = kbd_state[KEY_LEFT_SHIFT];
+      kbd_event.shift_r = kbd_state[KEY_RIGHT_SHIFT];
+      kbd_event.gui = kbd_state[KEY_LEFT_GUI];
+      kbd_event.gui_r = kbd_state[KEY_RIGHT_GUI];
       kbd_event.capslock = kbd_capslock;
 
       return kbd_event;

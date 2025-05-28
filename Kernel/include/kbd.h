@@ -145,7 +145,11 @@ typedef struct {
   uint8_t shift : 1;
   uint8_t shift_r : 1;
   uint8_t ctrl : 1;
+  uint8_t ctrl_r : 1;
   uint8_t alt : 1;
+  uint8_t alt_r : 1;
+  uint8_t gui : 1;
+  uint8_t gui_r : 1;
   uint8_t capslock : 1;
 } kbd_event_t;
 
