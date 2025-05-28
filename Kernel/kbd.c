@@ -201,7 +201,19 @@ void kbd_pollEvents() {
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
     uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
-    kbd_state[scancodeToKey(scancode)] = isRelease(scancode) ? 0 : 1;
+
+    if (scancode == 0xE0) {
+      kbd_extended = 1;
+    } else {
+      uint8_t key = scancodeToKey(scancode);
+      if (kbd_extended) {
+        key = getExtendedKey(key);
+        kbd_extended = 0;
+      }
+
+      kbd_state[key] = isRelease(scancode) ? 0 : 1;
+    }
+
     next(kbd_buffer.readPos);
   }
 }
