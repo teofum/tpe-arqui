@@ -21,6 +21,7 @@ typedef struct {
 
 char commandHistory[HISTORY_SIZE][CMD_BUF_LEN];
 uint32_t historyPointer = 0;
+uint32_t promptLength = 2;
 
 static int echo(const char *args) {
   printf("%s\n", args != NULL ? args : "");
@@ -143,7 +144,7 @@ static void readCommand(char *buf) {
               // Up
               if (localHistoryPointer > 0) {
                 char *last = commandHistory[--localHistoryPointer];
-                _syscall(SYS_BLANKLINE, 2);
+                _syscall(SYS_BLANKLINE, promptLength);
                 buf = start;
                 strcpy(buf, last);
                 j = strcpy(sanitized, last);
@@ -153,7 +154,7 @@ static void readCommand(char *buf) {
               // Down
               if (localHistoryPointer < historyPointer - 1) {
                 char *last = commandHistory[++localHistoryPointer];
-                _syscall(SYS_BLANKLINE, 2);
+                _syscall(SYS_BLANKLINE, promptLength);
                 buf = start;
                 strcpy(buf, last);
                 j = strcpy(sanitized, last);
@@ -230,7 +231,9 @@ static int runCommand(const char *cmd) {
   } else if (retcode == RET_EXIT) {
     return 1;
   } else if (retcode != 0) {
-    printf("[" COL_RED "%u" COL_RESET "] ", retcode);
+    promptLength = 2 + printf("[" COL_RED "%u" COL_RESET "] ", retcode);
+  } else {
+    promptLength = 2;
   }
 
 

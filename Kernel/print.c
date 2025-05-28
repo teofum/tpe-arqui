@@ -129,7 +129,7 @@ int32_t printf(const char *fmt, ...) {
 
   static char buf[512];
   int32_t len = vsprintf(buf, fmt, args);
-  io_write(buf, len);
+  len = io_write(buf, len);
 
   va_end(args);
   return len;

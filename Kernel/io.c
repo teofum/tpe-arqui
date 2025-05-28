@@ -140,11 +140,13 @@ uint32_t io_writes(const char *str) {
   const vga_font_t *lastFont = vga_font(textFont);
 
   char c;
+  uint32_t written = 0;
   while ((c = *str++)) {
     if (c == 0x1A) {
       str = parseColorEscape(str);
     } else {
       putcImpl(c);
+      written++;
     }
   }
 
@@ -154,7 +156,8 @@ uint32_t io_writes(const char *str) {
   vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
   vga_present();
-  return 0;
+
+  return written;
 }
 
 uint32_t io_write(const char *str, uint32_t len) {
@@ -163,11 +166,13 @@ uint32_t io_write(const char *str, uint32_t len) {
 
   char c;
   const char *end = str + len;
+  uint32_t written = 0;
   while (str < end && (c = *str++)) {
     if (c == 0x1A) {
       str = parseColorEscape(str);
     } else {
       putcImpl(c);
+      written++;
     }
   }
 
@@ -177,7 +182,8 @@ uint32_t io_write(const char *str, uint32_t len) {
   vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
   vga_present();
-  return 0;
+
+  return written;
 }
 
 void io_clear() {
