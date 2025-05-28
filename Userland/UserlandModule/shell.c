@@ -78,14 +78,34 @@ static int setfont(const char *name) {
   return 2;
 }
 
+static int help();
 command_t commands[] = {
-  {"echo", "Print the command's arguments to stdout", echo},
+  {"help", "Display this help message", help},
+  {"echo", "Print arguments to stdout", echo},
   {"exit", "Exit the shell and return to kernel", exit},
   {"clear", "Clear stdout", clear},
-  {"setfont", "Set text font", setfont},
+  {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
+
+static int help() {
+  printf(
+    "Welcome to " COL_GREEN "tpeOS" COL_RESET "!\n"
+    "Available commands:\n\n"
+  );
+
+  for (int i = 0; i < nCommands; i++) {
+    printf(
+      COL_BLUE "%s" COL_RESET "\t- %s\n", commands[i].cmd, commands[i].desc
+    );
+  }
+
+  printf(
+    "\nPress the " COL_YELLOW "F1" COL_RESET " key any time to dump CPU state\n"
+  );
+  return 0;
+}
 
 static void writePrompt() { printf("> "); }
 
@@ -155,23 +175,6 @@ static int runCommand(const char *cmd) {
 
 int startShell() {
   char cmdBuf[256];
-
-  // Register commands
-  command_t cmd_exit = {
-    .cmd = "exit",
-    .entryPoint = exit,
-  };
-  commands[0] = cmd_exit;
-  command_t cmd_echo = {
-    .cmd = "echo",
-    .entryPoint = echo,
-  };
-  commands[1] = cmd_echo;
-  command_t cmd_clear = {
-    .cmd = "clear",
-    .entryPoint = clear,
-  };
-  commands[2] = cmd_clear;
 
   // Run the shell
   int exit = 0;
