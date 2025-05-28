@@ -143,9 +143,7 @@ static void readCommand(char *buf) {
               // Up
               if (localHistoryPointer > 0) {
                 char *last = commandHistory[--localHistoryPointer];
-                for (int i = 0; i < (buf - start); i++) {
-                  _syscall(SYS_PUTC, '\b');
-                }
+                _syscall(SYS_BLANKLINE, 2);
                 buf = start;
                 strcpy(buf, last);
                 j = strcpy(sanitized, last);
@@ -155,9 +153,7 @@ static void readCommand(char *buf) {
               // Down
               if (localHistoryPointer < historyPointer - 1) {
                 char *last = commandHistory[++localHistoryPointer];
-                for (int i = 0; i < (buf - start); i++) {
-                  _syscall(SYS_PUTC, '\b');
-                }
+                _syscall(SYS_BLANKLINE, 2);
                 buf = start;
                 strcpy(buf, last);
                 j = strcpy(sanitized, last);

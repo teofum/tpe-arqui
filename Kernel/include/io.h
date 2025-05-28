@@ -17,6 +17,8 @@ typedef enum {
 
 void io_init();
 
+void io_blankFrom(uint32_t x);
+
 void io_putc(char c);
 
 uint32_t io_writes(const char *str);

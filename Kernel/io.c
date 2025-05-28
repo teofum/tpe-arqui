@@ -71,6 +71,21 @@ static inline void putcImpl(char c) {
 
 void io_init() { textFont = vga_fontDefault; }
 
+void io_blankFrom(uint32_t x) {
+  vga_setFramebuffer(textFramebuffer);
+
+  cur_x = x * textFont->charWidth;
+  if (cur_x >= VGA_WIDTH) cur_x = VGA_WIDTH - textFont->charWidth;
+
+  vga_rect(
+    cur_x, cur_y, VGA_WIDTH - 1, cur_y + textFont->lineHeight - 1, DEFAULT_BG, 0
+  );
+
+  vga_copy(NULL, textFramebuffer);
+  vga_setFramebuffer(NULL);
+  vga_present();
+}
+
 void io_putc(char c) {
   vga_setFramebuffer(textFramebuffer);
   const vga_font_t *lastFont = vga_font(textFont);
