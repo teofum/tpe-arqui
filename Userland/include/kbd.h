@@ -2,13 +2,6 @@
 #define KBD_H
 #include <stdint.h>
 
-#define KBD_BUFFER_SIZE 128
-
-typedef struct {
-  uint8_t data[KBD_BUFFER_SIZE];
-  int writePos, readPos;
-} kbd_buffer_t;
-
 typedef struct {
   uint8_t key;
   uint8_t isReleased;
@@ -23,32 +16,32 @@ typedef struct {
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */
-void kbd_pollEvents();
+extern void kbd_pollEvents();
 
 /*
  * Returns 1 if key is pressed, 0 if not.
  */
-int kbd_keydown(uint8_t key);
+extern int kbd_keydown(uint8_t key);
 
 /*
  * Returns 1 if key was pressed since last pollEvents call.
  */
-int kbd_keypressed(uint8_t key);
+extern int kbd_keypressed(uint8_t key);
 
 /*
  * Returns 1 if key was pressed since last pollEvents call.
  */
-int kbd_keyreleased(uint8_t key);
+extern int kbd_keyreleased(uint8_t key);
 
 /*
  * Returns the next keyboard event.
  */
-kbd_event_t kbd_getKeyEvent();
+extern kbd_event_t kbd_getKeyEvent();
 
 /*
  * Returns the ASCII character corresponding to the next keyboard event.
  * If there are no events in queue, returns -1.
  */
-int kbd_getchar();
+extern int kbd_getchar();
 
 #endif
