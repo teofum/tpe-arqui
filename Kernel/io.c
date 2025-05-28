@@ -4,6 +4,7 @@
 #include <string.h>
 
 #define TAB_SIZE 8
+#define CURSOR_HEIGHT 2
 
 #define DEFAULT_BG 0x000000
 #define DEFAULT_FG 0xd8d8d8
@@ -30,6 +31,8 @@ uint32_t cur_x = 0;
 uint32_t background = DEFAULT_BG;
 uint32_t foreground = DEFAULT_FG;
 
+uint8_t cursorStyle = IO_CURSOR_UNDER;
+
 static void nextline() {
   cur_x = 0;
   cur_y += textFont->lineHeight;
@@ -49,6 +52,34 @@ static void nextline() {
     );
 
     cur_y -= offsetLines;
+  }
+}
+
+/*
+ * Cursor should be drawn to main framebuffer *after* copying stdout framebuffer.
+ * This way it doesn't persist when we draw more text.
+ */
+static inline void drawCursor() {
+  switch (cursorStyle) {
+    case IO_CURSOR_UNDER:
+      vga_rect(
+        cur_x, cur_y + textFont->charHeight - CURSOR_HEIGHT,
+        cur_x + textFont->charWidth, cur_y + textFont->charHeight - 1,
+        foreground, 0
+      );
+      break;
+    case IO_CURSOR_FRAME:
+      vga_frame(
+        cur_x, cur_y, cur_x + textFont->charWidth, cur_y + textFont->charHeight,
+        foreground, 0
+      );
+      break;
+    case IO_CURSOR_BLOCK:
+      vga_rect(
+        cur_x, cur_y, cur_x + textFont->charWidth, cur_y + textFont->charHeight,
+        foreground | 0x80000000, VGA_ALPHA_BLEND
+      );
+      break;
   }
 }
 
@@ -95,6 +126,7 @@ void io_putc(char c) {
   vga_font(lastFont);
   vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  drawCursor();
   vga_present();
 }
 
@@ -155,6 +187,7 @@ uint32_t io_writes(const char *str) {
   vga_font(lastFont);
   vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  drawCursor();
   vga_present();
 
   return written;
@@ -181,6 +214,7 @@ uint32_t io_write(const char *str, uint32_t len) {
   vga_font(lastFont);
   vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  drawCursor();
   vga_present();
 
   return written;
@@ -191,6 +225,7 @@ void io_clear() {
   vga_clear(0x000000);
   vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  drawCursor();
   vga_present();
 
   cur_x = cur_y = 0;
@@ -293,5 +328,22 @@ void io_setfont(io_font_t font) {
   }
   vga_copy(NULL, textFramebuffer);
   vga_setFramebuffer(NULL);
+  drawCursor();
+  vga_present();
+}
+
+void io_setcursor(io_cursor_t cursor) { cursorStyle = cursor; }
+
+void io_movecursor(int32_t dx) {
+  dx *= textFont->charWidth;
+  if (dx < 0 && cur_x < -dx) {
+    cur_x = 0;
+  } else {
+    cur_x += dx;
+    if (cur_x >= VGA_WIDTH) nextline();
+  }
+
+  vga_copy(NULL, textFramebuffer);
+  drawCursor();
   vga_present();
 }

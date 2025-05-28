@@ -12,6 +12,8 @@ typedef enum {
   SYS_CLEAR = 0x09,
   SYS_FONT = 0x0A,
   SYS_BLANKLINE = 0x0B,
+  SYS_CURSOR = 0x0C,
+  SYS_CURMOVE = 0x0D,
 
   /* Keyboard syscalls */
   SYS_KBD_POLLEVENTS = 0x10,

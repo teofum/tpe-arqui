@@ -124,30 +124,34 @@ static int help() {
 
 static void writePrompt() { printf("> "); }
 
-static void readCommand(char *buf) {
+static void readCommand(char *cmd) {
   int inputEnd = 0;
-  char *start = buf;
   uint32_t localHistoryPointer = historyPointer;
 
-  char sanitized[CMD_BUF_LEN] = {0};
+  uint32_t cmdWritePtr = 0;
+  uint32_t back = 0;
+  char *cmdStart = cmd;
+  char temp[CMD_BUF_LEN] = {0};
+
   while (!inputEnd) {
-    int len = _syscall(SYS_READ, buf);
-    int j = 0;
+    uint32_t initialPtr = cmdWritePtr;
+
+    int len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
     for (int i = 0; i < len; i++) {
-      if (buf[i] == '\n') {
+      if (temp[i] == '\n') {
         inputEnd = 1;
         break;
-      } else if (buf[i] == 0x1B) {
-        if (buf[i + 1] == '[') {
-          switch (buf[i + 2]) {
+      } else if (temp[i] == 0x1B) {
+        if (temp[i + 1] == '[') {
+          switch (temp[i + 2]) {
             case 'A':
               // Up
               if (localHistoryPointer > 0) {
                 char *last = commandHistory[--localHistoryPointer];
                 _syscall(SYS_BLANKLINE, promptLength);
-                buf = start;
-                strcpy(buf, last);
-                j = strcpy(sanitized, last);
+                cmd = cmdStart;
+                cmdWritePtr = strcpy(cmd, last);
+                initialPtr = 0;
               }
               break;
             case 'B':
@@ -155,47 +159,59 @@ static void readCommand(char *buf) {
               if (localHistoryPointer < historyPointer - 1) {
                 char *last = commandHistory[++localHistoryPointer];
                 _syscall(SYS_BLANKLINE, promptLength);
-                buf = start;
-                strcpy(buf, last);
-                j = strcpy(sanitized, last);
+                cmd = cmdStart;
+                cmdWritePtr = strcpy(cmd, last);
+                initialPtr = 0;
               }
               break;
             case 'C':
+              // Right
+              if (back > 0) {
+                cmdWritePtr++;
+                initialPtr++;
+                back--;
+                _syscall(SYS_CURMOVE, 1);
+              }
               break;
             case 'D':
+              // Left
+              if (cmdWritePtr > 0) {
+                cmdWritePtr--;
+                back++;
+                _syscall(SYS_CURMOVE, -1);
+              }
               break;
           }
         }
         i += 2;
       } else {
-        sanitized[j++] = buf[i];
+        if (back > 0) back--;
+        cmd[cmdWritePtr++] = temp[i];
       }
     }
 
-    sanitized[j] = 0;
-    _syscall(SYS_WRITES, sanitized);
-    buf += j;
-  }
-
-  *buf = 0;
-  _syscall(SYS_PUTC, '\n');
-
-  // Handle backspaces, escape sequences, etc
-  buf = start;
-  int j = 0;
-  for (int i = 0; buf[i]; i++) {
-    if (buf[i] == '\b') {
-      if (j > 0) j--;
-    } else if (buf[i] == 0x1B) {
-      i += 2;
-    } else {
-      buf[j++] = buf[i];
+    if (cmdWritePtr > initialPtr) {
+      _syscall(SYS_WRITE, cmd + initialPtr, cmdWritePtr - initialPtr);
     }
   }
-  buf[j] = 0;
+
+  cmd[cmdWritePtr + back] = 0;
+  _syscall(SYS_PUTC, '\n');
+
+  // Handle backspaces
+  cmd = cmdStart;
+  int j = 0;
+  for (int i = 0; cmd[i]; i++) {
+    if (cmd[i] == '\b') {
+      if (j > 0) j--;
+    } else {
+      cmd[j++] = cmd[i];
+    }
+  }
+  cmd[j] = 0;
 
   if (historyPointer == 0 ||
-      strcmp(commandHistory[historyPointer - 1], buf) != 0) {
+      strcmp(commandHistory[historyPointer - 1], cmd) != 0) {
     if (historyPointer == HISTORY_SIZE) {
       memcpy(
         commandHistory[0], commandHistory[1], (HISTORY_SIZE - 1) * CMD_BUF_LEN
@@ -203,7 +219,7 @@ static void readCommand(char *buf) {
       historyPointer--;
     }
 
-    strcpy(commandHistory[historyPointer++], buf);
+    strcpy(commandHistory[historyPointer++], cmd);
   }
 }
 
