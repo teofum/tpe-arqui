@@ -247,4 +247,6 @@ void vga_present();
  */
 void vga_copy(uint8_t *dst, uint8_t *src);
 
+void vga_triangle(float data[9], float baseColor[3]);
+
 #endif

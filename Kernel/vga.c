@@ -28,6 +28,9 @@
 #define ACTIVE_FONT_BITS                                                       \
   ((((active_font->charWidth + 7) >> 3) << 3) * active_font->charHeight)
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#define max(x, y) ((x) > (y) ? (x) : (y))
+
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 /*
@@ -41,6 +44,11 @@ VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
  * memory for its own framebuffer.
  */
 uint8_t _framebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+
+/*
+ * Depth buffer for 3d graphics functions.
+ */
+float _depthbuffer[VGA_WIDTH * VGA_HEIGHT];
 
 /*
  * Pointer to the active framebuffer. This is the framebuffer being drawn to
@@ -533,4 +541,61 @@ void vga_copy(uint8_t *dst, uint8_t *src) {
   if (src == NULL) src = _framebuffer;
 
   memcpy(dst, src, VGA_WIDTH * VGA_HEIGHT * 3);
+}
+
+static float
+edgeFunction(float ax, float ay, float bx, float by, float px, float py) {
+  return (by - ay) * (px - ax) - (bx - ax) * (py - ay);
+}
+
+void vga_triangle(float data[9], float baseColor[3]) {
+  uint8_t *fb = VGA_FRAMEBUFFER;
+
+  float x0 = data[0], y0 = data[1], z0 = data[2];
+  float x1 = data[3], y1 = data[4], z1 = data[5];
+  float x2 = data[6], y2 = data[7], z2 = data[8];
+
+  int32_t xi0 = ((x0 + 1.0f) / 2.0f) * VGA_WIDTH;
+  int32_t xi1 = ((x1 + 1.0f) / 2.0f) * VGA_WIDTH;
+  int32_t xi2 = ((x2 + 1.0f) / 2.0f) * VGA_WIDTH;
+  int32_t yi0 = ((y0 + 1.0f) / 2.0f) * VGA_HEIGHT;
+  int32_t yi1 = ((y1 + 1.0f) / 2.0f) * VGA_HEIGHT;
+  int32_t yi2 = ((y2 + 1.0f) / 2.0f) * VGA_HEIGHT;
+
+  // Calculate triangle bounds in screen space
+  int32_t top = min(yi0, min(yi1, yi2));
+  int32_t left = min(xi0, min(xi1, xi2));
+  int32_t bottom = max(yi0, max(yi1, yi2));
+  int32_t right = max(xi0, max(xi1, xi2));
+
+  // Intersect bounds with screen edges
+  top = max(top, 0);
+  left = max(left, 0);
+  bottom = min(bottom, VGA_HEIGHT - 1);
+  right = min(right, VGA_WIDTH - 1);
+
+  float area = edgeFunction(x0, y0, x1, y1, x2, y2);
+
+  for (int32_t y = top; y <= bottom; y++) {
+    uint32_t offset = pixelOffset(left, y);
+    for (int32_t x = left; x <= right; x++) {
+      float xp = (x * 2.0f) / VGA_WIDTH - 1.0f;
+      float yp = (y * 2.0f) / VGA_HEIGHT - 1.0f;
+
+      float w0 = edgeFunction(x1, y1, x2, y2, xp, yp);
+      float w1 = edgeFunction(x2, y2, x0, y0, xp, yp);
+      float w2 = edgeFunction(x0, y0, x1, y1, xp, yp);
+
+      if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+        w0 /= area;
+        w1 /= area;
+        w2 /= area;
+
+        float z = z0 * w0 + z1 * w1 + z2 * w2;
+        putpixel(fb, offset, 0x00ff00);
+      }
+
+      offset += OFFSET_X;
+    }
+  }
 }

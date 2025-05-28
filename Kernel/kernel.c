@@ -20,8 +20,8 @@ extern uint8_t endOfKernel;
 
 static const uint64_t PageSize = 0x1000;
 
-static void *const sampleCodeModuleAddress = (void *) 0x800000;
-static void *const sampleDataModuleAddress = (void *) 0xf00000;
+static void *const sampleCodeModuleAddress = (void *) 0x2000000;
+static void *const sampleDataModuleAddress = (void *) 0x3000000;
 
 typedef int (*entrypoint_t)();
 
@@ -100,6 +100,11 @@ int main() {
       "Press any key to restart shell\n",
       ret
     );
+
+    float data[9] = {-0.5, -0.3, 0, 0, 1, 0, 1, 0, 0};
+    float color[3] = {0, 0, 0};
+    for (int i = 0; i < 100; i++) { vga_triangle(data, color); }
+    vga_present();
 
     int key = 0;
     while (!key) { key = kbd_getKeyEvent().key; }
