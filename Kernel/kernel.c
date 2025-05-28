@@ -1,3 +1,4 @@
+#include <audio.h>
 #include <interrupts.h>
 #include <io.h>
 #include <kbd.h>
@@ -8,6 +9,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <vga.h>
 
 extern uint8_t text;
@@ -103,6 +105,6 @@ int main() {
     int key = 0;
     while (!key) { key = kbd_getKeyEvent().key; }
   }
-
+  
   return 0;
 }
