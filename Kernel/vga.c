@@ -6,7 +6,9 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
-#define VGA_FRAMEBUFFER (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
+#define VGA_PHYSICAL_FRAMEBUFFER                                               \
+  (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
+#define VGA_FRAMEBUFFER activeFramebuffer
 
 #define OFFSET_X (VBE_mode_info->bpp >> 3)
 #define OFFSET_Y (VBE_mode_info->pitch)
@@ -27,6 +29,26 @@
   ((((active_font->charWidth + 7) >> 3) << 3) * active_font->charHeight)
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
+
+/*
+ * Default framebuffer.
+ * This is the main framebuffer used by the video driver, unless a different
+ * one is requested.
+ * Applications may wish to use a separate framebuffer, for example to preserve
+ * its contents even if other things are drawn to the screen.
+ * Because of a lack of dynamic memory allocation, the driver is not able to
+ * provide new framebuffers. Instead, the application must reserve enough
+ * memory for its own framebuffer.
+ */
+uint8_t _framebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+
+/*
+ * Pointer to the active framebuffer. This is the framebuffer being drawn to
+ * and presented to the screen.
+ * Applications that use their own framebuffer may either present it to the
+ * screen directly, or copy it to the main framebuffer using vga_copy.
+ */
+uint8_t *activeFramebuffer;
 
 /*
  * Font data
@@ -253,6 +275,12 @@ static void vga_lineHi(
   }
 }
 
+void vga_init() { activeFramebuffer = _framebuffer; }
+
+void vga_setFramebuffer(uint8_t *fb) {
+  activeFramebuffer = fb == NULL ? _framebuffer : fb;
+}
+
 void vga_clear(color_t color) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t offset = 0;
@@ -348,11 +376,14 @@ void vga_shade(
 }
 
 void vga_gradient(
-  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color1,
-  color_t color2, uint8_t flags
+  uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint64_t colors,
+  uint8_t flags
 ) {
   uint8_t *fb = VGA_FRAMEBUFFER;
   uint64_t step = OFFSET_X;
+
+  color_t color1 = colors >> 32;
+  color_t color2 = colors & 0xffffffff;
 
   for (uint16_t y = y0; y <= y1; y++) {
     uint64_t lineStart = pixelOffset(x0, y);
@@ -431,10 +462,13 @@ void vga_text(
 }
 
 void vga_textWrap(
-  uint16_t x0, uint16_t y0, int16_t maxw, const char *str, color_t color,
-  color_t bgColor, uint8_t flags
+  uint16_t x0, uint16_t y0, int16_t maxw, const char *str, uint64_t colors,
+  uint8_t flags
 ) {
   uint16_t xmax = maxw < 0 ? maxw + VBE_mode_info->width : maxw + x0;
+
+  color_t color = colors >> 32;
+  color_t bgColor = colors & 0xffffffff;
 
   size_t i = 0;
   uint16_t x = x0, y = y0;
@@ -489,3 +523,14 @@ const vga_font_t *vga_font(const vga_font_t *font) {
 }
 
 const vga_font_t *vga_getfont() { return active_font; }
+
+void vga_present() {
+  memcpy(VGA_PHYSICAL_FRAMEBUFFER, VGA_FRAMEBUFFER, VGA_WIDTH * VGA_HEIGHT * 3);
+}
+
+void vga_copy(uint8_t *dst, uint8_t *src) {
+  if (dst == NULL) dst = _framebuffer;
+  if (src == NULL) src = _framebuffer;
+
+  memcpy(dst, src, VGA_WIDTH * VGA_HEIGHT * 3);
+}

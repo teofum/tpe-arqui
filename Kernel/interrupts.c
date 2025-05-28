@@ -1,3 +1,4 @@
+#include "io.h"
 #include "vga.h"
 #include <defs.h>
 #include <interrupts.h>
@@ -102,12 +103,22 @@ static void registerSyscall(uint64_t id, void *syscall) {
 
 /* Inicializa la tabla de syscalls */
 void initSyscalls() {
+  /* Virtual terminal I/O */
+  registerSyscall(0x03, io_read);
+  registerSyscall(0x04, io_write);
+  // 0x05, 0x06 reserved for future syscalls (open, close)
+  registerSyscall(0x07, io_writes);
+  registerSyscall(0x08, io_putc);
+  registerSyscall(0x09, io_clear);
+  registerSyscall(0x0A, io_setfont);
+
   /* Keyboard */
   registerSyscall(0x10, kbd_pollEvents);
   registerSyscall(0x11, kbd_keydown);
   registerSyscall(0x12, kbd_keypressed);
   registerSyscall(0x13, kbd_keyreleased);
-  registerSyscall(0x11, kbd_getKeyEvent);
+  registerSyscall(0x14, kbd_getKeyEvent);
+  registerSyscall(0x15, kbd_getchar);
 
   /* Video */
   registerSyscall(0x20, vga_clear);
@@ -120,12 +131,15 @@ void initSyscalls() {
   registerSyscall(0x27, vga_font);
   registerSyscall(0x28, vga_text);
   registerSyscall(0x29, vga_textWrap);
+  registerSyscall(0x2A, vga_present);
+  registerSyscall(0x2B, vga_setFramebuffer);
+  registerSyscall(0x2C, vga_copy);
 }
 
 void showCPUState() {
   uint16_t top = 96, left = 104;
 
-  vga_gradient(104, 64, 920, 320, 0x0020a0, 0x2040c0, VGA_GRAD_V);
+  vga_gradient(104, 64, 920, 320, (0x0020a0ull << 32) | 0x2040c0, VGA_GRAD_V);
   vga_frame(104, 64, 920, 320, 0xffffff, 0);
   vga_text(left + 328, 80, "== CPU state dump ==", 0, 0xffffff, VGA_TEXT_INV);
   vga_text(left + 308, top + 192, "Press any key to continue", 0xffffff, 0, 0);
@@ -218,6 +232,8 @@ void showCPUState() {
 
   sprintf(buf, "gs: %#04x", registerState.gs);
   vga_text(left + 616, top + 128, buf, 0xffffff, 0, 0);
+
+  vga_present();
 
   char key = 0;
   while (!key) key = kbd_getKeyEvent().key;
