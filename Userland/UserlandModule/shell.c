@@ -113,16 +113,36 @@ static void readCommand(char *buf) {
   int inputEnd = 0;
   char *start = buf;
 
+  char sanitized[30] = {0};
   while (!inputEnd) {
     int len = _syscall(SYS_READ, buf);
-    for (int i = 0; i < len; i++) {
+    for (int i = 0, j = 0; i < len; i++) {
       if (buf[i] == '\n') {
         len = i;
         inputEnd = 1;
+      } else if (buf[i] == 0x1B) {
+        if (buf[i + 1] == '[') {
+          switch (buf[i + 2]) {
+            case 'A':
+              // Up
+              break;
+            case 'B':
+              // Down
+              break;
+            case 'C':
+              break;
+            case 'D':
+              break;
+          }
+        }
+        i += 2;
+      } else {
+        sanitized[j++] = buf[i];
       }
     }
 
-    _syscall(SYS_WRITE, buf, len);
+    sanitized[len] = 0;
+    _syscall(SYS_WRITES, sanitized);
     buf += len;
   }
 
@@ -135,6 +155,8 @@ static void readCommand(char *buf) {
   for (int i = 0; buf[i]; i++) {
     if (buf[i] == '\b') {
       if (j > 0) j--;
+    } else if (buf[i] == 0x1B) {
+      i += 2;
     } else {
       buf[j++] = buf[i];
     }
