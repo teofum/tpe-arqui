@@ -189,8 +189,10 @@ static void readCommand(char *cmd) {
         }
         i += 2;
       } else {
-        if (back > 0) back--;
-        cmd[cmdWritePtr++] = temp[i];
+        if (back == 0 || temp[i] != '\b') {
+          cmd[cmdWritePtr++] = temp[i];
+          if (back > 0) back--;
+        }
       }
     }
 
