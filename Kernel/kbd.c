@@ -225,7 +225,10 @@ kbd_event_t kbd_getKeyEvent() {
     next(kbd_buffer.readPos);
 
     uint8_t key = scancodeToKey(scancode);
-    if (kbd_extended) key = getExtendedKey(key);
+    if (kbd_extended) {
+      key = getExtendedKey(key);
+      kbd_extended = 0;
+    }
 
     if (scancode == 0xE0) {
       kbd_extended = 1;
