@@ -170,6 +170,9 @@ static void readCommand(char *cmd) {
                 cmdWritePtr++;
                 initialPtr++;
                 back--;
+                _syscall(
+                  SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK
+                );
                 _syscall(SYS_CURMOVE, 1);
               }
               break;
@@ -178,6 +181,7 @@ static void readCommand(char *cmd) {
               if (cmdWritePtr > 0) {
                 cmdWritePtr--;
                 back++;
+                _syscall(SYS_CURSOR, IO_CURSOR_BLOCK);
                 _syscall(SYS_CURMOVE, -1);
               }
               break;
@@ -197,6 +201,7 @@ static void readCommand(char *cmd) {
 
   cmd[cmdWritePtr + back] = 0;
   _syscall(SYS_PUTC, '\n');
+  _syscall(SYS_CURSOR, IO_CURSOR_UNDER);
 
   // Handle backspaces
   cmd = cmdStart;

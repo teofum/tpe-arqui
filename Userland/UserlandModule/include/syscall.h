@@ -49,6 +49,14 @@ typedef enum {
   IO_FONT_OLD,
 } io_font_t;
 
+typedef enum {
+  IO_CURSOR_NONE,
+  IO_CURSOR_UNDER,
+  IO_CURSOR_FRAME,
+  IO_CURSOR_BLOCK,
+} io_cursor_t;
+
+
 extern uint64_t _syscall(uint64_t n, ...);
 
 #endif
