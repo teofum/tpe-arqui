@@ -5,6 +5,7 @@
 #define KBD_BUFFER_SIZE 128
 
 typedef enum {
+  // Standard scancodes, keycode is equal to the (pressed) scancode for these
   KEY_ESCAPE = 0x01,
   KEY_1,
   KEY_2,
