@@ -16,3 +16,20 @@ const char *strsplit(char *out, const char *str, char delim) {
   *out = 0;
   return *str == 0 ? NULL : str + 1;
 }
+
+int strcpy(char *dst, const char *src) {
+  int i = 0;
+  while (*src != 0) {
+    *dst++ = *src++;
+    i++;
+  }
+  *dst = 0;
+
+  return i;
+}
+
+int memcpy(char *dst, const char *src, size_t len) {
+  for (size_t i = 0; i < len; i++) { *dst++ = *src++; }
+
+  return 0;
+}

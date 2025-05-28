@@ -5,6 +5,9 @@
 
 #include <gfxdemo.h>
 
+#define CMD_BUF_LEN 256
+#define HISTORY_SIZE 64
+
 typedef enum {
   RET_EXIT = -1,
   RET_UNKNOWN_CMD = -255,
@@ -15,6 +18,9 @@ typedef struct {
   const char *desc;
   int (*entryPoint)(const char *args);
 } command_t;
+
+char commandHistory[HISTORY_SIZE][CMD_BUF_LEN];
+uint32_t historyPointer = 0;
 
 static int echo(const char *args) {
   printf("%s\n", args != NULL ? args : "");
@@ -78,6 +84,13 @@ static int setfont(const char *name) {
   return 2;
 }
 
+static int history() {
+  for (int i = 0; i < historyPointer; i++) {
+    printf("%s\n", commandHistory[i]);
+  }
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -86,6 +99,7 @@ command_t commands[] = {
   {"clear", "Clear stdout", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
+  {"history", "Print command history", history},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
@@ -112,22 +126,42 @@ static void writePrompt() { printf("> "); }
 static void readCommand(char *buf) {
   int inputEnd = 0;
   char *start = buf;
+  uint32_t localHistoryPointer = historyPointer;
 
-  char sanitized[30] = {0};
+  char sanitized[CMD_BUF_LEN] = {0};
   while (!inputEnd) {
     int len = _syscall(SYS_READ, buf);
-    for (int i = 0, j = 0; i < len; i++) {
+    int j = 0;
+    for (int i = 0; i < len; i++) {
       if (buf[i] == '\n') {
-        len = i;
         inputEnd = 1;
+        break;
       } else if (buf[i] == 0x1B) {
         if (buf[i + 1] == '[') {
           switch (buf[i + 2]) {
             case 'A':
               // Up
+              if (localHistoryPointer > 0) {
+                char *last = commandHistory[--localHistoryPointer];
+                for (int i = 0; i < (buf - start); i++) {
+                  _syscall(SYS_PUTC, '\b');
+                }
+                buf = start;
+                strcpy(buf, last);
+                j = strcpy(sanitized, last);
+              }
               break;
             case 'B':
               // Down
+              if (localHistoryPointer < historyPointer - 1) {
+                char *last = commandHistory[++localHistoryPointer];
+                for (int i = 0; i < (buf - start); i++) {
+                  _syscall(SYS_PUTC, '\b');
+                }
+                buf = start;
+                strcpy(buf, last);
+                j = strcpy(sanitized, last);
+              }
               break;
             case 'C':
               break;
@@ -141,15 +175,15 @@ static void readCommand(char *buf) {
       }
     }
 
-    sanitized[len] = 0;
+    sanitized[j] = 0;
     _syscall(SYS_WRITES, sanitized);
-    buf += len;
+    buf += j;
   }
 
   *buf = 0;
   _syscall(SYS_PUTC, '\n');
 
-  // Handle backspaces, etc
+  // Handle backspaces, escape sequences, etc
   buf = start;
   int j = 0;
   for (int i = 0; buf[i]; i++) {
@@ -162,10 +196,22 @@ static void readCommand(char *buf) {
     }
   }
   buf[j] = 0;
+
+  if (historyPointer == 0 ||
+      strcmp(commandHistory[historyPointer - 1], buf) != 0) {
+    if (historyPointer == HISTORY_SIZE) {
+      memcpy(
+        commandHistory[0], commandHistory[1], (HISTORY_SIZE - 1) * CMD_BUF_LEN
+      );
+      historyPointer--;
+    }
+
+    strcpy(commandHistory[historyPointer++], buf);
+  }
 }
 
 static int runCommand(const char *cmd) {
-  char cmdName[256];
+  char cmdName[CMD_BUF_LEN];
   cmd = strsplit(cmdName, cmd, ' ');
 
   if (cmdName[0] == 0) return 0;
@@ -196,7 +242,7 @@ static int runCommand(const char *cmd) {
 }
 
 int startShell() {
-  char cmdBuf[256];
+  char cmdBuf[CMD_BUF_LEN];
 
   // Run the shell
   int exit = 0;
