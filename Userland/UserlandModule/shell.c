@@ -92,7 +92,7 @@ size_t nCommands = sizeof(commands) / sizeof(command_t);
 static int help() {
   printf(
     "Welcome to " COL_GREEN "tpeOS" COL_RESET "!\n"
-    "Available commands:\n"
+    "Available commands:\n\n"
   );
 
   for (int i = 0; i < nCommands; i++) {
@@ -100,6 +100,10 @@ static int help() {
       COL_BLUE "%s" COL_RESET "\t- %s\n", commands[i].cmd, commands[i].desc
     );
   }
+
+  printf(
+    "\nPress the " COL_YELLOW "F1" COL_RESET " key any time to dump CPU state\n"
+  );
   return 0;
 }
 
