@@ -11,6 +11,9 @@ typedef enum {
   SYS_PUTC = 0x08,
   SYS_CLEAR = 0x09,
   SYS_FONT = 0x0A,
+  SYS_BLANKLINE = 0x0B,
+  SYS_CURSOR = 0x0C,
+  SYS_CURMOVE = 0x0D,
 
   /* Keyboard syscalls */
   SYS_KBD_POLLEVENTS = 0x10,
@@ -45,6 +48,14 @@ typedef enum {
   IO_FONT_FUTURE,
   IO_FONT_OLD,
 } io_font_t;
+
+typedef enum {
+  IO_CURSOR_NONE,
+  IO_CURSOR_UNDER,
+  IO_CURSOR_FRAME,
+  IO_CURSOR_BLOCK,
+} io_cursor_t;
+
 
 extern uint64_t _syscall(uint64_t n, ...);
 

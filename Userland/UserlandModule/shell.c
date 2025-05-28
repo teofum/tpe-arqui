@@ -5,6 +5,9 @@
 
 #include <gfxdemo.h>
 
+#define CMD_BUF_LEN 256
+#define HISTORY_SIZE 64
+
 typedef enum {
   RET_EXIT = -1,
   RET_UNKNOWN_CMD = -255,
@@ -15,6 +18,10 @@ typedef struct {
   const char *desc;
   int (*entryPoint)(const char *args);
 } command_t;
+
+char commandHistory[HISTORY_SIZE][CMD_BUF_LEN];
+uint32_t historyPointer = 0;
+uint32_t promptLength = 2;
 
 static int echo(const char *args) {
   printf("%s\n", args != NULL ? args : "");
@@ -78,6 +85,13 @@ static int setfont(const char *name) {
   return 2;
 }
 
+static int history() {
+  for (int i = 0; i < historyPointer; i++) {
+    printf("%s\n", commandHistory[i]);
+  }
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -86,6 +100,7 @@ command_t commands[] = {
   {"clear", "Clear stdout", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
+  {"history", "Print command history", history},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
@@ -109,41 +124,114 @@ static int help() {
 
 static void writePrompt() { printf("> "); }
 
-static void readCommand(char *buf) {
+static void readCommand(char *cmd) {
   int inputEnd = 0;
-  char *start = buf;
+  uint32_t localHistoryPointer = historyPointer;
+
+  uint32_t cmdWritePtr = 0;
+  uint32_t back = 0;
+  char *cmdStart = cmd;
+  char temp[CMD_BUF_LEN] = {0};
 
   while (!inputEnd) {
-    int len = _syscall(SYS_READ, buf);
+    uint32_t initialPtr = cmdWritePtr;
+
+    int len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
     for (int i = 0; i < len; i++) {
-      if (buf[i] == '\n') {
-        len = i;
+      if (temp[i] == '\n') {
         inputEnd = 1;
+        break;
+      } else if (temp[i] == 0x1B) {
+        if (temp[i + 1] == '[') {
+          switch (temp[i + 2]) {
+            case 'A':
+              // Up
+              if (localHistoryPointer > 0) {
+                char *last = commandHistory[--localHistoryPointer];
+                _syscall(SYS_BLANKLINE, promptLength);
+                cmd = cmdStart;
+                cmdWritePtr = strcpy(cmd, last);
+                initialPtr = 0;
+              }
+              break;
+            case 'B':
+              // Down
+              if (localHistoryPointer < historyPointer - 1) {
+                char *last = commandHistory[++localHistoryPointer];
+                _syscall(SYS_BLANKLINE, promptLength);
+                cmd = cmdStart;
+                cmdWritePtr = strcpy(cmd, last);
+                initialPtr = 0;
+              }
+              break;
+            case 'C':
+              // Right
+              if (back > 0) {
+                cmdWritePtr++;
+                initialPtr++;
+                back--;
+                _syscall(
+                  SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK
+                );
+                _syscall(SYS_CURMOVE, 1);
+              }
+              break;
+            case 'D':
+              // Left
+              if (cmdWritePtr > 0) {
+                cmdWritePtr--;
+                back++;
+                _syscall(SYS_CURSOR, IO_CURSOR_BLOCK);
+                _syscall(SYS_CURMOVE, -1);
+              }
+              break;
+          }
+        }
+        i += 2;
+      } else {
+        if (back == 0 || temp[i] != '\b') {
+          cmd[cmdWritePtr++] = temp[i];
+          if (back > 0) back--;
+        }
       }
     }
 
-    _syscall(SYS_WRITE, buf, len);
-    buf += len;
-  }
-
-  *buf = 0;
-  _syscall(SYS_PUTC, '\n');
-
-  // Handle backspaces, etc
-  buf = start;
-  int j = 0;
-  for (int i = 0; buf[i]; i++) {
-    if (buf[i] == '\b') {
-      if (j > 0) j--;
-    } else {
-      buf[j++] = buf[i];
+    if (cmdWritePtr > initialPtr) {
+      _syscall(SYS_WRITE, cmd + initialPtr, cmdWritePtr - initialPtr);
     }
   }
-  buf[j] = 0;
+
+  cmd[cmdWritePtr + back] = 0;
+  _syscall(SYS_PUTC, '\n');
+  _syscall(SYS_CURSOR, IO_CURSOR_UNDER);
+
+  // Handle backspaces
+  cmd = cmdStart;
+  int j = 0;
+  for (int i = 0; cmd[i]; i++) {
+    if (cmd[i] == '\b') {
+      if (j > 0) j--;
+    } else {
+      cmd[j++] = cmd[i];
+    }
+  }
+  cmd[j] = 0;
+
+  if (historyPointer == 0 ||
+      strcmp(commandHistory[historyPointer - 1], cmd) != 0) {
+    if (historyPointer == HISTORY_SIZE) {
+      memcpy(
+        commandHistory[0], commandHistory[1], (HISTORY_SIZE - 1) * CMD_BUF_LEN
+      );
+      historyPointer--;
+    }
+
+    strcpy(commandHistory[historyPointer++], cmd);
+  }
 }
 
 static int runCommand(const char *cmd) {
-  char cmdName[256];
+  char cmdName[CMD_BUF_LEN];
   cmd = strsplit(cmdName, cmd, ' ');
 
   if (cmdName[0] == 0) return 0;
@@ -166,7 +254,9 @@ static int runCommand(const char *cmd) {
   } else if (retcode == RET_EXIT) {
     return 1;
   } else if (retcode != 0) {
-    printf("[" COL_RED "%u" COL_RESET "] ", retcode);
+    promptLength = 2 + printf("[" COL_RED "%u" COL_RESET "] ", retcode);
+  } else {
+    promptLength = 2;
   }
 
 
@@ -174,7 +264,7 @@ static int runCommand(const char *cmd) {
 }
 
 int startShell() {
-  char cmdBuf[256];
+  char cmdBuf[CMD_BUF_LEN];
 
   // Run the shell
   int exit = 0;
