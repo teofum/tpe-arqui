@@ -1,47 +1,11 @@
-SECTION .text
-
-%macro pushall 0
-	push rbx
-	push r12
-	push r13
-	push r14
-	push r15
-%endmacro
-
-%macro popall 0
-	pop r15
-	pop r14
-	pop r13
-	pop r12
-	pop rbx
-%endmacro
-
-; Macro para handlers de IRQ
-EXTERN irqDispatcher
-%macro irqHandlerMaster 1
-	pushall
-    push rbp
-    mov rbp, rsp
-
-	mov rdi, %1 ; pasaje de parametro
-	call irqDispatcher
-
-	; signal pic EOI (End of Interrupt)
-	mov al, 20h
-	out 20h, al
-
-    mov rsp, rbp
-    pop rbp
-	popall
-	iretq
-%endmacro
+section .text
 
 ; -----------------------------------------------------------------------------
 ; Rutinas de CPU
 ; -----------------------------------------------------------------------------
 
 ; Identifica el vendor de la CPU
-GLOBAL cpuVendor
+global cpuVendor
 cpuVendor:
 	push rbp
 	mov rbp, rsp
@@ -65,91 +29,86 @@ cpuVendor:
 	pop rbp
 	ret
 
-
-GLOBAL _hlt
+global _hlt
 _hlt:
-  sti
+    sti
 	hlt
 	ret
 
 ; Deshabilita interrupciones
-GLOBAL _cli
+global _cli
 _cli:
 	cli
 	ret
 
 ; Habilita interrupciones
-GLOBAL _sti
+global _sti
 _sti:
 	sti
 	ret
 
 ; Termina la ejecución de la CPU
-GLOBAL haltcpu
+global haltcpu
 haltcpu:
 	cli
 	hlt
 	ret
 
-; -----------------------------------------------------------------------------
-; Rutinas de PIC
-; -----------------------------------------------------------------------------
+global _regdump
+extern registerState
+extern showCPUState
+_regdump:
+    cli
 
-; Establece la máscara del PIC maestro
-GLOBAL picMasterMask
-picMasterMask:
-  mov rax, rdi
-  out	21h, al
-  ret
+    mov rax, [rsp + 8 * 6]
+    mov [registerState + 0x00], rax
+    mov [registerState + 0x08], rbx
+    mov [registerState + 0x10], rcx
+    mov [registerState + 0x18], rdx
 
-; Establece la máscara del PIC esclavo
-GLOBAL picSlaveMask
-picSlaveMask:
-  mov rax, rdi  ; ax = mascara de 16 bits
-  out	0A1h, al
-  ret
+    mov [registerState + 0x20], rsi
+    mov [registerState + 0x28], rdi
+    mov rax, [rsp + 8 * 2]  ; RSP (before jumping into IRQ handler)
+    mov [registerState + 0x30], rax
+    mov [registerState + 0x38], rbp
 
-; -----------------------------------------------------------------------------
-; Handlers de interrupciones
-; -----------------------------------------------------------------------------
+    mov [registerState + 0x40], r8
+    mov [registerState + 0x48], r9
+    mov [registerState + 0x50], r10
+    mov [registerState + 0x58], r11
+    mov [registerState + 0x60], r12
+    mov [registerState + 0x68], r13
+    mov [registerState + 0x70], r14
+    mov [registerState + 0x78], r15
 
-; Timer tick (IRQ 0)
-GLOBAL _irq00Handler
-_irq00Handler:
-	irqHandlerMaster 0
+    mov rax, [rsp + 8 * 5] ; RIP (before jumping into IRQ handler)
+    mov [registerState + 0x80], rax
 
-; Keyboard handler (comentado por ahora)
-;GLOBAL _irq01Handler
-;_irq01Handler:
-;	irqHandlerMaster 1
+    mov rax, [rsp + 8 * 3] ; RFLAGS
+    mov [registerState + 0x88], rax
 
-; Syscall handler (IRQ 80h)
-GLOBAL _irq80Handler
-EXTERN syscallDispatchTable
-_irq80Handler:
-  push rbp
-  mov rbp, rsp
+    mov rax, cr0
+    mov [registerState + 0x90], rax
+    mov rax, cr2
+    mov [registerState + 0x98], rax
+    mov rax, cr3
+    mov [registerState + 0xA0], rax
+    mov rax, cr4
+    mov [registerState + 0xA8], rax
+    mov rax, cr8
+    mov [registerState + 0xB0], rax
 
-  mov rax, [syscallDispatchTable + rax * 8]
-  call rax
+    mov rax, [rsp + 8 * 4] ; CS
+    mov [registerState + 0xB8], ax
+    mov rax, [rsp + 8 * 1] ; SS
+    mov [registerState + 0xBA], ax
+    mov [registerState + 0xBC], ds
+    mov [registerState + 0xBE], es
+    mov [registerState + 0xC0], fs
+    mov [registerState + 0xC2], gs
 
-  mov rsp, rbp
-  pop rbp
-  iretq
+    sti
 
-; Exception handlers (comentados por ahora)
-;EXTERN exceptionDispatcher
-;%macro exceptionHandler 1
-;	pushState
-;
-;	mov rdi, %1 ; pasaje de parametro
-;	call exceptionDispatcher
-;
-;	popState
-;	iretq
-;%endmacro
+    call showCPUState
 
-;Zero Division Exception
-;GLOBAL _exception0Handler
-;_exception0Handler:
-;	exceptionHandler 0ret
+    ret

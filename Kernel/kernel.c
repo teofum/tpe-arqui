@@ -1,9 +1,13 @@
 #include <audio.h>
 #include <interrupts.h>
+#include <io.h>
+#include <kbd.h>
 #include <lib.h>
 #include <moduleLoader.h>
 #include <naiveConsole.h>
+#include <print.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <vga.h>
@@ -17,10 +21,10 @@ extern uint8_t endOfKernel;
 
 static const uint64_t PageSize = 0x1000;
 
-static void *const sampleCodeModuleAddress = (void *) 0x400000;
-static void *const sampleDataModuleAddress = (void *) 0x500000;
+static void *const sampleCodeModuleAddress = (void *) 0x800000;
+static void *const sampleDataModuleAddress = (void *) 0xa00000;
 
-typedef int (*EntryPoint)();
+typedef int (*entrypoint_t)();
 
 void clearBSS(void *bssAddress, uint64_t bssSize) {
   memset(bssAddress, 0, bssSize);
@@ -77,49 +81,30 @@ void *initializeKernelBinary() {
 }
 
 int main() {
-  ncPrint("[Kernel Main]");
-  ncNewline();
-  ncPrint("  Sample code module at 0x");
-  ncPrintHex((uint64_t) sampleCodeModuleAddress);
-  ncNewline();
-  ncPrint("  Calling the sample code module returned: ");
-  ncPrintHex(((EntryPoint) sampleCodeModuleAddress)());
-  ncNewline();
-  ncNewline();
-
-  ncPrint("  Sample data module at 0x");
-  ncPrintHex((uint64_t) sampleDataModuleAddress);
-  ncNewline();
-  ncPrint("  Sample data module contents: ");
-  ncPrint((char *) sampleDataModuleAddress);
-  ncNewline();
-
+  // Initialize interrupts and syscalls
   initSyscalls();
-  setInterruptHandler(0, timer_handler);
-  load_idt();
+  initInterrupts();
+  loadIDT();
 
-  // Initialize VGA driver
-  vga_gfxMode();
+  // Initialize video driver
+  vga_init();
 
-  // Draw some test graphics
-  vga_clear(0x00);
+  // Initialize stdout
+  io_init();
 
-  vga_shade(58, 78, 408, 218, 0x00);
-  vga_rect(50, 70, 400, 210, 0x07);
-  vga_frame(50, 70, 400, 210, 0x00);
+  while (1) {
+    int ret = ((entrypoint_t) sampleCodeModuleAddress)();
+    printf(
+      "\x1A 195,248,132;[Kernel] \x1A R;"
+      "Userland module exited with code \x1A 255,197,96;%#08x\n"
+      "\x1A 195,248,132;[Kernel] \x1A R;"
+      "Press any key to restart shell\n",
+      ret
+    );
 
-  const vga_font_t *lastfont = vga_font(vga_comicsans);
-  vga_text(58, 78, "Hello world!", 0x00, 0);
-  vga_font(lastfont);
-  vga_text(58, 78 + 24, "This is a longer string of text", 0x4c, VGA_TEXT_BG);
-
-  for (int i = 0; i < 16; i++) {
-    vga_rect(100 + 20 * i, 400, 100 + 20 * i + 19, 419, i);
+    int key = 0;
+    while (!key) { key = kbd_getKeyEvent().key; }
   }
-
-  vga_setPalette(vga_pal_macintoshii);
-
-  audio_beep(440, 20);
-
+  
   return 0;
 }
