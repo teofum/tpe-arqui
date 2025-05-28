@@ -179,7 +179,42 @@ uint32_t io_read(char *buf, uint32_t len) {
   uint32_t readChars = 0;
   int c;
   while ((c = kbd_getchar()) != -1 && readChars < len) {
-    if (c != 0) buf[readChars++] = c;
+    if (c != 0) {
+      if (isSpecialCharcode(c)) {
+        // Make sure there's enough room in the buffer to actually fit the
+        // escape sequence, if there isn't we just drop it
+        // This can probably be handled better, oh well
+        if (readChars >= len - 2) return readChars;
+
+        // Handle special keys by writing escape sequences to stdin
+        // Code that uses read() should handle these escape sequences
+        uint8_t key = getKey(c);
+        switch (key) {
+          case KEY_ARROW_UP:
+            buf[readChars++] = 0x1B;// ESC
+            buf[readChars++] = '[';
+            buf[readChars++] = 'A';
+            break;
+          case KEY_ARROW_DOWN:
+            buf[readChars++] = 0x1B;// ESC
+            buf[readChars++] = '[';
+            buf[readChars++] = 'B';
+            break;
+          case KEY_ARROW_LEFT:
+            buf[readChars++] = 0x1B;// ESC
+            buf[readChars++] = '[';
+            buf[readChars++] = 'D';
+            break;
+          case KEY_ARROW_RIGHT:
+            buf[readChars++] = 0x1B;// ESC
+            buf[readChars++] = '[';
+            buf[readChars++] = 'C';
+            break;
+        }
+      } else {
+        buf[readChars++] = c;
+      }
+    }
   }
 
   return readChars;

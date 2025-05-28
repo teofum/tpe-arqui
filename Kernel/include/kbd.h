@@ -4,6 +4,21 @@
 
 #define KBD_BUFFER_SIZE 128
 
+/*
+ * Used to return special (non-printable) character sequences in getchar()
+ */
+#define charcode(kc) (0x8000 | (kc))
+
+/*
+ * Detect a special charcode
+ */
+#define isSpecialCharcode(cc) ((cc) & 0x8000)
+
+/*
+ * Decode a charcode to get the underlying keycode
+ */
+#define getKey(cc) ((cc) & 0xff)
+
 typedef enum {
   // Standard scancodes, keycode is equal to the (pressed) scancode for these
   KEY_ESCAPE = 0x01,
