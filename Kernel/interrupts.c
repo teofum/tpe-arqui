@@ -200,7 +200,7 @@ void showCPUState() {
     bg_colors = colors(0x500000, 0x800000);
     footer = "Press any key to restart";
 
-    height = 416;
+    height = 368;
     top = (VGA_HEIGHT - height) / 2;
 
     vga_gradient(104, top, 920, top + height - 1, bg_colors, VGA_GRAD_V);
@@ -252,7 +252,7 @@ void showCPUState() {
     bg_colors = colors(0x0020a0, 0x2040c0);
     footer = "Press any key to continue";
 
-    height = 256;
+    height = 208;
     top = (VGA_HEIGHT - height) / 2;
 
     vga_gradient(104, top, 920, top + height - 1, bg_colors, VGA_GRAD_V);
@@ -342,7 +342,7 @@ void showCPUState() {
 
   /* Prompt */
   uint32_t offset = regdumpContext.flag == REGDUMP_EXCEPTION ? 312 : 308;
-  vga_text(left + offset, top + 128, footer, TEXT_COLOR, 0, 0);
+  vga_text(left + offset, top + 144, footer, TEXT_COLOR, 0, 0);
 
   vga_present();
 
