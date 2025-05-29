@@ -348,21 +348,4 @@ void showCPUState() {
 
   char key = 0;
   while (!key) { key = kbd_getKeyEvent().key; }
-
-  regdumpContext.flag = REGDUMP_NORMAL;
 }
-
-void exceptionDispatcher(uint8_t exception) {
-  regdumpContext.flag = REGDUMP_EXCEPTION;
-  regdumpContext.exception_id = exception;
-
-  showCPUState();
-
-  vga_clear(0x000000);
-  vga_text(512, 384, "Restarting system...", 0xffffff, 0, VGA_TEXT_NORMAL);
-  vga_present();
-
-  // keyboard controller activa la línea de reset del CPU
-  outb(0x64, 0xFE);
-}
-

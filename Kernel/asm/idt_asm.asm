@@ -133,7 +133,6 @@ _irq80Handler:
   pop rbp
   iretq
 
-extern exceptionDispatcher
 extern regdumpContext
 %macro exceptionHandler 1
   push rax
@@ -152,10 +151,10 @@ extern regdumpContext
   mov rax, [rsp + 8 * 9]  ; SS
   push rax
   call _regdump
-  add rsp, 40
-  pop rax
-  mov rdi, %1
-  call exceptionDispatcher
+
+  ; Reset CPU through keyboard controller
+  mov al, 0xfe
+  out 0x64, al
 %endmacro
 
 ; Division by Zero (0x00)
