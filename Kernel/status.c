@@ -5,7 +5,7 @@
 
 #define CLOCK_WIDTH (STATUS_PADDING_X * 2 + 37 * 8)
 
-uint8_t _statusEnabled = 1;
+uint8_t _statusEnabled = 0;
 
 const char *weekdays[] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
                           "Thursday", "Friday", "Saturday"};
@@ -55,9 +55,8 @@ void status_drawStatusBar() {
 uint8_t status_enabled() { return _statusEnabled; }
 
 void status_setEnabled(uint8_t enabled) {
-  uint8_t wasEnabled = _statusEnabled;
   _statusEnabled = enabled;
 
   // Draw the statusbar immediately on enable
-  if (!wasEnabled && _statusEnabled) status_drawStatusBar();
+  if (_statusEnabled) status_drawStatusBar();
 }

@@ -92,6 +92,30 @@ static int history() {
   return 0;
 }
 
+static int status(const char *param) {
+  if (param == NULL) {
+    printf("Usage: status <on/off>\n");
+    return 1;
+  }
+
+  if (!strcmp(param, "off")) {
+    _syscall(SYS_STATUS_SET_ENABLED, 0);
+    _syscall(SYS_CLEAR);
+    return 0;
+  } else if (!strcmp(param, "on")) {
+    _syscall(SYS_STATUS_SET_ENABLED, 1);
+    _syscall(SYS_CLEAR);
+    return 0;
+  }
+
+  printf(
+    COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on/off>\n",
+    param
+  );
+
+  return 2;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -101,6 +125,7 @@ command_t commands[] = {
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
   {"history", "Print command history", history},
+  {"status", "Turn the system status bar on or off", status},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
@@ -247,7 +272,7 @@ static int runCommand(const char *cmd) {
   }
   if (retcode == RET_UNKNOWN_CMD) {
     printf(
-      COL_RED "Unrecognized command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
+      COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
       cmdName
     );

@@ -92,8 +92,8 @@ int main() {
   // Initialize stdout
   io_init();
 
-  // Draw status bar for the first time
-  status_drawStatusBar();
+  // Enable status bar
+  status_setEnabled(1);
 
   while (1) {
     int ret = ((entrypoint_t) sampleCodeModuleAddress)();
