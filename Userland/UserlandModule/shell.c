@@ -155,6 +155,7 @@ static void readCommand(char *cmd) {
 
   uint32_t cmdWritePtr = 0;
   uint32_t back = 0;
+  uint32_t backspaces = 0;
   char *cmdStart = cmd;
   char temp[CMD_BUF_LEN] = {0};
 
@@ -213,13 +214,18 @@ static void readCommand(char *cmd) {
           }
         }
         i += 2;
-      } else {
-        if (back == 0 || temp[i] != '\b') {
+      } else if (temp[i] == '\b') {
+        // Discard backspaces if we're not at the end of the command, or if half
+        // the typed chars are backspaces (prevents us from deleting the prompt)
+        if (back == 0 && initialPtr > backspaces * 2) {
           cmd[cmdWritePtr++] = temp[i];
-          if (back > 0) {
-            back--;
-            _syscall(SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK);
-          }
+          backspaces++;
+        }
+      } else {
+        cmd[cmdWritePtr++] = temp[i];
+        if (back > 0) {
+          back--;
+          _syscall(SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK);
         }
       }
     }
