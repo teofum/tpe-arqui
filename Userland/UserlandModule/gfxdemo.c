@@ -76,7 +76,6 @@ int gfxdemo() {
 
     vga_present();
 
-    _syscall(SYS_HALT);
     key = kbd_getKeyEvent().key;
   }
 
