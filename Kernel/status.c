@@ -27,10 +27,13 @@ void status_drawStatusBar() {
     0, 0, VGA_WIDTH - 1, STATUS_HEIGHT - 1, colors(0x0020a0, 0x2040c0),
     VGA_GRAD_V
   );
-  vga_line(0, STATUS_HEIGHT - 1, VGA_WIDTH - 1, STATUS_HEIGHT - 1, 0xffffff, 0);
   vga_line(
-    VGA_WIDTH - CLOCK_WIDTH, 0, VGA_WIDTH - CLOCK_WIDTH, STATUS_HEIGHT - 1,
-    0xffffff, 0
+    0, STATUS_HEIGHT - 1, VGA_WIDTH - 1, STATUS_HEIGHT - 1, 0x80ffffff,
+    VGA_ALPHA_BLEND
+  );
+  vga_line(
+    VGA_WIDTH - CLOCK_WIDTH, 0, VGA_WIDTH - CLOCK_WIDTH, STATUS_HEIGHT - 2,
+    0x80ffffff, VGA_ALPHA_BLEND
   );
 
   // Draw system clock text
