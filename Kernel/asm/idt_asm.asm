@@ -82,6 +82,13 @@ _irq01Handler:
 
     mov rax, 0
     in  al, 0x60
+
+	; Signal PIC EOI (End of Interrupt)
+    push rax
+	mov al, 0x20
+	out 0x20, al
+    pop rax
+
     cmp al, 0x3B ; if F1 is pressed, dump registers
     jne .keyEvent
 
@@ -105,10 +112,6 @@ _irq01Handler:
 
     mov rdi, rax
     call kbd_addKeyEvent
-
-	; Signal PIC EOI (End of Interrupt)
-	mov al, 0x20
-	out 0x20, al
 
     popall
 
