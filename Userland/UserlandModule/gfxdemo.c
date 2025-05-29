@@ -9,7 +9,7 @@ int gfxdemo() {
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
-  uint64_t ticksElapsed = 0, frames = 0;
+  uint64_t ticksElapsed = 0, ticksStart = _syscall(SYS_TICKS), frames = 0;
   uint8_t green = 0;
   int d = 1;
   int key = 0;
@@ -85,7 +85,7 @@ int gfxdemo() {
 
     key = kbd_getKeyEvent().key;
     frames++;
-    ticksElapsed = _syscall(SYS_TICKS);
+    ticksElapsed = _syscall(SYS_TICKS) - ticksStart;
   }
 
   // Restore status bar enabled state
