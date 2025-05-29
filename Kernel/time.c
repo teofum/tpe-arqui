@@ -11,7 +11,7 @@ uint64_t ticks = 0;
 
 void timer_handler() {
   ticks++;
-  if (!(ticks % (TICKS_PER_SECOND))) { drawStatusBar(); }
+  if (!(ticks % (TICKS_PER_SECOND))) { status_drawStatusBar(); }
 }
 
 unsigned int ticks_elapsed() { return ticks; }

@@ -11,7 +11,7 @@
  * Draw a system-wide status bar, showing the system clock.
  * Can be used for other useful information in future.
  */
-void drawStatusBar();
+void status_drawStatusBar();
 
 /*
  * Return whether the status bar is enabled.

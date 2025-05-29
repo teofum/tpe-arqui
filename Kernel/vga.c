@@ -528,9 +528,9 @@ void vga_present() {
   memcpy(VGA_PHYSICAL_FRAMEBUFFER, VGA_FRAMEBUFFER, VGA_WIDTH * VGA_HEIGHT * 3);
 }
 
-void vga_copy(uint8_t *dst, uint8_t *src) {
+void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset) {
   if (dst == NULL) dst = _framebuffer;
   if (src == NULL) src = _framebuffer;
 
-  memcpy(dst, src, VGA_WIDTH * VGA_HEIGHT * 3);
+  memcpy(dst + offset * OFFSET_Y, src, OFFSET_Y * (VGA_HEIGHT - offset));
 }
