@@ -45,8 +45,9 @@ struct {
 
 extern void _picMasterMask(uint8_t mask);
 extern void _picSlaveMask(uint8_t mask);
-extern void _cli(void);
-extern void _sti(void);
+extern void _cli();
+extern void _sti();
+extern void _hlt();
 
 extern void _irq00Handler();
 extern void _irq01Handler();
@@ -142,6 +143,9 @@ void initSyscalls() {
   /* Status bar */
   registerSyscall(0x40, status_enabled);
   registerSyscall(0x41, status_setEnabled);
+
+  /* Special */
+  registerSyscall(0xFF, _hlt);
 }
 
 void showCPUState() {
@@ -244,5 +248,5 @@ void showCPUState() {
   vga_present();
 
   char key = 0;
-  while (!key) key = kbd_getKeyEvent().key;
+  while (!key) { key = kbd_getKeyEvent().key; }
 }

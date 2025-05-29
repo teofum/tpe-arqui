@@ -162,7 +162,10 @@ static void readCommand(char *cmd) {
   while (!inputEnd) {
     uint32_t initialPtr = cmdWritePtr;
 
-    int len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
+    // Wait for input on stdin
+    int len;
+    do { len = _syscall(SYS_READ, temp, CMD_BUF_LEN); } while (!len);
+
     for (int i = 0; i < len; i++) {
       if (temp[i] == '\n') {
         inputEnd = 1;

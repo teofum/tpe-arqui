@@ -39,6 +39,9 @@ typedef enum {
   /* Status bar syscalls */
   SYS_STATUS_GET_ENABLED = 0x40,
   SYS_STATUS_SET_ENABLED = 0x41,
+
+  /* Special syscalls */
+  SYS_HALT = 0xFF,
 } syscall_t;
 
 typedef enum {

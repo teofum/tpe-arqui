@@ -109,6 +109,10 @@ _regdump:
 
     sti
 
+	; Signal PIC EOI (End of Interrupt)
+	mov al, 0x20
+	out 0x20, al
+
     call showCPUState
 
     ret

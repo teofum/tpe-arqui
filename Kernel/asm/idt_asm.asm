@@ -82,13 +82,6 @@ _irq01Handler:
 
     mov rax, 0
     in  al, 0x60
-
-	; Signal PIC EOI (End of Interrupt)
-    push rax
-	mov al, 0x20
-	out 0x20, al
-    pop rax
-
     cmp al, 0x3B ; if F1 is pressed, dump registers
     jne .keyEvent
 
@@ -104,19 +97,23 @@ _irq01Handler:
     push rax
 
     call _regdump
-    add rsp, 48 ; yeet the stack
+    add rsp, 40 ; yeet the stack
     jmp .exit
 
 .keyEvent:
 	pushall
 
-    pop rdi      ; Pop old RAX value out of the stack then discard it
     mov rdi, rax
     call kbd_addKeyEvent
 
-	popall
+	; Signal PIC EOI (End of Interrupt)
+	mov al, 0x20
+	out 0x20, al
+
+    popall
 
 .exit:
+    pop rax
 	iretq
 
 ; Syscall handler (IRQ 80h)
