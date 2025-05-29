@@ -290,12 +290,21 @@ void vga_setFramebuffer(uint8_t *fb) {
 }
 
 void vga_clear(color_t color) {
-  uint8_t *fb = VGA_FRAMEBUFFER;
-  uint64_t offset = 0;
-  uint64_t size = OFFSET_Y * VBE_mode_info->height;
-  uint64_t step = OFFSET_X;
+  uint64_t *fb = (uint64_t *) VGA_FRAMEBUFFER;
+  uint64_t size = (OFFSET_Y >> 3) * VBE_mode_info->height;
 
-  for (; offset < size; offset += step) putpixel(fb, offset, color);
+  uint64_t c = color & 0xffffff;
+  uint64_t data[] = {
+    (c << 48) | (c << 24) | c,
+    (c << 56) | (c << 32) | (c << 8) | (c >> 16),
+    (c << 40) | (c << 16) | (c >> 8),
+  };
+
+  for (uint64_t offset = 0; offset < size; offset += 3) {
+    fb[offset + 0] = data[0];
+    fb[offset + 1] = data[1];
+    fb[offset + 2] = data[2];
+  }
 }
 
 void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags) {
@@ -532,15 +541,25 @@ const vga_font_t *vga_font(const vga_font_t *font) {
 
 const vga_font_t *vga_getfont() { return active_font; }
 
-void vga_present() {
-  memcpy(VGA_PHYSICAL_FRAMEBUFFER, VGA_FRAMEBUFFER, VGA_WIDTH * VGA_HEIGHT * 3);
+static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
+  for (uint64_t i = 0; i < len; i++) { *dst++ = *src++; }
 }
 
-void vga_copy(uint8_t *dst, uint8_t *src) {
+void vga_present() {
+  memcpy64(
+    (uint64_t *) VGA_PHYSICAL_FRAMEBUFFER, (uint64_t *) VGA_FRAMEBUFFER,
+    VGA_HEIGHT * (OFFSET_Y >> 3)
+  );
+}
+
+void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset) {
   if (dst == NULL) dst = _framebuffer;
   if (src == NULL) src = _framebuffer;
 
-  memcpy(dst, src, VGA_WIDTH * VGA_HEIGHT * 3);
+  memcpy64(
+    (uint64_t *) (dst + offset * OFFSET_Y), (uint64_t *) src,
+    (OFFSET_Y >> 3) * (VGA_HEIGHT - offset)
+  );
 }
 
 static inline float

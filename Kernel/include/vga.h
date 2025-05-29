@@ -7,6 +7,8 @@
 
 #define VGA_FONT_MAX_HEIGHT 24
 
+#define colors(x, y) (((uint64_t) (x) << 32) | (y))
+
 typedef uint32_t color_t;
 
 // TODO don't expose the entire struct
@@ -245,7 +247,7 @@ void vga_present();
  * Copy contents between two framebuffers.
  * Set either framebuffer to NULL to use the default framebuffer.
  */
-void vga_copy(uint8_t *dst, uint8_t *src);
+void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset);
 
 void vga_triangle(float data[9], float baseColor[3]);
 

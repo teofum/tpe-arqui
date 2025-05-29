@@ -1,3 +1,4 @@
+#include "status.h"
 #include <audio.h>
 #include <interrupts.h>
 #include <io.h>
@@ -90,6 +91,9 @@ int main() {
 
   // Initialize stdout
   io_init();
+
+  // Enable status bar
+  status_setEnabled(1);
 
   while (1) {
     int ret = ((entrypoint_t) sampleCodeModuleAddress)();

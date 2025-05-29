@@ -244,16 +244,17 @@ kbd_event_t kbd_getKeyEvent() {
 
     if (scancode == 0xE0) {
       kbd_extended = 1;
-    } else if ((isSpecial(key) != 0) || isRelease(scancode)) {
+    } else if (isSpecial(key) || isRelease(scancode)) {
       if (key == KEY_CAPSLOCK) {
         // Special handling for caps lock, it acts as a toggle
         if (!isRelease(scancode)) kbd_capslock = !kbd_capslock;
+      } else {
+        kbd_state[key] = isRelease(scancode) ? 0 : 1;
       }
-      kbd_state[key] = isRelease(scancode) ? 0 : 1;
     } else {
       kbd_state[key] = 1;
       kbd_event.key = key;
-      kbd_event.isReleased = isRelease(scancode);
+      kbd_event.isReleased = 0;// redundant
 
       kbd_event.alt = kbd_state[KEY_LEFT_ALT];
       kbd_event.alt_r = kbd_state[KEY_RIGHT_ALT];

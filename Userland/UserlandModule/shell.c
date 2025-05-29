@@ -92,6 +92,42 @@ static int history() {
   return 0;
 }
 
+static int status(const char *param) {
+  if (param == NULL) {
+    printf("Usage: status <on/off>\n");
+    return 1;
+  }
+
+  if (!strcmp(param, "off")) {
+    _syscall(SYS_STATUS_SET_ENABLED, 0);
+    _syscall(SYS_CLEAR);
+    return 0;
+  } else if (!strcmp(param, "on")) {
+    _syscall(SYS_STATUS_SET_ENABLED, 1);
+    _syscall(SYS_CLEAR);
+    return 0;
+  }
+
+  printf(
+    COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on/off>\n",
+    param
+  );
+
+  return 2;
+}
+
+extern void _throw_00();
+int throw00(){
+  _throw_00();
+  return 0;
+}
+
+extern void _throw_06();
+int throw06(){
+  _throw_06();
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -101,6 +137,9 @@ command_t commands[] = {
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
   {"history", "Print command history", history},
+  {"status", "Turn the system status bar on or off", status},
+  {"exc00", "Tests Division by Zero Exception", throw00},
+  {"exc06", "Test OpCode Exception", throw06},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
@@ -130,13 +169,17 @@ static void readCommand(char *cmd) {
 
   uint32_t cmdWritePtr = 0;
   uint32_t back = 0;
+  uint32_t backspaces = 0;
   char *cmdStart = cmd;
   char temp[CMD_BUF_LEN] = {0};
 
   while (!inputEnd) {
     uint32_t initialPtr = cmdWritePtr;
 
-    int len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
+    // Wait for input on stdin
+    int len;
+    do { len = _syscall(SYS_READ, temp, CMD_BUF_LEN); } while (!len);
+
     for (int i = 0; i < len; i++) {
       if (temp[i] == '\n') {
         inputEnd = 1;
@@ -188,10 +231,18 @@ static void readCommand(char *cmd) {
           }
         }
         i += 2;
-      } else {
-        if (back == 0 || temp[i] != '\b') {
+      } else if (temp[i] == '\b') {
+        // Discard backspaces if we're not at the end of the command, or if half
+        // the typed chars are backspaces (prevents us from deleting the prompt)
+        if (back == 0 && initialPtr > backspaces * 2) {
           cmd[cmdWritePtr++] = temp[i];
-          if (back > 0) back--;
+          backspaces++;
+        }
+      } else {
+        cmd[cmdWritePtr++] = temp[i];
+        if (back > 0) {
+          back--;
+          _syscall(SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK);
         }
       }
     }
@@ -247,7 +298,7 @@ static int runCommand(const char *cmd) {
   }
   if (retcode == RET_UNKNOWN_CMD) {
     printf(
-      COL_RED "Unrecognized command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
+      COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
       cmdName
     );
@@ -280,3 +331,4 @@ int startShell() {
 
   return 0;
 }
+
