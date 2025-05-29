@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <vga.h>
 
 extern uint8_t text;
@@ -22,7 +21,7 @@ extern uint8_t endOfKernel;
 static const uint64_t PageSize = 0x1000;
 
 static void *const sampleCodeModuleAddress = (void *) 0x800000;
-static void *const sampleDataModuleAddress = (void *) 0xa00000;
+static void *const sampleDataModuleAddress = (void *) 0xf00000;
 
 typedef int (*entrypoint_t)();
 
@@ -105,6 +104,6 @@ int main() {
     int key = 0;
     while (!key) { key = kbd_getKeyEvent().key; }
   }
-  
+
   return 0;
 }
