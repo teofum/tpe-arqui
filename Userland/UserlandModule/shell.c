@@ -216,7 +216,10 @@ static void readCommand(char *cmd) {
       } else {
         if (back == 0 || temp[i] != '\b') {
           cmd[cmdWritePtr++] = temp[i];
-          if (back > 0) back--;
+          if (back > 0) {
+            back--;
+            _syscall(SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK);
+          }
         }
       }
     }
