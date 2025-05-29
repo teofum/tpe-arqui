@@ -2,31 +2,6 @@
 #include <stdint.h>
 #include <vga.h>
 
-/* / TODO ver donde va esto pq aca seguro que no ///
-typedef struct {
-  float pos[2];
-  float v[2];
-  float a[2];
-} object_t;
-
-for (int i = 0; i < 2; i++) {
-  mc.v[1] += mc.a[i] * t;
-  mc.pos[i] += mc.a[i] * t * t + mc.v[i] * t;
-}
-
-
-object_t mc = {VGA_WIDTH / 2, VGA_HEIGHT / 2, 0};
-
-void drawPlayer() {// pos[0] es x y pos[1] es y
-  vga_rect(mc.pos[0], mc.pos[1], mc.pos[0] + 10, mc.pos[1] + 10, 0xffFF0080, 0);
-  //   vga_rect(mc.x, mc.y, mc.x + 10, mc.y + 10, 0xffFF0080, 0);
-}
-
-*/ /////////////////////////////////////////////////
-
-/*
-* standard algo[x,y], si ponemos z es uno mas y chau
-*/
 typedef struct {
   float x;
   float y;
@@ -83,6 +58,9 @@ void readImputs() {
   mc.y += mc.ay * t * t + mc.vy * t;
 }
 
+/*
+* Setup y main game loop
+*/
 int gg_startGame() {
   while (1) {
     readImputs();
