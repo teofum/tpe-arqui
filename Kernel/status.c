@@ -54,4 +54,10 @@ void status_drawStatusBar() {
 
 uint8_t status_enabled() { return _statusEnabled; }
 
-void status_setEnabled(uint8_t enabled) { _statusEnabled = enabled; }
+void status_setEnabled(uint8_t enabled) {
+  uint8_t wasEnabled = _statusEnabled;
+  _statusEnabled = enabled;
+
+  // Draw the statusbar immediately on enable
+  if (!wasEnabled && _statusEnabled) status_drawStatusBar();
+}

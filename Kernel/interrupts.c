@@ -1,4 +1,5 @@
 #include "io.h"
+#include "status.h"
 #include "vga.h"
 #include <defs.h>
 #include <interrupts.h>
@@ -137,6 +138,10 @@ void initSyscalls() {
   registerSyscall(0x2A, vga_present);
   registerSyscall(0x2B, vga_setFramebuffer);
   registerSyscall(0x2C, vga_copy);
+
+  /* Status bar */
+  registerSyscall(0x40, status_enabled);
+  registerSyscall(0x41, status_setEnabled);
 }
 
 void showCPUState() {
