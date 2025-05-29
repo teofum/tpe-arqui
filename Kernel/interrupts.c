@@ -20,6 +20,9 @@
 #define REGDUMP_NORMAL 0x00
 #define REGDUMP_EXCEPTION 0x01
 
+#define TEXT_COLOR 0xffffff
+#define FRAME_COLOR 0xffffff
+
 #pragma pack(push) /* Push de la alineación actual */
 #pragma pack(1)    /* Alinear las siguiente estructuras a 1 byte */
 
@@ -187,34 +190,36 @@ typedef struct {
 regdump_context_t regdumpContext = {REGDUMP_NORMAL, 0};
 
 void showCPUState() {
-  uint16_t top = 96, left = 104;
+  uint16_t height, top, left = 104;
   uint64_t bg_colors;
-  color_t text_color, frame_color;
   const char *footer;
   char buf[256];
 
   if (regdumpContext.flag == REGDUMP_EXCEPTION) {
     status_setEnabled(0);
     bg_colors = colors(0x500000, 0x800000);
-    text_color = 0xffffff;
-    frame_color = 0xffffff;
     footer = "Press any key to restart";
 
-    vga_gradient(104, 64, 920, 416, bg_colors, VGA_GRAD_V);
-    vga_frame(104, 64, 920, 416, frame_color, 0);
+    height = 416;
+    top = (VGA_HEIGHT - height) / 2;
+
+    vga_gradient(104, top, 920, top + height - 1, bg_colors, VGA_GRAD_V);
+    vga_frame(104, top, 920, top + height - 1, FRAME_COLOR, 0);
 
     vga_text(
-      left + 328, 80, " !! KERNEL PANIC !! ", 0, text_color, VGA_TEXT_INV
+      left + 328, top + 16, " !! KERNEL PANIC !! ", 0, TEXT_COLOR, VGA_TEXT_INV
     );
+
+    top += 32;
 
     vga_text(
       left + 216, top + 16, "Execution halted due to an unexpected exception.",
-      text_color, 0, 0
+      TEXT_COLOR, 0, 0
     );
-    vga_text(left + 340, top + 32, "CPU state dumped.", text_color, 0, 0);
+    vga_text(left + 340, top + 32, "CPU state dumped.", TEXT_COLOR, 0, 0);
 
     vga_text(
-      left + 316, top + 64, "== Exception Details ==", 0, text_color,
+      left + 316, top + 64, "== Exception Details ==", 0, TEXT_COLOR,
       VGA_TEXT_INV
     );
 
@@ -226,115 +231,118 @@ void showCPUState() {
       sprintf(
         buf, "Exception %#02x %s", regdumpContext.exception_id, info->name
       );
-      vga_text(left + 16, top + 16, buf, text_color, 0, 0);
+      vga_text(left + 16, top + 16, buf, TEXT_COLOR, 0, 0);
 
       sprintf(buf, "Description: %s", info->description);
-      vga_text(left + 16, top + 32, buf, text_color, 0, 0);
+      vga_text(left + 16, top + 32, buf, TEXT_COLOR, 0, 0);
     } else {
       sprintf(buf, "Exception %#02x", regdumpContext.exception_id);
-      vga_text(left + 16, top + 16, buf, text_color, 0, 0);
+      vga_text(left + 16, top + 16, buf, TEXT_COLOR, 0, 0);
       vga_text(
-        left + 16, top + 32, "Description: Unknown exception", text_color, 0, 0
+        left + 16, top + 32, "Description: Unknown exception", TEXT_COLOR, 0, 0
       );
     }
 
     vga_text(
-      left + 328, top + 64, "== CPU state dump ==", 0, text_color, VGA_TEXT_INV
+      left + 328, top + 64, "== CPU state dump ==", 0, TEXT_COLOR, VGA_TEXT_INV
     );
 
     top += 80;
   } else {
     bg_colors = colors(0x0020a0, 0x2040c0);
-    text_color = 0xffffff;
-    frame_color = 0xffffff;
     footer = "Press any key to continue";
 
-    vga_gradient(104, 64, 920, 256, bg_colors, VGA_GRAD_V);
-    vga_frame(104, 64, 920, 256, frame_color, 0);
+    height = 256;
+    top = (VGA_HEIGHT - height) / 2;
+
+    vga_gradient(104, top, 920, top + height - 1, bg_colors, VGA_GRAD_V);
+    vga_frame(104, top, 920, top + height - 1, FRAME_COLOR, 0);
 
     vga_text(
-      left + 328, 80, "== CPU state dump ==", 0, text_color, VGA_TEXT_INV
+      left + 328, top + 16, "== CPU state dump ==", 0, TEXT_COLOR, VGA_TEXT_INV
     );
+
+    top += 32;
   }
 
   /* General purpose registers */
   sprintf(buf, "rax: %#016llx", registerState.rax);
-  vga_text(left + 16, top + 16, buf, text_color, 0, 0);
+  vga_text(left + 16, top + 16, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "rbx: %#016llx", registerState.rbx);
-  vga_text(left + 16, top + 32, buf, text_color, 0, 0);
+  vga_text(left + 16, top + 32, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "rcx: %#016llx", registerState.rcx);
-  vga_text(left + 16, top + 48, buf, text_color, 0, 0);
+  vga_text(left + 16, top + 48, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "rdx: %#016llx", registerState.rdx);
-  vga_text(left + 16, top + 64, buf, text_color, 0, 0);
+  vga_text(left + 16, top + 64, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "rdi: %#016llx", registerState.rdi);
-  vga_text(left + 216, top + 16, buf, text_color, 0, 0);
+  vga_text(left + 216, top + 16, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "rsi: %#016llx", registerState.rsi);
-  vga_text(left + 216, top + 32, buf, text_color, 0, 0);
+  vga_text(left + 216, top + 32, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "rsp: %#016llx", registerState.rsp);
-  vga_text(left + 216, top + 48, buf, text_color, 0, 0);
+  vga_text(left + 216, top + 48, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "rbp: %#016llx", registerState.rbp);
-  vga_text(left + 216, top + 64, buf, text_color, 0, 0);
+  vga_text(left + 216, top + 64, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, " r8: %#016llx", registerState.r8);
-  vga_text(left + 416, top + 16, buf, text_color, 0, 0);
+  vga_text(left + 416, top + 16, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, " r9: %#016llx", registerState.r9);
-  vga_text(left + 416, top + 32, buf, text_color, 0, 0);
+  vga_text(left + 416, top + 32, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "r10: %#016llx", registerState.r10);
-  vga_text(left + 416, top + 48, buf, text_color, 0, 0);
+  vga_text(left + 416, top + 48, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "r11: %#016llx", registerState.r11);
-  vga_text(left + 416, top + 64, buf, text_color, 0, 0);
+  vga_text(left + 416, top + 64, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "r12: %#016llx", registerState.r12);
-  vga_text(left + 616, top + 16, buf, text_color, 0, 0);
+  vga_text(left + 616, top + 16, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "r13: %#016llx", registerState.r13);
-  vga_text(left + 616, top + 32, buf, text_color, 0, 0);
+  vga_text(left + 616, top + 32, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "r14: %#016llx", registerState.r14);
-  vga_text(left + 616, top + 48, buf, text_color, 0, 0);
+  vga_text(left + 616, top + 48, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "r15: %#016llx", registerState.r15);
-  vga_text(left + 616, top + 64, buf, text_color, 0, 0);
+  vga_text(left + 616, top + 64, buf, TEXT_COLOR, 0, 0);
 
   /* Execution state registers */
   sprintf(buf, "rip: %#016llx", registerState.rip);
-  vga_text(left + 16, top + 96, buf, text_color, 0, 0);
+  vga_text(left + 16, top + 96, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "flg: %#016llx", registerState.rflags);
-  vga_text(left + 16, top + 112, buf, text_color, 0, 0);
+  vga_text(left + 16, top + 112, buf, TEXT_COLOR, 0, 0);
 
   /* Segment registers */
   sprintf(buf, "cs: %#04x", registerState.cs);
-  vga_text(left + 216, top + 96, buf, text_color, 0, 0);
+  vga_text(left + 216, top + 96, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "ss: %#04x", registerState.ss);
-  vga_text(left + 320, top + 96, buf, text_color, 0, 0);
+  vga_text(left + 320, top + 96, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "ds: %#04x", registerState.ds);
-  vga_text(left + 416, top + 96, buf, text_color, 0, 0);
+  vga_text(left + 416, top + 96, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "es: %#04x", registerState.es);
-  vga_text(left + 520, top + 96, buf, text_color, 0, 0);
+  vga_text(left + 520, top + 96, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "fs: %#04x", registerState.fs);
-  vga_text(left + 616, top + 96, buf, text_color, 0, 0);
+  vga_text(left + 616, top + 96, buf, TEXT_COLOR, 0, 0);
 
   sprintf(buf, "gs: %#04x", registerState.gs);
-  vga_text(left + 720, top + 96, buf, text_color, 0, 0);
+  vga_text(left + 720, top + 96, buf, TEXT_COLOR, 0, 0);
 
   /* Prompt */
   uint32_t offset = regdumpContext.flag == REGDUMP_EXCEPTION ? 312 : 308;
-  vga_text(left + offset, top + 128, footer, text_color, 0, 0);
+  vga_text(left + offset, top + 128, footer, TEXT_COLOR, 0, 0);
 
   vga_present();
 
