@@ -144,6 +144,9 @@ void initSyscalls() {
   registerSyscall(0x40, status_enabled);
   registerSyscall(0x41, status_setEnabled);
 
+  /* Time/RTC */
+  registerSyscall(0x50, ticks_elapsed);
+
   /* Special */
   registerSyscall(0xFF, _hlt);
 }

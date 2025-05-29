@@ -1,5 +1,6 @@
 #include <gfxdemo.h>
 #include <kbd.h>
+#include <print.h>
 #include <syscall.h>
 #include <vga.h>
 
@@ -8,6 +9,7 @@ int gfxdemo() {
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
+  uint64_t ticksElapsed = 0, frames = 0;
   uint8_t green = 0;
   int d = 1;
   int key = 0;
@@ -74,9 +76,16 @@ int gfxdemo() {
 
     vga_text(420, 700, " Press any key to exit ", 0, 0xffffff, VGA_TEXT_INV);
 
+    uint64_t frametime = frames == 0 ? 0 : ticksElapsed * 55 / frames;
+    char buf[50];
+    sprintf(buf, "Frametime: %llums", frametime);
+    vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
+
     vga_present();
 
     key = kbd_getKeyEvent().key;
+    frames++;
+    ticksElapsed = _syscall(SYS_TICKS);
   }
 
   // Restore status bar enabled state

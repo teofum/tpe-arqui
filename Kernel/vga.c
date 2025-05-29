@@ -524,13 +524,23 @@ const vga_font_t *vga_font(const vga_font_t *font) {
 
 const vga_font_t *vga_getfont() { return active_font; }
 
+static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
+  for (uint64_t i = 0; i < len; i++) { *dst++ = *src++; }
+}
+
 void vga_present() {
-  memcpy(VGA_PHYSICAL_FRAMEBUFFER, VGA_FRAMEBUFFER, VGA_WIDTH * VGA_HEIGHT * 3);
+  memcpy64(
+    (uint64_t *) VGA_PHYSICAL_FRAMEBUFFER, (uint64_t *) VGA_FRAMEBUFFER,
+    VGA_HEIGHT * (OFFSET_Y >> 3)
+  );
 }
 
 void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset) {
   if (dst == NULL) dst = _framebuffer;
   if (src == NULL) src = _framebuffer;
 
-  memcpy(dst + offset * OFFSET_Y, src, OFFSET_Y * (VGA_HEIGHT - offset));
+  memcpy64(
+    (uint64_t *) (dst + offset * OFFSET_Y), (uint64_t *) src,
+    (OFFSET_Y >> 3) * (VGA_HEIGHT - offset)
+  );
 }

@@ -40,6 +40,9 @@ typedef enum {
   SYS_STATUS_GET_ENABLED = 0x40,
   SYS_STATUS_SET_ENABLED = 0x41,
 
+  /* Time/RTC syscalls */
+  SYS_TICKS = 0x50,
+
   /* Special syscalls */
   SYS_HALT = 0xFF,
 } syscall_t;
