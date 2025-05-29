@@ -1,35 +1,35 @@
 section .text
 
 %macro pushall 0
-    push rax
-    push rcx
-    push rdx
-    push rsi
-    push rdi
-    push r8
-    push r9
-    push r10
-    push r11
+  push rax
+  push rcx
+  push rdx
+  push rsi
+  push rdi
+  push r8
+  push r9
+  push r10
+  push r11
 %endmacro
 
 %macro popall 0
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-    pop rdi
-    pop rsi
-    pop rdx
-    pop rcx
-    pop rax
+  pop r11
+  pop r10
+  pop r9
+  pop r8
+  pop rdi
+  pop rsi
+  pop rdx
+  pop rcx
+  pop rax
 %endmacro
 
 ; Macro para handlers de IRQ
 extern irqDispatcher
 %macro irqHandlerMaster 1
 	pushall
-    push rbp
-    mov rbp, rsp
+  push rbp
+  mov rbp, rsp
 
 	mov rdi, %1
 	call irqDispatcher
@@ -38,8 +38,8 @@ extern irqDispatcher
 	mov al, 0x20
 	out 0x20, al
 
-    mov rsp, rbp
-    pop rbp
+  mov rsp, rbp
+  pop rbp
 	popall
 	iretq
 %endmacro
@@ -51,16 +51,16 @@ extern irqDispatcher
 ; Establece la máscara del PIC maestro
 global _picMasterMask
 _picMasterMask:
-    mov rax, rdi
-    out 0x21, al
-    ret
+  mov rax, rdi
+  out 0x21, al
+  ret
 
 ; Establece la máscara del PIC esclavo
 global _picSlaveMask
 _picSlaveMask:
-    mov rax, rdi  ; ax = mascara de 16 bits
-    out 0xa1, al
-    ret
+  mov rax, rdi  ; ax = mascara de 16 bits
+  out 0xa1, al
+  ret
 
 ; -----------------------------------------------------------------------------
 ; Handlers de interrupciones
@@ -78,45 +78,45 @@ global _irq01Handler
 extern kbd_addKeyEvent
 extern _regdump
 _irq01Handler:
-    push rax     ; Preserve RAX value for statedump
+  push rax     ; Preserve RAX value for statedump
 
-    mov rax, 0
-    in  al, 0x60
+  mov rax, 0
+  in  al, 0x60
 
-	; Signal PIC EOI (End of Interrupt)
-    push rax
+; Signal PIC EOI (End of Interrupt)
+  push rax
 	mov al, 0x20
 	out 0x20, al
-    pop rax
+  pop rax
 
-    cmp al, 0x3B ; if F1 is pressed, dump registers
-    jne .keyEvent
+  cmp al, 0x3B ; if F1 is pressed, dump registers
+  jne .keyEvent
 
-    mov rax, [rsp + 8 * 1] ; RIP
-    push rax
-    mov rax, [rsp + 8 * 3] ; CS
-    push rax
-    mov rax, [rsp + 8 * 5] ; RFLAGS
-    push rax
-    mov rax, [rsp + 8 * 7] ; RSP (old)
-    push rax
-    mov rax, [rsp + 8 * 9] ; SS
-    push rax
+  mov rax, [rsp + 8 * 1] ; RIP
+  push rax
+  mov rax, [rsp + 8 * 3] ; CS
+  push rax
+  mov rax, [rsp + 8 * 5] ; RFLAGS
+  push rax
+  mov rax, [rsp + 8 * 7] ; RSP (old)
+  push rax
+  mov rax, [rsp + 8 * 9] ; SS
+  push rax
 
-    call _regdump
-    add rsp, 40 ; yeet the stack
-    jmp .exit
+  call _regdump
+  add rsp, 40 ; yeet the stack
+  jmp .exit
 
 .keyEvent:
 	pushall
 
-    mov rdi, rax
-    call kbd_addKeyEvent
+  mov rdi, rax
+  call kbd_addKeyEvent
 
-    popall
+  popall
 
 .exit:
-    pop rax
+  pop rax
 	iretq
 
 ; Syscall handler (IRQ 80h)
@@ -133,19 +133,37 @@ _irq80Handler:
   pop rbp
   iretq
 
-; Exception handlers (comentados por ahora)
-;EXTERN exceptionDispatcher
-;%macro exceptionHandler 1
-;	pushState
-;
-;	mov rdi, %1 ; pasaje de parametro
-;	call exceptionDispatcher
-;
-;	popState
-;	iretq
-;%endmacro
+extern exceptionDispatcher
+extern regdumpContext
+%macro exceptionHandler 1
+  push rax
 
-;Zero Division Exception
-;GLOBAL _exception0Handler
-;_exception0Handler:
-;	exceptionHandler 0ret
+  mov byte [regdumpContext], 0x01
+  mov byte [regdumpContext+1], %1
+
+  mov rax, [rsp + 8 * 1]  ; RIP
+  push rax
+  mov rax, [rsp + 8 * 3]  ; CS
+  push rax
+  mov rax, [rsp + 8 * 5]  ; RFLAGS
+  push rax
+  mov rax, [rsp + 8 * 7]  ; RSP original
+  push rax
+  mov rax, [rsp + 8 * 9]  ; SS
+  push rax
+  call _regdump
+  add rsp, 40
+  pop rax
+  mov rdi, %1
+  call exceptionDispatcher
+%endmacro
+
+; Division by Zero (0x00)
+GLOBAL _exception00Handler
+_exception00Handler:
+  exceptionHandler 0x00
+
+; Invalid Opcode (0x06)
+GLOBAL _exception06Handler
+_exception06Handler:
+  exceptionHandler 0x06

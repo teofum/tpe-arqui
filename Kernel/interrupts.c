@@ -7,6 +7,7 @@
 #include <print.h>
 #include <stdint.h>
 #include <time.h>
+#include <status.h>
 
 #define ID_TIMER_TICK 0x20
 #define ID_KEYBOARD 0x21
@@ -14,6 +15,10 @@
 
 #define MAX_INTERRUPTS 256
 #define MAX_SYSCALLS 256
+#define MAX_EXCEPTIONS 256
+
+#define REGDUMP_NORMAL 0x00
+#define REGDUMP_EXCEPTION 0x01
 
 #pragma pack(push) /* Push de la alineación actual */
 #pragma pack(1)    /* Alinear las siguiente estructuras a 1 byte */
@@ -53,6 +58,11 @@ extern void _irq00Handler();
 extern void _irq01Handler();
 extern void _irq80Handler();
 
+extern void _exception00Handler();
+extern void _exception06Handler();
+
+extern void main();
+
 /* Configura una entrada en la IDT */
 static void setup_IDT_Entry(int index, uint64_t offset) {
   idt[index].selector = 0x08;
@@ -76,6 +86,12 @@ void loadIDT() {
 
   // Syscalls
   setup_IDT_Entry(ID_SYSCALL, (uint64_t) &_irq80Handler);
+
+  // Exceptions
+  // Division by Zero (00)
+  setup_IDT_Entry(0x00, (uint64_t) &_exception00Handler);
+  // Invalid Opcode (06)
+  setup_IDT_Entry(0x06, (uint64_t) &_exception06Handler);
 
   _picMasterMask(0xFC);
   _picSlaveMask(0xFF);
@@ -151,105 +167,201 @@ void initSyscalls() {
   registerSyscall(0xFF, _hlt);
 }
 
+// Información de excepción
+typedef struct {
+  const char *name;
+  const char *description;
+} exception_info_t;
+
+// Tabla de información de excepciones - índice directo por ID
+static const exception_info_t exceptionTable[MAX_EXCEPTIONS] = {
+    [0x00] = {"Division by Zero", "Attempt to divide by zero"},
+    [0x06] = {"Invalid Opcode", "Illegal or undefined instruction"}};
+
+typedef struct {
+  uint8_t flag;
+  uint8_t exception_id;
+} regdump_context_t;
+
+regdump_context_t regdumpContext = {REGDUMP_NORMAL, 0};
+
 void showCPUState() {
-  uint16_t top = 96, left = 104;
-
-  vga_gradient(104, 64, 920, 320, colors(0x0020a0, 0x2040c0), VGA_GRAD_V);
-  vga_frame(104, 64, 920, 320, 0xffffff, 0);
-  vga_text(left + 328, 80, "== CPU state dump ==", 0, 0xffffff, VGA_TEXT_INV);
-  vga_text(left + 308, top + 192, "Press any key to continue", 0xffffff, 0, 0);
-
+  status_setEnabled(0);
+  uint16_t top, left;
+  uint32_t bg_color, text_color, frame_color;
+  const char *title;
+  const char *footer;
   char buf[256];
 
+  if (regdumpContext.flag == REGDUMP_EXCEPTION) {
+    vga_clear(0x000000);
+    top = 96;
+    left = 104;
+    bg_color = colors(0x800000, 0xa00000);
+    text_color = 0xffff00;
+    frame_color = 0xff0000;
+    title = "== KERNEL PANIC ==";
+    footer = "Press any key to continue";
+
+    vga_gradient(104, 64, 920, top + 450, bg_color, VGA_GRAD_V);
+    vga_frame(104, 64, 920, top + 450, frame_color, 0);
+
+    vga_text(left + 328, top + 16, title, 0, text_color, VGA_TEXT_INV);
+
+    // Información específica de la excepción
+    const exception_info_t *info = &exceptionTable[regdumpContext.exception_id];
+    if (info->name) {
+      sprintf(buf, "Exception #%02x: %s", regdumpContext.exception_id,
+              info->name);
+      vga_text(left + 16, top + 48, buf, 0xffff00, 0, 0);
+
+      sprintf(buf, "Description: %s", info->description);
+      vga_text(left + 16, top + 64, buf, 0xffff00, 0, 0);
+    } else {
+      sprintf(buf, "Exception #%02x: Unknown Exception",
+              regdumpContext.exception_id);
+      vga_text(left + 16, top + 48, buf, 0xffff00, 0, 0);
+      vga_text(left + 16, top + 64, "Description: Unhandled exception",
+               0xffff00, 0, 0);
+    }
+
+    vga_text(left + 270, top + 112, "== CPU STATE AT TIME OF EXCEPTION ==", 0,
+             text_color, VGA_TEXT_INV);
+    top += 144;
+
+  } else {
+    top = 96;
+    left = 104;
+    bg_color = colors(0x0020a0, 0x2040c0);
+    text_color = 0xffffff;
+    frame_color = 0xffffff;
+    title = "== CPU state dump ==";
+    footer = "Press any key to continue";
+
+    vga_gradient(104, 64, 920, 320, bg_color, VGA_GRAD_V);
+    vga_frame(104, 64, 920, 320, frame_color, 0);
+
+    vga_text(left + 328, 80, title, 0, text_color, VGA_TEXT_INV);
+  }
+
   sprintf(buf, "rax: %#016llx", registerState.rax);
-  vga_text(left + 16, top + 16, buf, 0xffffff, 0, 0);
+  vga_text(left + 16, top + 16, buf, text_color, 0, 0);
 
   sprintf(buf, "rbx: %#016llx", registerState.rbx);
-  vga_text(left + 16, top + 32, buf, 0xffffff, 0, 0);
+  vga_text(left + 16, top + 32, buf, text_color, 0, 0);
 
   sprintf(buf, "rcx: %#016llx", registerState.rcx);
-  vga_text(left + 16, top + 48, buf, 0xffffff, 0, 0);
+  vga_text(left + 16, top + 48, buf, text_color, 0, 0);
 
   sprintf(buf, "rdx: %#016llx", registerState.rdx);
-  vga_text(left + 16, top + 64, buf, 0xffffff, 0, 0);
+  vga_text(left + 16, top + 64, buf, text_color, 0, 0);
 
   sprintf(buf, "rdi: %#016llx", registerState.rdi);
-  vga_text(left + 216, top + 16, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 16, buf, text_color, 0, 0);
 
   sprintf(buf, "rsi: %#016llx", registerState.rsi);
-  vga_text(left + 216, top + 32, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 32, buf, text_color, 0, 0);
 
   sprintf(buf, "rsp: %#016llx", registerState.rsp);
-  vga_text(left + 216, top + 48, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 48, buf, text_color, 0, 0);
 
   sprintf(buf, "rbp: %#016llx", registerState.rbp);
-  vga_text(left + 216, top + 64, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 64, buf, text_color, 0, 0);
 
   sprintf(buf, " r8: %#016llx", registerState.r8);
-  vga_text(left + 416, top + 16, buf, 0xffffff, 0, 0);
+  vga_text(left + 416, top + 16, buf, text_color, 0, 0);
 
   sprintf(buf, " r9: %#016llx", registerState.r9);
-  vga_text(left + 416, top + 32, buf, 0xffffff, 0, 0);
+  vga_text(left + 416, top + 32, buf, text_color, 0, 0);
 
   sprintf(buf, "r10: %#016llx", registerState.r10);
-  vga_text(left + 416, top + 48, buf, 0xffffff, 0, 0);
+  vga_text(left + 416, top + 48, buf, text_color, 0, 0);
 
   sprintf(buf, "r11: %#016llx", registerState.r11);
-  vga_text(left + 416, top + 64, buf, 0xffffff, 0, 0);
+  vga_text(left + 416, top + 64, buf, text_color, 0, 0);
 
   sprintf(buf, "r12: %#016llx", registerState.r12);
-  vga_text(left + 616, top + 16, buf, 0xffffff, 0, 0);
+  vga_text(left + 616, top + 16, buf, text_color, 0, 0);
 
   sprintf(buf, "r13: %#016llx", registerState.r13);
-  vga_text(left + 616, top + 32, buf, 0xffffff, 0, 0);
+  vga_text(left + 616, top + 32, buf, text_color, 0, 0);
 
   sprintf(buf, "r14: %#016llx", registerState.r14);
-  vga_text(left + 616, top + 48, buf, 0xffffff, 0, 0);
+  vga_text(left + 616, top + 48, buf, text_color, 0, 0);
 
   sprintf(buf, "r15: %#016llx", registerState.r15);
-  vga_text(left + 616, top + 64, buf, 0xffffff, 0, 0);
+  vga_text(left + 616, top + 64, buf, text_color, 0, 0);
 
   sprintf(buf, "rip: %#016llx", registerState.rip);
-  vga_text(left + 16, top + 96, buf, 0xffffff, 0, 0);
+  vga_text(left + 16, top + 96, buf, text_color, 0, 0);
 
   sprintf(buf, "flg: %#016llx", registerState.rflags);
-  vga_text(left + 16, top + 112, buf, 0xffffff, 0, 0);
+  vga_text(left + 16, top + 112, buf, text_color, 0, 0);
 
   sprintf(buf, "cr0: %#016llx", registerState.cr0);
-  vga_text(left + 216, top + 96, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 96, buf, text_color, 0, 0);
 
   sprintf(buf, "cr2: %#016llx", registerState.cr2);
-  vga_text(left + 216, top + 112, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 112, buf, text_color, 0, 0);
 
   sprintf(buf, "cr3: %#016llx", registerState.cr3);
-  vga_text(left + 216, top + 128, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 128, buf, text_color, 0, 0);
 
   sprintf(buf, "cr4: %#016llx", registerState.cr4);
-  vga_text(left + 216, top + 144, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 144, buf, text_color, 0, 0);
 
   sprintf(buf, "cr8: %#016llx", registerState.cr8);
-  vga_text(left + 216, top + 160, buf, 0xffffff, 0, 0);
+  vga_text(left + 216, top + 160, buf, text_color, 0, 0);
 
   sprintf(buf, "cs: %#04x", registerState.cs);
-  vga_text(left + 416, top + 96, buf, 0xffffff, 0, 0);
+  vga_text(left + 416, top + 96, buf, text_color, 0, 0);
 
   sprintf(buf, "ss: %#04x", registerState.ss);
-  vga_text(left + 416, top + 112, buf, 0xffffff, 0, 0);
+  vga_text(left + 416, top + 112, buf, text_color, 0, 0);
 
   sprintf(buf, "ds: %#04x", registerState.ds);
-  vga_text(left + 416, top + 128, buf, 0xffffff, 0, 0);
+  vga_text(left + 416, top + 128, buf, text_color, 0, 0);
 
   sprintf(buf, "es: %#04x", registerState.es);
-  vga_text(left + 616, top + 96, buf, 0xffffff, 0, 0);
+  vga_text(left + 616, top + 96, buf, text_color, 0, 0);
 
   sprintf(buf, "fs: %#04x", registerState.fs);
-  vga_text(left + 616, top + 112, buf, 0xffffff, 0, 0);
+  vga_text(left + 616, top + 112, buf, text_color, 0, 0);
 
   sprintf(buf, "gs: %#04x", registerState.gs);
-  vga_text(left + 616, top + 128, buf, 0xffffff, 0, 0);
+  vga_text(left + 616, top + 128, buf, text_color, 0, 0);
+
+  if (regdumpContext.flag == REGDUMP_EXCEPTION) {
+    vga_text(left + 16, top + 200,
+             "State captured at time of critical exception", text_color, 0, 0);
+    vga_text(left + 16, top + 250, footer, text_color, 0, 0);
+  } else {
+    vga_text(left + 308, top + 192, footer, 0xffffff, 0, 0);
+  }
 
   vga_present();
 
   char key = 0;
   while (!key) { key = kbd_getKeyEvent().key; }
+
+  regdumpContext.flag = REGDUMP_NORMAL;
 }
+
+void exceptionDispatcher(uint8_t exception) {
+  regdumpContext.flag = REGDUMP_EXCEPTION;
+  regdumpContext.exception_id = exception;
+
+  showCPUState();
+
+  vga_clear(0x000000);
+  vga_text(512, 384, "Restarting system...", 0xffffff, 0, VGA_TEXT_NORMAL);
+  vga_present();
+
+  unsigned int start_time = ticks_elapsed();
+  while ((ticks_elapsed() - start_time) < (3 * TICKS_PER_SECOND)) {
+    ;
+  }
+
+  main();
+}
+
