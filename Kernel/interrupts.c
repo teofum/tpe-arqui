@@ -64,7 +64,7 @@ extern void _irq80Handler();
 extern void _exception00Handler();
 extern void _exception06Handler();
 
-extern void main();
+extern void outb(uint16_t port, uint8_t value);
 
 /* Configura una entrada en la IDT */
 static void setup_IDT_Entry(int index, uint64_t offset) {
@@ -362,6 +362,7 @@ void exceptionDispatcher(uint8_t exception) {
   vga_text(512, 384, "Restarting system...", 0xffffff, 0, VGA_TEXT_NORMAL);
   vga_present();
 
-  // TODO restart properly
-  main();
+  // keyboard controller activa la línea de reset del CPU
+  outb(0x64, 0xFE);
 }
+
