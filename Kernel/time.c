@@ -1,56 +1,13 @@
 #include <print.h>
+#include <status.h>
 #include <time.h>
 #include <vga.h>
-
-#define STATUS_HEIGHT 24
-#define STATUS_PADDING_X 8
-#define STATUS_PADDING_Y 4
 
 #define bcd_decode(x) ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 
 extern uint8_t _rtc_getTime(uint64_t descriptor);// de rtc.asm
 
 uint64_t ticks = 0;
-
-const char *weekdays[] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
-                          "Thursday", "Friday", "Saturday"};
-
-const char *months[] = {"January",   "February", "March",    "April",
-                        "May",       "June",     "July",     "August",
-                        "September", "October",  "November", "December"};
-
-/*
- * Draw a system-wide status bar, showing the system clock.
- * Can be used for other useful information in future.
- */
-static void drawStatusBar() {
-  // Get local time
-  char buf[64];
-  int32_t len;
-  dateTime_t t = rtc_getLocalTime();
-
-  // Draw statusbar background and border
-  vga_gradient(
-    0, 0, VGA_WIDTH - 1, STATUS_HEIGHT - 1, colors(0x0020a0, 0x2040c0),
-    VGA_GRAD_V
-  );
-  vga_line(0, STATUS_HEIGHT - 1, VGA_WIDTH - 1, STATUS_HEIGHT - 1, 0xffffff, 0);
-
-  // Draw system clock text
-  const vga_font_t *oldfont = vga_font(vga_fontAlt);
-
-  len = sprintf(
-    buf, "%s, %s %02u 20%02u %02u:%02u:%02u", weekdays[t.dayOfWeek],
-    months[t.month], t.day, t.year, t.hours, t.minutes, t.seconds
-  );
-  vga_text(
-    VGA_WIDTH - len * vga_fontAlt->charWidth - STATUS_PADDING_X - 1,
-    STATUS_PADDING_Y, buf, 0xffffff, 0, 0
-  );
-
-  vga_font(oldfont);
-  vga_present();
-}
 
 void timer_handler() {
   ticks++;
