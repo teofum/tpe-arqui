@@ -7,6 +7,8 @@
 
 #define VGA_FONT_MAX_HEIGHT 24
 
+#define colors(x, y) (((uint64_t) (x) << 32) | (y))
+
 typedef uint32_t color_t;
 
 // TODO don't expose the entire struct

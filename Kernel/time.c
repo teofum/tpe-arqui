@@ -1,16 +1,61 @@
+#include <print.h>
 #include <time.h>
 #include <vga.h>
 
+#define STATUS_HEIGHT 24
+#define STATUS_PADDING_X 8
+#define STATUS_PADDING_Y 4
 
-extern uint8_t asm_rtc_GetTime(uint64_t descriptor);// de rtc.asm
+#define bcd_decode(x) ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 
-unsigned long ticks = 0;
+extern uint8_t _rtc_getTime(uint64_t descriptor);// de rtc.asm
+
+uint64_t ticks = 0;
+
+const char *weekdays[] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
+                          "Thursday", "Friday", "Saturday"};
+
+const char *months[] = {"January",   "February", "March",    "April",
+                        "May",       "June",     "July",     "August",
+                        "September", "October",  "November", "December"};
+
+/*
+ * Draw a system-wide status bar, showing the system clock.
+ * Can be used for other useful information in future.
+ */
+static void drawStatusBar() {
+  // Get local time
+  char buf[64];
+  int32_t len;
+  dateTime_t t = rtc_getLocalTime();
+
+  // Draw statusbar background and border
+  vga_gradient(
+    0, 0, VGA_WIDTH - 1, STATUS_HEIGHT - 1, colors(0x0020a0, 0x2040c0),
+    VGA_GRAD_V
+  );
+  vga_line(0, STATUS_HEIGHT - 1, VGA_WIDTH - 1, STATUS_HEIGHT - 1, 0xffffff, 0);
+
+  // Draw system clock text
+  const vga_font_t *oldfont = vga_font(vga_fontAlt);
+
+  len = sprintf(
+    buf, "%s, %s %02u 20%02u %02u:%02u:%02u", weekdays[t.dayOfWeek],
+    months[t.month], t.day, t.year, t.hours, t.minutes, t.seconds
+  );
+  vga_text(
+    VGA_WIDTH - len * vga_fontAlt->charWidth - STATUS_PADDING_X - 1,
+    STATUS_PADDING_Y, buf, 0xffffff, 0, 0
+  );
+
+  vga_font(oldfont);
+  vga_present();
+}
 
 void timer_handler() {
   ticks++;
-  if (!(ticks % (TICKS_PER_SECOND / 8))) { drawClock(); }
+  if (!(ticks % (TICKS_PER_SECOND))) { drawStatusBar(); }
 }
-
 
 unsigned int ticks_elapsed() { return ticks; }
 
@@ -34,20 +79,10 @@ time_t getTimeElapsed(unsigned int ticks) {
   return t;
 }
 
-// RTC UTC ( para argentina -3 horas ) ///////////////////////////////
-
-
-uint8_t get_format(uint8_t num) {
-  int dec = num & 0xF0;
-  dec = dec >> 4;
-  int units = num & 0x0F;
-  return dec * 10 + units;
-}
-
 /* Fetches actual UTC real time */
 uint8_t rtc_getTime(int descriptor) {
-  uint8_t toReturn = asm_rtc_GetTime(descriptor);
-  return get_format(toReturn);
+  uint8_t toReturn = _rtc_getTime(descriptor);
+  return bcd_decode(toReturn);
 }
 
 /* Fetches whole YDMHMS in one struct */
@@ -57,7 +92,8 @@ dateTime_t rtc_getDateTime() {
   dt.minutes = rtc_getTime(MINUTES);
   dt.hours = rtc_getTime(HOURS);
   dt.day = rtc_getTime(DAY_OF_THE_MONTH);
-  dt.month = rtc_getTime(MONTH);
+  dt.dayOfWeek = rtc_getTime(DAY_OF_THE_WEEK) - 1;
+  dt.month = rtc_getTime(MONTH) - 1;
   dt.year = rtc_getTime(YEAR);
   return dt;
 }
@@ -98,26 +134,4 @@ dateTime_t rtc_getLocalTime(void) {
   }
 
   return dt;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-void drawClock() {
-  dateTime_t t = rtc_getLocalTime();
-
-  vga_font(vga_fontAlt);
-  char buff[8] = {0};
-  vga_rect(
-    (VGA_WIDTH - (7 * vga_fontAlt->charWidth)), 000, VGA_WIDTH,
-    vga_fontAlt->lineHeight, 0xff303030, 0
-  );
-
-  sprintf(buff, "[%u:%u]", t.hours, t.minutes);
-  // habria que hacer que llene con 0s a los numeros a 2 digitos
-  // si el numero de minutos es <10 te lo hace de 1 digito
-
-  vga_text(
-    (VGA_WIDTH - (7 * vga_fontAlt->charWidth)), 000, buff, 0xffffff, 0, 0
-  );
-  vga_present();
 }

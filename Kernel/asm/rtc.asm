@@ -1,10 +1,8 @@
-
 section .text
 
 ; lo agarra time.h
-GLOBAL asm_rtc_GetTime
-
-asm_rtc_GetTime:
+global _rtc_getTime
+_rtc_getTime:
 	mov rax, rdi	; recibimos por parámetro.
 	out 70h, al		; 70h entrada para la informacion que quiero en 71h.
 	mov rax, 0
