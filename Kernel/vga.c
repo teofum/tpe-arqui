@@ -543,7 +543,7 @@ void vga_copy(uint8_t *dst, uint8_t *src) {
   memcpy(dst, src, VGA_WIDTH * VGA_HEIGHT * 3);
 }
 
-static float
+static inline float
 edgeFunction(float ax, float ay, float bx, float by, float px, float py) {
   return (by - ay) * (px - ax) - (bx - ax) * (py - ay);
 }
@@ -576,8 +576,10 @@ void vga_triangle(float data[9], float baseColor[3]) {
 
   float area = edgeFunction(x0, y0, x1, y1, x2, y2);
 
+  uint32_t offset = pixelOffset(left, top);
+  uint32_t step = OFFSET_X;
+  uint32_t line_offset = step * (right - left + 1);
   for (int32_t y = top; y <= bottom; y++) {
-    uint32_t offset = pixelOffset(left, y);
     for (int32_t x = left; x <= right; x++) {
       float xp = (x * 2.0f) / VGA_WIDTH - 1.0f;
       float yp = (y * 2.0f) / VGA_HEIGHT - 1.0f;
@@ -595,7 +597,8 @@ void vga_triangle(float data[9], float baseColor[3]) {
         putpixel(fb, offset, 0x00ff00);
       }
 
-      offset += OFFSET_X;
+      offset += step;
     }
+    offset += OFFSET_Y - line_offset;
   }
 }

@@ -101,9 +101,12 @@ int main() {
       ret
     );
 
-    float data[9] = {-0.5, -0.3, 0, 0, 1, 0, 1, 0, 0};
+    float data[9] = {-0.2, -0.3, 0, 0, 0.1, 0, 0.1, 0, 0};
     float color[3] = {0, 0, 0};
-    for (int i = 0; i < 100; i++) { vga_triangle(data, color); }
+    for (int i = 0; i < 1000; i++) {
+      vga_triangle(data, color);
+      // vga_rect(0, 0, 256, 100, 0xff0000, 0);
+    }
     vga_present();
 
     int key = 0;
