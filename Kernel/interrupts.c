@@ -5,9 +5,9 @@
 #include <interrupts.h>
 #include <kbd.h>
 #include <print.h>
+#include <status.h>
 #include <stdint.h>
 #include <time.h>
-#include <status.h>
 
 #define ID_TIMER_TICK 0x20
 #define ID_KEYBOARD 0x21
@@ -175,8 +175,9 @@ typedef struct {
 
 // Tabla de información de excepciones - índice directo por ID
 static const exception_info_t exceptionTable[MAX_EXCEPTIONS] = {
-    [0x00] = {"Division by Zero", "Attempt to divide by zero"},
-    [0x06] = {"Invalid Opcode", "Illegal or undefined instruction"}};
+  [0x00] = {"Division by Zero", "Attempt to divide by zero"},
+  [0x06] = {"Invalid Opcode", "Illegal or undefined instruction"}
+};
 
 typedef struct {
   uint8_t flag;
@@ -186,62 +187,74 @@ typedef struct {
 regdump_context_t regdumpContext = {REGDUMP_NORMAL, 0};
 
 void showCPUState() {
-  status_setEnabled(0);
-  uint16_t top, left;
-  uint32_t bg_color, text_color, frame_color;
-  const char *title;
+  uint16_t top = 96, left = 104;
+  uint64_t bg_colors;
+  color_t text_color, frame_color;
   const char *footer;
   char buf[256];
 
   if (regdumpContext.flag == REGDUMP_EXCEPTION) {
-    vga_clear(0x000000);
-    top = 96;
-    left = 104;
-    bg_color = colors(0x800000, 0xa00000);
-    text_color = 0xffff00;
-    frame_color = 0xff0000;
-    title = "== KERNEL PANIC ==";
-    footer = "Press any key to continue";
+    status_setEnabled(0);
+    bg_colors = colors(0x500000, 0x800000);
+    text_color = 0xffffff;
+    frame_color = 0xffffff;
+    footer = "Press any key to restart";
 
-    vga_gradient(104, 64, 920, top + 450, bg_color, VGA_GRAD_V);
-    vga_frame(104, 64, 920, top + 450, frame_color, 0);
+    vga_gradient(104, 64, 920, 480, bg_colors, VGA_GRAD_V);
+    vga_frame(104, 64, 920, 480, frame_color, 0);
 
-    vga_text(left + 328, top + 16, title, 0, text_color, VGA_TEXT_INV);
+    vga_text(
+      left + 328, 80, " !! KERNEL PANIC !! ", 0, text_color, VGA_TEXT_INV
+    );
+
+    vga_text(
+      left + 216, top + 16, "Execution halted due to an unexpected exception.",
+      text_color, 0, 0
+    );
+    vga_text(left + 340, top + 32, "CPU state dumped.", text_color, 0, 0);
+
+    vga_text(
+      left + 316, top + 64, "== Exception Details ==", 0, text_color,
+      VGA_TEXT_INV
+    );
+
+    top += 80;
 
     // Información específica de la excepción
     const exception_info_t *info = &exceptionTable[regdumpContext.exception_id];
     if (info->name) {
-      sprintf(buf, "Exception #%02x: %s", regdumpContext.exception_id,
-              info->name);
-      vga_text(left + 16, top + 48, buf, 0xffff00, 0, 0);
+      sprintf(
+        buf, "Exception %#02x %s", regdumpContext.exception_id, info->name
+      );
+      vga_text(left + 16, top + 16, buf, text_color, 0, 0);
 
       sprintf(buf, "Description: %s", info->description);
-      vga_text(left + 16, top + 64, buf, 0xffff00, 0, 0);
+      vga_text(left + 16, top + 32, buf, text_color, 0, 0);
     } else {
-      sprintf(buf, "Exception #%02x: Unknown Exception",
-              regdumpContext.exception_id);
-      vga_text(left + 16, top + 48, buf, 0xffff00, 0, 0);
-      vga_text(left + 16, top + 64, "Description: Unhandled exception",
-               0xffff00, 0, 0);
+      sprintf(buf, "Exception %#02x", regdumpContext.exception_id);
+      vga_text(left + 16, top + 16, buf, text_color, 0, 0);
+      vga_text(
+        left + 16, top + 32, "Description: Unknown exception", text_color, 0, 0
+      );
     }
 
-    vga_text(left + 270, top + 112, "== CPU STATE AT TIME OF EXCEPTION ==", 0,
-             text_color, VGA_TEXT_INV);
-    top += 144;
+    vga_text(
+      left + 328, top + 64, "== CPU state dump ==", 0, text_color, VGA_TEXT_INV
+    );
 
+    top += 80;
   } else {
-    top = 96;
-    left = 104;
-    bg_color = colors(0x0020a0, 0x2040c0);
+    bg_colors = colors(0x0020a0, 0x2040c0);
     text_color = 0xffffff;
     frame_color = 0xffffff;
-    title = "== CPU state dump ==";
     footer = "Press any key to continue";
 
-    vga_gradient(104, 64, 920, 320, bg_color, VGA_GRAD_V);
+    vga_gradient(104, 64, 920, 320, bg_colors, VGA_GRAD_V);
     vga_frame(104, 64, 920, 320, frame_color, 0);
 
-    vga_text(left + 328, 80, title, 0, text_color, VGA_TEXT_INV);
+    vga_text(
+      left + 328, 80, "== CPU state dump ==", 0, text_color, VGA_TEXT_INV
+    );
   }
 
   sprintf(buf, "rax: %#016llx", registerState.rax);
@@ -331,13 +344,8 @@ void showCPUState() {
   sprintf(buf, "gs: %#04x", registerState.gs);
   vga_text(left + 616, top + 128, buf, text_color, 0, 0);
 
-  if (regdumpContext.flag == REGDUMP_EXCEPTION) {
-    vga_text(left + 16, top + 200,
-             "State captured at time of critical exception", text_color, 0, 0);
-    vga_text(left + 16, top + 250, footer, text_color, 0, 0);
-  } else {
-    vga_text(left + 308, top + 192, footer, 0xffffff, 0, 0);
-  }
+  uint32_t offset = regdumpContext.flag == REGDUMP_EXCEPTION ? 312 : 308;
+  vga_text(left + offset, top + 192, footer, text_color, 0, 0);
 
   vga_present();
 
@@ -357,11 +365,6 @@ void exceptionDispatcher(uint8_t exception) {
   vga_text(512, 384, "Restarting system...", 0xffffff, 0, VGA_TEXT_NORMAL);
   vga_present();
 
-  unsigned int start_time = ticks_elapsed();
-  while ((ticks_elapsed() - start_time) < (3 * TICKS_PER_SECOND)) {
-    ;
-  }
-
+  // TODO restart properly
   main();
 }
-
