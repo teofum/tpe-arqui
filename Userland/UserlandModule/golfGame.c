@@ -4,10 +4,10 @@
 
 /* / TODO ver donde va esto pq aca seguro que no ///
 typedef struct {
-  uint16_t pos[2];
-  uint16_t v[2];
-  uint16_t a[2];
-} player_t;
+  float pos[2];
+  float v[2];
+  float a[2];
+} object_t;
 
 for (int i = 0; i < 2; i++) {
   mc.v[1] += mc.a[i] * t;
@@ -15,7 +15,7 @@ for (int i = 0; i < 2; i++) {
 }
 
 
-player_t mc = {VGA_WIDTH / 2, VGA_HEIGHT / 2, 0};
+object_t mc = {VGA_WIDTH / 2, VGA_HEIGHT / 2, 0};
 
 void drawPlayer() {// pos[0] es x y pos[1] es y
   vga_rect(mc.pos[0], mc.pos[1], mc.pos[0] + 10, mc.pos[1] + 10, 0xffFF0080, 0);
@@ -28,12 +28,12 @@ void drawPlayer() {// pos[0] es x y pos[1] es y
 * standard algo[x,y], si ponemos z es uno mas y chau
 */
 typedef struct {
-  uint16_t x;
-  uint16_t y;
-  uint16_t vx;
-  uint16_t vy;
-  uint16_t ax;
-  uint16_t ay;
+  float x;
+  float y;
+  float vx;
+  float vy;
+  float ax;
+  float ay;
 } player_t;
 
 player_t mc = {VGA_WIDTH / 2, VGA_HEIGHT / 2, 0};
@@ -48,29 +48,31 @@ void drawPlayer() {
 */
 void readImputs() {
 
-  uint16_t t = 1;
-  uint16_t gama = 1;
+  float t =
+    0.5;//con esto se puede ajustar la velocidad pero ideal seria liquearlo con algun clock
+  float gama =
+    0.05;// con esto se ajusta el arrastre, mientras mas alto mas se frena, idealmente entre 1 y 0
 
   kbd_pollEvents();
-
-  // y
-  if (kbd_keydown(KEY_ARROW_UP)) {
-    mc.ay = ((mc.ay - 1) < -1) ? -1 : (mc.ay - 1);
-  }
-  if (kbd_keydown(KEY_ARROW_DOWN)) {
-    mc.ay = ((mc.ay + 1) > 1) ? 1 : (mc.ay + 1);
-  }
+  uint8_t up = kbd_keydown(KEY_ARROW_UP);
+  uint8_t down = kbd_keydown(KEY_ARROW_DOWN);
+  uint8_t right = kbd_keydown(KEY_ARROW_RIGHT);
+  uint8_t left = kbd_keydown(KEY_ARROW_LEFT);
 
   //x
-  if (kbd_keydown(KEY_ARROW_RIGHT) || kbd_keydown(KEY_ARROW_LEFT)) {
-    if (kbd_keydown(KEY_ARROW_RIGHT)) {
-      mc.ax = ((mc.ax + 1) > 1) ? 1 : (mc.ax + 1);
-    }
-    if (kbd_keydown(KEY_ARROW_LEFT)) {
-      mc.ax = ((mc.ax - 1) < -1) ? -1 : (mc.ax - 1);
-    }
+  if (right || left) {
+    if (right) { mc.ax = ((mc.ax + 1) > 1) ? 1 : (mc.ax + 1); }
+    if (left) { mc.ax = ((mc.ax - 1) < -1) ? -1 : (mc.ax - 1); }
   } else {
-    mc.ax -= (mc.vx * gama);
+    mc.ax = -(mc.vx * gama);
+  }
+
+  //y
+  if (up || down) {
+    if (up) { mc.ay = ((mc.ay - 1) < -1) ? -1 : (mc.ay - 1); }
+    if (down) { mc.ay = ((mc.ay + 1) > 1) ? 1 : (mc.ay + 1); }
+  } else {
+    mc.ay = -(mc.vy * gama);
   }
 
 
