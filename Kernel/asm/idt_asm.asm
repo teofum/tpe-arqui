@@ -104,19 +104,19 @@ _irq01Handler:
     push rax
 
     call _regdump
-    add rsp, 48 ; yeet the stack
+    add rsp, 40 ; yeet the stack
     jmp .exit
 
 .keyEvent:
 	pushall
 
-    pop rdi      ; Pop old RAX value out of the stack then discard it
     mov rdi, rax
     call kbd_addKeyEvent
 
-	popall
+    popall
 
 .exit:
+    pop rax
 	iretq
 
 ; Syscall handler (IRQ 80h)

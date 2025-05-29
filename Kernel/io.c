@@ -1,13 +1,17 @@
-#include "kbd.h"
-#include "vga.h"
 #include <io.h>
+#include <kbd.h>
+#include <status.h>
 #include <string.h>
+#include <vga.h>
 
 #define TAB_SIZE 8
 #define CURSOR_HEIGHT 2
 
 #define DEFAULT_BG 0x000000
 #define DEFAULT_FG 0xd8d8d8
+
+#define copyToMainFramebuffer()                                                \
+  vga_copy(NULL, textFramebuffer, status_enabled() ? STATUS_HEIGHT : 0)
 
 /*
  * The I/O subsystem keeps its own framebuffer, so it can preserve text written
@@ -37,7 +41,8 @@ static void nextline() {
   cur_x = 0;
   cur_y += textFont->lineHeight;
 
-  int32_t remaining = VGA_HEIGHT - (int32_t) (cur_y + textFont->lineHeight);
+  uint32_t maxHeight = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
+  int32_t remaining = maxHeight - (int32_t) (cur_y + textFont->lineHeight);
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
@@ -48,7 +53,7 @@ static void nextline() {
     );
 
     vga_rect(
-      0, VGA_HEIGHT - offsetLines, VGA_WIDTH - 1, VGA_HEIGHT - 1, DEFAULT_BG, 0
+      0, maxHeight - offsetLines, VGA_WIDTH - 1, maxHeight - 1, DEFAULT_BG, 0
     );
 
     cur_y -= offsetLines;
@@ -60,24 +65,26 @@ static void nextline() {
  * This way it doesn't persist when we draw more text.
  */
 static inline void drawCursor() {
+  uint32_t cursor_y = cur_y + (status_enabled() ? STATUS_HEIGHT : 0);
   switch (cursorStyle) {
     case IO_CURSOR_UNDER:
       vga_rect(
-        cur_x, cur_y + textFont->charHeight - CURSOR_HEIGHT,
-        cur_x + textFont->charWidth, cur_y + textFont->charHeight - 1,
+        cur_x, cursor_y + textFont->charHeight - CURSOR_HEIGHT,
+        cur_x + textFont->charWidth, cursor_y + textFont->charHeight - 1,
         foreground, 0
       );
       break;
     case IO_CURSOR_FRAME:
       vga_frame(
-        cur_x, cur_y, cur_x + textFont->charWidth, cur_y + textFont->charHeight,
-        foreground, 0
+        cur_x, cursor_y, cur_x + textFont->charWidth,
+        cursor_y + textFont->charHeight, foreground, 0
       );
       break;
     case IO_CURSOR_BLOCK:
       vga_rect(
-        cur_x, cur_y, cur_x + textFont->charWidth, cur_y + textFont->charHeight,
-        foreground | 0x80000000, VGA_ALPHA_BLEND
+        cur_x, cursor_y, cur_x + textFont->charWidth,
+        cursor_y + textFont->charHeight, foreground | 0x80000000,
+        VGA_ALPHA_BLEND
       );
       break;
   }
@@ -112,7 +119,7 @@ void io_blankFrom(uint32_t x) {
     cur_x, cur_y, VGA_WIDTH - 1, cur_y + textFont->lineHeight - 1, DEFAULT_BG, 0
   );
 
-  vga_copy(NULL, textFramebuffer);
+  copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   vga_present();
 }
@@ -124,7 +131,7 @@ void io_putc(char c) {
   putcImpl(c);
 
   vga_font(lastFont);
-  vga_copy(NULL, textFramebuffer);
+  copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
@@ -185,7 +192,7 @@ uint32_t io_writes(const char *str) {
   background = DEFAULT_BG;
   foreground = DEFAULT_FG;
   vga_font(lastFont);
-  vga_copy(NULL, textFramebuffer);
+  copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
@@ -212,7 +219,7 @@ uint32_t io_write(const char *str, uint32_t len) {
   background = DEFAULT_BG;
   foreground = DEFAULT_FG;
   vga_font(lastFont);
-  vga_copy(NULL, textFramebuffer);
+  copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
@@ -223,7 +230,7 @@ uint32_t io_write(const char *str, uint32_t len) {
 void io_clear() {
   vga_setFramebuffer(textFramebuffer);
   vga_clear(0x000000);
-  vga_copy(NULL, textFramebuffer);
+  copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
@@ -326,7 +333,7 @@ void io_setfont(io_font_t font) {
 
     cur_y -= offsetLines;
   }
-  vga_copy(NULL, textFramebuffer);
+  copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
@@ -343,7 +350,7 @@ void io_movecursor(int32_t dx) {
     if (cur_x >= VGA_WIDTH) nextline();
   }
 
-  vga_copy(NULL, textFramebuffer);
+  copyToMainFramebuffer();
   drawCursor();
   vga_present();
 }

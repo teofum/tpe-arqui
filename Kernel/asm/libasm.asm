@@ -109,6 +109,8 @@ _regdump:
 
     sti
 
+    pushall
     call showCPUState
+    popall
 
     ret

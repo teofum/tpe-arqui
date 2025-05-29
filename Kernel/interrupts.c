@@ -1,4 +1,5 @@
 #include "io.h"
+#include "status.h"
 #include "vga.h"
 #include <defs.h>
 #include <interrupts.h>
@@ -44,8 +45,9 @@ struct {
 
 extern void _picMasterMask(uint8_t mask);
 extern void _picSlaveMask(uint8_t mask);
-extern void _cli(void);
-extern void _sti(void);
+extern void _cli();
+extern void _sti();
+extern void _hlt();
 
 extern void _irq00Handler();
 extern void _irq01Handler();
@@ -137,12 +139,22 @@ void initSyscalls() {
   registerSyscall(0x2A, vga_present);
   registerSyscall(0x2B, vga_setFramebuffer);
   registerSyscall(0x2C, vga_copy);
+
+  /* Status bar */
+  registerSyscall(0x40, status_enabled);
+  registerSyscall(0x41, status_setEnabled);
+
+  /* Time/RTC */
+  registerSyscall(0x50, ticks_elapsed);
+
+  /* Special */
+  registerSyscall(0xFF, _hlt);
 }
 
 void showCPUState() {
   uint16_t top = 96, left = 104;
 
-  vga_gradient(104, 64, 920, 320, (0x0020a0ull << 32) | 0x2040c0, VGA_GRAD_V);
+  vga_gradient(104, 64, 920, 320, colors(0x0020a0, 0x2040c0), VGA_GRAD_V);
   vga_frame(104, 64, 920, 320, 0xffffff, 0);
   vga_text(left + 328, 80, "== CPU state dump ==", 0, 0xffffff, VGA_TEXT_INV);
   vga_text(left + 308, top + 192, "Press any key to continue", 0xffffff, 0, 0);
@@ -239,5 +251,5 @@ void showCPUState() {
   vga_present();
 
   char key = 0;
-  while (!key) key = kbd_getKeyEvent().key;
+  while (!key) { key = kbd_getKeyEvent().key; }
 }

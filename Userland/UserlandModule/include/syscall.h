@@ -35,6 +35,16 @@ typedef enum {
   SYS_VGA_TEXTWRAP = 0x29,
   SYS_VGA_PRESENT = 0x2A,
   SYS_VGA_SET_FB = 0x2B,
+
+  /* Status bar syscalls */
+  SYS_STATUS_GET_ENABLED = 0x40,
+  SYS_STATUS_SET_ENABLED = 0x41,
+
+  /* Time/RTC syscalls */
+  SYS_TICKS = 0x50,
+
+  /* Special syscalls */
+  SYS_HALT = 0xFF,
 } syscall_t;
 
 typedef enum {
