@@ -23,6 +23,8 @@
 #define TEXT_COLOR 0xffffff
 #define FRAME_COLOR 0xffffff
 
+#define MEM_DUMP_SIZE 128
+
 #pragma pack(push) /* Push de la alineación actual */
 #pragma pack(1)    /* Alinear las siguiente estructuras a 1 byte */
 
@@ -183,8 +185,11 @@ static const exception_info_t exceptionTable[MAX_EXCEPTIONS] = {
 };
 
 typedef struct {
-  uint8_t flag;
-  uint8_t exception_id;
+  uint64_t flag;
+  uint64_t exception_id;
+
+  uint64_t memdumpStart;
+  uint8_t memdump[MEM_DUMP_SIZE];
 } regdump_context_t;
 
 regdump_context_t regdumpContext = {REGDUMP_NORMAL, 0};
@@ -200,7 +205,7 @@ void showCPUState() {
     bg_colors = colors(0x500000, 0x800000);
     footer = "Press any key to restart";
 
-    height = 368;
+    height = 560;
     top = (VGA_HEIGHT - height) / 2;
 
     vga_gradient(104, top, 920, top + height - 1, bg_colors, VGA_GRAD_V);
@@ -229,14 +234,14 @@ void showCPUState() {
     const exception_info_t *info = &exceptionTable[regdumpContext.exception_id];
     if (info->name) {
       sprintf(
-        buf, "Exception %#02x %s", regdumpContext.exception_id, info->name
+        buf, "Exception %#02llx %s", regdumpContext.exception_id, info->name
       );
       vga_text(left + 16, top + 16, buf, TEXT_COLOR, 0, 0);
 
       sprintf(buf, "Description: %s", info->description);
       vga_text(left + 16, top + 32, buf, TEXT_COLOR, 0, 0);
     } else {
-      sprintf(buf, "Exception %#02x", regdumpContext.exception_id);
+      sprintf(buf, "Exception %#02llx", regdumpContext.exception_id);
       vga_text(left + 16, top + 16, buf, TEXT_COLOR, 0, 0);
       vga_text(
         left + 16, top + 32, "Description: Unknown exception", TEXT_COLOR, 0, 0
@@ -340,9 +345,36 @@ void showCPUState() {
   sprintf(buf, "gs: %#04x", registerState.gs);
   vga_text(left + 720, top + 96, buf, TEXT_COLOR, 0, 0);
 
+  top += 144;
+
+  /* Memory dump (exception only) */
+  if (regdumpContext.flag == REGDUMP_EXCEPTION) {
+    vga_text(
+      left + 268, top, "== Memory dump [RIP highlighted] ==", 0, TEXT_COLOR,
+      VGA_TEXT_INV
+    );
+
+    for (uint32_t y = 0; y < 8; y++) {
+      sprintf(buf, "%#016llx", regdumpContext.memdumpStart + y * 16);
+      vga_text(left + 136, top + 32 + y * 16, buf, TEXT_COLOR, 0, 0);
+
+      for (uint32_t x = 0; x < 16; x++) {
+        sprintf(buf, "%02x", regdumpContext.memdump[y * 16 + x]);
+        vga_text(
+          left + 304 + x * 24, top + 32 + y * 16, buf, TEXT_COLOR, TEXT_COLOR,
+          regdumpContext.memdumpStart + y * 16 + x == registerState.rip
+            ? VGA_TEXT_INV
+            : 0
+        );
+      }
+    }
+
+    top += 192;
+  }
+
   /* Prompt */
   uint32_t offset = regdumpContext.flag == REGDUMP_EXCEPTION ? 312 : 308;
-  vga_text(left + offset, top + 144, footer, TEXT_COLOR, 0, 0);
+  vga_text(left + offset, top, footer, TEXT_COLOR, 0, 0);
 
   vga_present();
 

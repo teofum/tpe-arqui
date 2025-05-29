@@ -137,10 +137,15 @@ extern regdumpContext
 %macro exceptionHandler 1
   push rax
 
-  mov byte [regdumpContext], 0x01
-  mov byte [regdumpContext+1], %1
+  ; Set register dump exception flag
+  mov qword [regdumpContext], 0x01
 
+  ; Set register dump exception ID
+  mov qword [regdumpContext + 8], %1
+
+  ; Push interrupt-stored registers to stack
   mov rax, [rsp + 8 * 1]  ; RIP
+  mov [regdumpContext + 16], rax ; Store RIP temporarily
   push rax
   mov rax, [rsp + 8 * 3]  ; CS
   push rax
@@ -150,6 +155,25 @@ extern regdumpContext
   push rax
   mov rax, [rsp + 8 * 9]  ; SS
   push rax
+
+  ; Memory dump
+  push rbx
+  push rcx
+  mov rax, [regdumpContext + 16] ; RIP
+  and rax, -16 ; Align to 16-byte boundary
+  sub rax, 96 ; Go back a bit
+  mov [regdumpContext + 16], rax ; Store mem dump start address
+  mov rbx, 0
+.loop:
+  mov cl, [rax]
+  mov [regdumpContext + 24 + rbx], cl
+  inc rax
+  inc rbx
+  cmp rbx, 128
+  jne .loop
+  pop rcx
+  pop rbx
+
   call _regdump
 
   ; Reset CPU through keyboard controller
