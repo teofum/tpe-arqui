@@ -1,4 +1,5 @@
 #include <fpmath.h>
+#include <math.h>
 
 /* Vector functions */
 
@@ -176,5 +177,19 @@ float4 mvmul(float4x4 m, float4 v) {
     v.x * m.v[2][0] + v.y * m.v[2][1] + v.z * m.v[2][2] + v.w * m.v[2][3],
     v.x * m.v[3][0] + v.y * m.v[3][1] + v.z * m.v[3][2] + v.w * m.v[3][3],
   };
+  return r;
+}
+
+/* Matrices */
+
+float4x4 mat_perspective(float fov, float aspect, float near, float far) {
+  float sy = 1.0f / fov;
+  float sx = sy / aspect;
+  float zrange = near - far;
+  float sz = (far + near) / zrange;
+  float tz = 2.0f * far * near / zrange;
+
+  float4x4 r = {sx,   0.0f, 0.0f, 0.0f, 0.0f, sy,   0.0f,  0.0f,
+                0.0f, 0.0f, sz,   tz,   0.0f, 0.0f, -1.0f, 0.0f};
   return r;
 }

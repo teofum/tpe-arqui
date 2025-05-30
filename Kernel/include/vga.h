@@ -1,7 +1,7 @@
 #ifndef VGA_H
 #define VGA_H
 
-// #include <fpmath.h>
+#include <fpmath.h>
 #include <stdint.h>
 
 #define VGA_WIDTH 1024
@@ -251,10 +251,10 @@ void vga_present();
  */
 void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset);
 
-// void vga_triangle(
-//   float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2
-// );
-//
-// void vga_drawPrimitives(float3 *vertices, uint64_t n, float3 color);
+void vga_triangle(
+  float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2
+);
+
+void vga_drawPrimitives(float3 *vertices, uint64_t n, float3 color);
 
 #endif

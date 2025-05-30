@@ -86,4 +86,8 @@ void mtrans(float4x4 *m);
 
 float4 mvmul(float4x4 m, float4 v);
 
+/* Matrices */
+
+float4x4 mat_perspective(float fov, float aspect, float near, float far);
+
 #endif
