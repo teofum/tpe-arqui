@@ -1,3 +1,4 @@
+#include "graphics.h"
 #include "io.h"
 #include "status.h"
 #include "vga.h"
@@ -167,6 +168,11 @@ void initSyscalls() {
 
   /* Time/RTC */
   registerSyscall(0x50, ticks_elapsed);
+
+  /* Graphics module */
+  registerSyscall(0xA0, gfx_clear);
+  registerSyscall(0xA1, gfx_drawPrimitives);
+  registerSyscall(0xAF, gfx_present);
 
   /* Special */
   registerSyscall(0xFF, _hlt);

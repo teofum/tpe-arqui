@@ -127,3 +127,20 @@ vga_copy:
     int 0x80
     ret
 
+global gfx_clear
+gfx_clear:
+    mov rax, 0xA0
+    int 0x80
+    ret
+
+global gfx_drawPrimitives
+gfx_drawPrimitives:
+    mov rax, 0xA1
+    int 0x80
+    ret
+
+global gfx_present
+gfx_present:
+    mov rax, 0xAF
+    int 0x80
+    ret

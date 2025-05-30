@@ -105,26 +105,8 @@ int main() {
       ret
     );
 
-    float angle = 0;
     int key = 0;
-    while (!key) {
-      float3 v[] = {
-        {0, 0, -1},
-        {sin(angle), cos(angle), -1},
-        {cos(angle), -sin(angle), -1},
-        {0, 0, -2},
-        {0, -1, -2},
-        {-1, 0, -2}
-      };
-      float3 color = {0.5, 0.25, 0.75};
-      vga_clear(0);
-      vga_drawPrimitives(v, 2, color);
-      vga_present();
-
-      angle += 0.01;
-      if (angle > M_PI) angle -= 2.0f * M_PI;
-      key = kbd_getKeyEvent().key;
-    }
+    while (!key) { key = kbd_getKeyEvent().key; }
   }
 
   return 0;

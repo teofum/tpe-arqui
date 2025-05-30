@@ -152,6 +152,6 @@ extern void vga_present();
  * Copy contents between two framebuffers.
  * Set either framebuffer to NULL to use the default framebuffer.
  */
-extern void vga_copy(uint8_t *dst, uint8_t *src);
+extern void vga_copy(uint8_t *dst, uint8_t *src, uint64_t offset);
 
 #endif
