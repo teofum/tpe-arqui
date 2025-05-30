@@ -151,29 +151,29 @@ void gfx_drawPrimitives(float3 *vertices, uint64_t n, float3 color) {
   }
 }
 
-void gfx_setLight(gfx_lightSetting_t which, float3 data) {
+void gfx_setLight(gfx_lightSetting_t which, float3 *data) {
   switch (which) {
     case GFX_LIGHT_POSITION:
-      gfx_lightPos = data;
+      gfx_lightPos = *data;
       break;
     case GFX_LIGHT_COLOR:
-      gfx_lightColor = data;
+      gfx_lightColor = *data;
       break;
     case GFX_AMBIENT_LIGHT:
-      gfx_ambientLight = data;
+      gfx_ambientLight = *data;
       break;
   }
 }
 
 void gfx_setLightType(gfx_light_t mode) { gfx_lightType = mode; }
 
-void gfx_setMatrix(gfx_matrix_t which, float4x4 data) {
+void gfx_setMatrix(gfx_matrix_t which, float4x4 *data) {
   switch (which) {
     case GFX_MAT_VIEW:
-      gfx_view = data;
+      gfx_view = *data;
       break;
     case GFX_MAT_PROJECTION:
-      gfx_projection = data;
+      gfx_projection = *data;
       break;
   }
 

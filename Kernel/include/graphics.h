@@ -25,11 +25,11 @@ void gfx_clear(color_t color);
 
 void gfx_drawPrimitives(float3 *vertices, uint64_t n, float3 color);
 
-void gfx_setLight(gfx_lightSetting_t which, float3 data);
+void gfx_setLight(gfx_lightSetting_t which, float3 *data);
 
 void gfx_setLightType(gfx_light_t mode);
 
-void gfx_setMatrix(gfx_matrix_t which, float4x4 data);
+void gfx_setMatrix(gfx_matrix_t which, float4x4 *data);
 
 void gfx_present();
 

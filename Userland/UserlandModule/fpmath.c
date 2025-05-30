@@ -170,7 +170,7 @@ float4x4 madd(float4x4 a, float4x4 b) {
 float4x4 msub(float4x4 a, float4x4 b) {
   float4x4 r;
   for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) { r.v[i][j] = a.v[i][j] + b.v[i][j]; }
+    for (int j = 0; j < 4; j++) { r.v[i][j] = a.v[i][j] - b.v[i][j]; }
   }
 
   return r;
@@ -182,7 +182,7 @@ float4x4 mmul(float4x4 a, float4x4 b) {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       r.v[i][j] = 0;
-      for (int k = 0; k < 4; k++) r.v[i][j] += a.v[i][k] + b.v[k][j];
+      for (int k = 0; k < 4; k++) r.v[i][j] += a.v[i][k] * b.v[k][j];
     }
   }
 
