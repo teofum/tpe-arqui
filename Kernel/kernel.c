@@ -105,13 +105,12 @@ int main() {
       ret
     );
 
-    float data[9] = {-0.2, -0.3, 0, 0, 0.1, 0, 0.1, 0, 0};
-    float color[3] = {0, 0, 0};
-    for (int i = 0; i < 1000; i++) {
-      vga_triangle(data, color);
-      // vga_rect(0, 0, 256, 100, 0xff0000, 0);
-    }
-    vga_present();
+    float v0[] = {-0.2, -0.3, 0};
+    float v1[] = {0, 0.1, 0};
+    float v2[] = {0.1, 0, 0};
+    mat c = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+    vga_triangle(v0, v1, v2, c);
+    if (c.c > 0) vga_present();
 
     int key = 0;
     while (!key) { key = kbd_getKeyEvent().key; }

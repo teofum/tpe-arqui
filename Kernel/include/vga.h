@@ -249,6 +249,10 @@ void vga_present();
  */
 void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset);
 
-void vga_triangle(float data[9], float baseColor[3]);
+typedef struct {
+  float a, b, c, d, e, f, g, h, i;
+} mat;
+
+void vga_triangle(float v0[3], float v1[3], float v2[3], mat c);
 
 #endif
