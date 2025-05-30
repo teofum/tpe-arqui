@@ -2,13 +2,17 @@
 #include <stdint.h>
 #include <vga.h>
 
+
+#define T 1
+#define VMAX 10
+
 //la necesite la robe de vga, utils.h estaria bueno
 #define abs(x) ((x) > 0 ? (x) : -(x))
+#define signo(x) ((x >= 0) ? 1 : -1)
 #define sqr(x) ((x) * (x))
-#define sqroot(x) (x)//help
+#define chaeckMaxv(x) (x > VMAX ? VMAX : (x < -VMAX ? -VMAX : x))
 //
 
-#define T 0.05
 
 typedef struct {
   float x;
@@ -16,9 +20,6 @@ typedef struct {
 
   float vx;
   float vy;
-
-  float ax;
-  float ay;
 
   int size;//pensado para ser un radio, se puede usar para suplantar masa
 
@@ -63,23 +64,15 @@ void updateObject(physicsObject_t *obj) {
   float oldvx = obj->vx;// es para que no oscile dont worry about it
   float oldvy = obj->vy;
 
-  obj->ax -= (obj->vx * obj->gama);
-  obj->ay -= (obj->vy * obj->gama);
+  obj->vx -= (obj->vx * obj->gama);//vmax
+  obj->vy -= (obj->vy * obj->gama);
+  //vmax vx=abs(vx)%max algo
 
-  obj->vx += obj->ax * T;
-  obj->vy += obj->ay * T;
+  obj->x += obj->vx * T;
+  obj->y += obj->vy * T;
 
-  obj->x += obj->ax * T * T + obj->vx * T;
-  obj->y += obj->ay * T * T + obj->vy * T;
-
-  if ((oldvx * obj->vx) < 0) {
-    obj->vx = 0;
-    obj->ax = 0;
-  }
-  if ((oldvy * obj->vy) < 0) {
-    obj->vy = 0;
-    obj->ay = 0;
-  }
+  if ((oldvx * obj->vx) < 0) { obj->vx = 0; }
+  if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
 }
 
 
@@ -90,40 +83,18 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   float oldvx = obj->vx;// es para que no oscile dont worry about it
   float oldvy = obj->vy;
 
-  //x
-  if (dir->x > 0) {
-    obj->ax = ((obj->ax + dir->x) > 10) ? 10 : (obj->ax + dir->x);
-  } else if (dir->x < 0) {
-    obj->ax = ((obj->ax + dir->x) < -10) ? -10 : (obj->ax + dir->x);
-  } else {
-    obj->ax = (((obj->vx + obj->ax * T) * oldvx) < 0)
-                ? 0
-                : (obj->ax - (obj->vx * obj->gama));
-  }
 
-  //y
-  if (dir->y > 0) {
-    obj->ay = ((obj->ay + dir->y) > 10) ? 10 : (obj->ay + dir->y);
-  } else if (dir->y < 0) {
-    obj->ay = ((obj->ay + dir->y) < -10) ? -10 : (obj->ay + dir->y);
-  } else {
-    // obj->ay -= (obj->vy * obj->gama);
-    obj->ay = (((obj->vy + obj->ay * T) * oldvy) < 0)
-                ? 0
-                : (obj->ay - (obj->vy * obj->gama));
-  }
+  obj->vx += dir->x - (obj->vx * obj->gama);
+  obj->vy += dir->y - (obj->vy * obj->gama);
+  //vmax vx=abs(vx)%max algo
+  obj->vx = (chaeckMaxv(obj->vx));
+  obj->vy = (chaeckMaxv(obj->vy));
 
+  obj->x += obj->vx * T;
+  obj->y += obj->vy * T;
 
-  obj->vx += obj->ax * T;
-  obj->vy += obj->ay * T;
-
-  obj->x += obj->ax * T * T + obj->vx * T;
-  obj->y += obj->ay * T * T + obj->vy * T;
-
-  // if ((oldvy * obj->vy) < 0) {
-  //   obj->vy = 0;
-  //   obj->ay = 0;
-  // }
+  if ((oldvx * obj->vx) < 0) { obj->vx = 0; }//tiene que solo aplicar al gama
+  if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
 }
 
 
