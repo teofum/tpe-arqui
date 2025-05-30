@@ -8,7 +8,7 @@
 #define sqroot(x) (x)//help
 //
 
-#define T 0.1
+#define T 0.05
 
 typedef struct {
   float x;
@@ -96,8 +96,9 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   } else if (dir->x < 0) {
     obj->ax = ((obj->ax + dir->x) < -10) ? -10 : (obj->ax + dir->x);
   } else {
-    // obj->ax = -(obj->vx * obj->gama);
-    obj->ax -= (obj->vx * obj->gama);
+    obj->ax = (((obj->vx + obj->ax * T) * oldvx) < 0)
+                ? 0
+                : (obj->ax - (obj->vx * obj->gama));
   }
 
   //y
@@ -106,8 +107,10 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   } else if (dir->y < 0) {
     obj->ay = ((obj->ay + dir->y) < -10) ? -10 : (obj->ay + dir->y);
   } else {
-    // obj->ay = -(obj->vy * obj->gama);
-    obj->ay -= (obj->vy * obj->gama);
+    // obj->ay -= (obj->vy * obj->gama);
+    obj->ay = (((obj->vy + obj->ay * T) * oldvy) < 0)
+                ? 0
+                : (obj->ay - (obj->vy * obj->gama));
   }
 
 
@@ -117,28 +120,24 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   obj->x += obj->ax * T * T + obj->vx * T;
   obj->y += obj->ay * T * T + obj->vy * T;
 
-  if ((oldvx * obj->vx) < 0) {
-    obj->vx = 0;
-    obj->ax = 0;
-  }
-  if ((oldvy * obj->vy) < 0) {
-    obj->vy = 0;
-    obj->ay = 0;
-  }
+  // if ((oldvy * obj->vy) < 0) {
+  //   obj->vy = 0;
+  //   obj->ay = 0;
+  // }
 }
 
 
 /*
 * checks if a colition happens and applyes a repelinf accel
 */
-void doColition(physicsObject_t *a, physicsObject_t *b) {
+void doCollision(physicsObject_t *a, physicsObject_t *b) {
 
   vector_t dir = {0};
-  checkColition(a, b, &dir);
-  if ((dir.x * dir.y) != 0) {
+  checkCollision(a, b, &dir);
+  if ((dir.x != 0) || (dir.y != 0)) {
     accelerateObject(b, &dir);
-    dir.x = -dir.x;
-    dir.y = -dir.y;
+    dir.x = -dir.x * a->size;
+    dir.y = -dir.y * b->size;
     accelerateObject(a, &dir);
   } else {
     return;
@@ -149,8 +148,8 @@ void doColition(physicsObject_t *a, physicsObject_t *b) {
 * asumiendo que son circulos 
 * retorna el vetor de 'a' a 'b'
 */ //nota: final menos inicial
-void checkColition(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
-  //TODO los bounds estan andando medio sus//////////////////////////////////////////////
+void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
+
   float difx = b->x - a->x;
   float dify = b->y - a->y;
   float distsqr = sqr(difx) + sqr(dify);
@@ -180,13 +179,12 @@ int gg_startGame() {
   ball.size = 10;
 
   while (1) {
-    vga_clear(0xFF00FF00);
-
     vector_t input = readImputs();
     accelerateObject(&mc, &input);
     updateObject(&ball);
+    doCollision(&mc, &ball);
 
-    doColition(&mc, &ball);
+    vga_clear(0xFF00FF00);
     drawObject(&mc);
     drawObject(&ball);
     vga_present();
