@@ -8,7 +8,7 @@
 #define sqroot(x) (x)//help
 //
 
-#define T 1 / 9
+#define T 0.1
 
 typedef struct {
   float x;
@@ -150,13 +150,14 @@ void doColition(physicsObject_t *a, physicsObject_t *b) {
 * retorna el vetor de 'a' a 'b'
 */ //nota: final menos inicial
 void checkColition(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
-  float distx = (b->x - a->x);
-  float disty = (b->y - a->y);
+  //TODO los bounds estan andando medio sus//////////////////////////////////////////////
+  float difx = b->x - a->x;
+  float dify = b->y - a->y;
+  float distsqr = sqr(difx) + sqr(dify);
 
-  if ((abs(distx) < (b->size + a->size)) &&
-      (abs(disty) < (b->size + a->size))) {
-    dir->x = distx;
-    dir->y = disty;
+  if (distsqr < sqr(b->size + a->size)) {
+    dir->x = difx;
+    dir->y = dify;
   }
 }
 
@@ -175,7 +176,7 @@ int gg_startGame() {
   physicsObject_t ball = {0};
   ball.x = VGA_WIDTH / 4;
   ball.y = VGA_HEIGHT / 2;
-  ball.gama = 0.01;
+  ball.gama = 0.05;
   ball.size = 10;
 
   while (1) {
