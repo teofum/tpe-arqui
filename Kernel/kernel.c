@@ -108,9 +108,7 @@ int main() {
     float v0[] = {-0.2, -0.3, 0};
     float v1[] = {0, 0.1, 0};
     float v2[] = {0.1, 0, 0};
-    mat c = {1, 0, 0, 0, 1, 0, 0, 0, 1};
-    vga_triangle(v0, v1, v2, c);
-    if (c.c > 0) vga_present();
+    // vga_triangle(v0, v1, v2, c);
 
     int key = 0;
     while (!key) { key = kbd_getKeyEvent().key; }

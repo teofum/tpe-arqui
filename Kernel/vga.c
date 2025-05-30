@@ -567,7 +567,7 @@ edgeFunction(float ax, float ay, float bx, float by, float px, float py) {
   return (by - ay) * (px - ax) - (bx - ax) * (py - ay);
 }
 
-void vga_triangle(float v0[3], float v1[3], float v2[3], mat c) {
+void vga_triangle(float v0[3], float v1[3], float v2[3]) {
   uint8_t *fb = VGA_FRAMEBUFFER;
 
   float x0 = v0[0], y0 = v0[1], z0 = v0[2];
