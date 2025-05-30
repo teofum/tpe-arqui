@@ -64,15 +64,21 @@ void updateObject(physicsObject_t *obj) {
   float oldvx = obj->vx;// es para que no oscile dont worry about it
   float oldvy = obj->vy;
 
-  obj->vx -= (obj->vx * obj->gama);//vmax
+  //add drag
+  obj->vx -= (obj->vx * obj->gama);
   obj->vy -= (obj->vy * obj->gama);
-  //vmax vx=abs(vx)%max algo
 
+  //make sure that gamma doesnt push the other way
+  if ((oldvx * obj->vx) < 0) { obj->vx = 0; }//tiene que solo aplicar al gama
+  if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
+
+  //check max vel
+  obj->vx = (chaeckMaxv(obj->vx));
+  obj->vy = (chaeckMaxv(obj->vy));
+
+  //update pos
   obj->x += obj->vx * T;
   obj->y += obj->vy * T;
-
-  if ((oldvx * obj->vx) < 0) { obj->vx = 0; }
-  if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
 }
 
 
@@ -84,17 +90,25 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   float oldvy = obj->vy;
 
 
-  obj->vx += dir->x - (obj->vx * obj->gama);
-  obj->vy += dir->y - (obj->vy * obj->gama);
-  //vmax vx=abs(vx)%max algo
+  //add drag
+  obj->vx -= (obj->vx * obj->gama);
+  obj->vy -= (obj->vy * obj->gama);
+
+  //make sure that drag doesnt push the other way
+  if ((oldvx * obj->vx) < 0) { obj->vx = 0; }//tiene que solo aplicar al gama
+  if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
+
+  //add velocity
+  obj->vx += dir->x;
+  obj->vy += dir->y;
+
+  //check max vel
   obj->vx = (chaeckMaxv(obj->vx));
   obj->vy = (chaeckMaxv(obj->vy));
 
+  //update pos
   obj->x += obj->vx * T;
   obj->y += obj->vy * T;
-
-  if ((oldvx * obj->vx) < 0) { obj->vx = 0; }//tiene que solo aplicar al gama
-  if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
 }
 
 
