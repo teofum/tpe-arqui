@@ -8,7 +8,7 @@
 #define sqroot(x) (x)//help
 //
 
-#define T 0.5
+#define T 1 / 18
 
 typedef struct {
   float x;
@@ -60,10 +60,9 @@ vector_t readImputs() {
 * Actualiza el estado sin aplicarle una aceleracion
 */
 void updateObject(physicsObject_t *obj) {
-  //x
-  if (obj->vx != 0) { obj->ax = -(obj->vx * obj->gama); }
-  //y
-  if (obj->vx != 0) { obj->ay = -(obj->vy * obj->gama); }
+
+  obj->ax -= (obj->vx * obj->gama);
+  obj->ay -= (obj->vy * obj->gama);
 
   obj->vx += obj->ax * T;
   obj->vy += obj->ay * T;
@@ -79,20 +78,22 @@ void updateObject(physicsObject_t *obj) {
 void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   //x
   if (dir->x > 0) {
-    obj->ax = ((obj->ax + dir->x) > 1) ? 1 : (obj->ax + dir->x);
+    obj->ax = ((obj->ax + dir->x) > 10) ? 10 : (obj->ax + dir->x);
   } else if (dir->x < 0) {
-    obj->ax = ((obj->ax + dir->x) < -1) ? -1 : (obj->ax + dir->x);
+    obj->ax = ((obj->ax + dir->x) < -10) ? -10 : (obj->ax + dir->x);
   } else {
-    obj->ax = -(obj->vx * obj->gama);
-  }//  obj->ax -= (obj->vx * obj->gama); idea
+    // obj->ax = -(obj->vx * obj->gama);
+    obj->ax -= (obj->vx * obj->gama);
+  }
 
   //y
   if (dir->y > 0) {
-    obj->ay = ((obj->ay + dir->y) > 1) ? 1 : (obj->ay + dir->y);
+    obj->ay = ((obj->ay + dir->y) > 10) ? 10 : (obj->ay + dir->y);
   } else if (dir->y < 0) {
-    obj->ay = ((obj->ay + dir->y) < -1) ? -1 : (obj->ay + dir->y);
+    obj->ay = ((obj->ay + dir->y) < -10) ? -10 : (obj->ay + dir->y);
   } else {
-    obj->ay = -(obj->vy * obj->gama);
+    // obj->ay = -(obj->vy * obj->gama);
+    obj->ay -= (obj->vy * obj->gama);
   }
 
 
