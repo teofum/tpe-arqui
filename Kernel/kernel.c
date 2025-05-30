@@ -105,10 +105,11 @@ int main() {
       ret
     );
 
-    float v0[] = {-0.2, -0.3, 0};
-    float v1[] = {0, 0.1, 0};
-    float v2[] = {0.1, 0, 0};
-    // vga_triangle(v0, v1, v2, c);
+    // float3 v[] = {{0, 0, 0}, {0, 1, 0},  {1, 0, 0},
+    //               {0, 0, 0}, {0, -1, 0}, {-1, 0, 0}};
+    // float3 color = {0.5, 0.25, 0.75};
+    // vga_drawPrimitives(v, 2, color);
+    // vga_present();
 
     int key = 0;
     while (!key) { key = kbd_getKeyEvent().key; }
