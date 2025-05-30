@@ -63,6 +63,8 @@ vector_t readImputs() {
 void updateObject(physicsObject_t *obj) {
   float oldvx = obj->vx;// es para que no oscile dont worry about it
   float oldvy = obj->vy;
+  float oldx = obj->x;//para bounds
+  float oldy = obj->y;
 
   //add drag
   obj->vx -= (obj->vx * obj->gama);
@@ -79,6 +81,16 @@ void updateObject(physicsObject_t *obj) {
   //update pos
   obj->x += obj->vx * T;
   obj->y += obj->vy * T;
+
+  //che maxBounds
+  if ((obj->x - obj->size) < 0 || (obj->x + obj->size * 2) > VGA_WIDTH) {
+    obj->x = oldx;
+    obj->vx = -(obj->vx);
+  }
+  if ((obj->y - obj->size) < 0 || (obj->y + obj->size * 2) > VGA_HEIGHT) {
+    obj->y = oldy;
+    obj->vy = -(obj->vy);
+  }
 }
 
 
@@ -88,6 +100,8 @@ void updateObject(physicsObject_t *obj) {
 void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   float oldvx = obj->vx;// es para que no oscile dont worry about it
   float oldvy = obj->vy;
+  float oldx = obj->x;//para bounds
+  float oldy = obj->y;
 
 
   //add drag
@@ -109,6 +123,16 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   //update pos
   obj->x += obj->vx * T;
   obj->y += obj->vy * T;
+
+  //che maxBounds
+  if ((obj->x - obj->size) < 0 || (obj->x + obj->size * 2) > VGA_WIDTH) {
+    obj->x = oldx;
+    obj->vx = -(obj->vx);
+  }
+  if ((obj->y - obj->size) < 0 || (obj->y + obj->size * 2) > VGA_HEIGHT) {
+    obj->y = oldy;
+    obj->vy = -(obj->vy);
+  }
 }
 
 
