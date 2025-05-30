@@ -8,7 +8,7 @@
 #define sqroot(x) (x)//help
 //
 
-#define T 1 / 18
+#define T 1 / 9
 
 typedef struct {
   float x;
@@ -60,6 +60,8 @@ vector_t readImputs() {
 * Actualiza el estado sin aplicarle una aceleracion
 */
 void updateObject(physicsObject_t *obj) {
+  float oldvx = obj->vx;// es para que no oscile dont worry about it
+  float oldvy = obj->vy;
 
   obj->ax -= (obj->vx * obj->gama);
   obj->ay -= (obj->vy * obj->gama);
@@ -69,6 +71,15 @@ void updateObject(physicsObject_t *obj) {
 
   obj->x += obj->ax * T * T + obj->vx * T;
   obj->y += obj->ay * T * T + obj->vy * T;
+
+  if ((oldvx * obj->vx) < 0) {
+    obj->vx = 0;
+    obj->ax = 0;
+  }
+  if ((oldvy * obj->vy) < 0) {
+    obj->vy = 0;
+    obj->ay = 0;
+  }
 }
 
 
@@ -76,6 +87,9 @@ void updateObject(physicsObject_t *obj) {
 * Aplica aceleracion y actualiza el estado 
 */
 void accelerateObject(physicsObject_t *obj, vector_t *dir) {
+  float oldvx = obj->vx;// es para que no oscile dont worry about it
+  float oldvy = obj->vy;
+
   //x
   if (dir->x > 0) {
     obj->ax = ((obj->ax + dir->x) > 10) ? 10 : (obj->ax + dir->x);
@@ -102,7 +116,17 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
 
   obj->x += obj->ax * T * T + obj->vx * T;
   obj->y += obj->ay * T * T + obj->vy * T;
+
+  if ((oldvx * obj->vx) < 0) {
+    obj->vx = 0;
+    obj->ax = 0;
+  }
+  if ((oldvy * obj->vy) < 0) {
+    obj->vy = 0;
+    obj->ay = 0;
+  }
 }
+
 
 /*
 * checks if a colition happens and applyes a repelinf accel
