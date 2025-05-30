@@ -1,6 +1,11 @@
 #ifndef FPMATH_H
 #define FPMATH_H
 
+#define M_PI 3.14159265358979323846264338327950288
+#define M_INVPI 0.31830988618379067153776752674502872
+
+#define fabs(x) ((x) > 0 ? (x) : -(x))
+
 typedef struct {
   float x, y, z;
 } float3;
@@ -12,6 +17,15 @@ typedef struct {
 typedef struct {
   float v[4][4];
 } float4x4;
+
+/* Floating point math functions */
+extern float sqrt(float x);
+
+float sin(float x);
+
+float cos(float x);
+
+float tan(float x);
 
 /* Vector functions */
 

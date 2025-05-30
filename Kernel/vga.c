@@ -631,7 +631,7 @@ void vga_triangle(
 }
 
 void vga_drawPrimitives(float3 *vertices, uint64_t n, float3 color) {
-  float4x4 persp = mat_perspective(1.0f, 0.75f, 0.1f, 100.0f);
+  float4x4 persp = mat_perspective(M_PI * 0.5f, 0.75f, 0.1f, 100.0f);
   for (uint64_t i = 0; i < n; i++) {
     float4 v0 = vext(vertices[0], 1.0f);
     float4 v1 = vext(vertices[1], 1.0f);

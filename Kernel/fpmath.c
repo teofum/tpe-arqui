@@ -1,5 +1,33 @@
 #include <fpmath.h>
-#include <math.h>
+
+float sin(float x) {
+  const float b = 4.0f * M_INVPI;
+  const float c = -4.0f * M_INVPI * M_INVPI;
+
+  float y = b * x + c * x * fabs(x);
+
+  const float p = 0.225;
+  y = p * (y * fabs(y) - y) + y;
+
+  return y;
+}
+
+float cos(float x) {
+  const float b = 4.0f * M_INVPI;
+  const float c = -4.0f * M_INVPI * M_INVPI;
+
+  x += 0.5f * M_PI;
+  if (x > M_PI) x -= 2.0f * M_PI;
+
+  float y = b * x + c * x * fabs(x);
+
+  const float p = 0.225;
+  y = p * (y * fabs(y) - y) + y;
+
+  return y;
+}
+
+float tan(float x) { return sin(x) / cos(x); }
 
 /* Vector functions */
 
@@ -183,7 +211,7 @@ float4 mvmul(float4x4 m, float4 v) {
 /* Matrices */
 
 float4x4 mat_perspective(float fov, float aspect, float near, float far) {
-  float sy = 1.0f / fov;
+  float sy = 1.0f / tan(fov * 0.5f);
   float sx = sy / aspect;
   float zrange = near - far;
   float sz = (far + near) / zrange;
