@@ -139,6 +139,24 @@ gfx_drawPrimitives:
     int 0x80
     ret
 
+global gfx_setLight
+gfx_setLight:
+    mov rax, 0xAA
+    int 0x80
+    ret
+
+global gfx_setLightType
+gfx_setLightType:
+    mov rax, 0xAB
+    int 0x80
+    ret
+
+global gfx_setMatrix
+gfx_setMatrix:
+    mov rax, 0xAC
+    int 0x80
+    ret
+
 global gfx_present
 gfx_present:
     mov rax, 0xAF

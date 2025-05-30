@@ -24,6 +24,31 @@ uint8_t _gfxFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
  */
 float _depthbuffer[VGA_WIDTH * VGA_HEIGHT];
 
+/*
+ * Graphics system state.
+ * The graphics system is managed through system calls, modifying its internal
+ * state to control rendering and requesting draws.
+ * A usual frame looks something like this:
+ *   - Clear frame and depth buffers
+ *   - Update view and projection matrices, if necessary
+ *   - Update lighting, if necessary
+ *   - Call drawPrimitives to request a draw (potentially multiple times)
+ */
+
+float4x4 gfx_view;
+float4x4 gfx_projection;
+float4x4 gfx_viewProjection;
+
+float3 gfx_lightPos;
+float3 gfx_lightColor;
+float3 gfx_ambientLight;
+gfx_light_t gfx_lightType = GFX_LIGHT_DIRECTIONAL;
+
+/*
+ * End of state.
+ * Graphics functions below.
+ */
+
 static inline float
 edgeFunction(float ax, float ay, float bx, float by, float px, float py) {
   return (by - ay) * (px - ax) - (bx - ax) * (py - ay);
@@ -112,20 +137,50 @@ void gfx_clear(color_t color) {
 }
 
 void gfx_drawPrimitives(float3 *vertices, uint64_t n, float3 color) {
-  float4x4 persp = mat_perspective(M_PI * 0.5f, 0.75f, 0.1f, 100.0f);
   for (uint64_t i = 0; i < n; i++) {
     float4 v0 = vext(vertices[0], 1.0f);
     float4 v1 = vext(vertices[1], 1.0f);
     float4 v2 = vext(vertices[2], 1.0f);
 
-    v0 = mvmul(persp, v0);
-    v1 = mvmul(persp, v1);
-    v2 = mvmul(persp, v2);
+    v0 = mvmul(gfx_viewProjection, v0);
+    v1 = mvmul(gfx_viewProjection, v1);
+    v2 = mvmul(gfx_viewProjection, v2);
 
     drawTriangle(vpersp(v0), vpersp(v1), vpersp(v2), color, color, color);
     vertices += 3;
   }
 }
+
+void gfx_setLight(gfx_lightSetting_t which, float3 data) {
+  switch (which) {
+    case GFX_LIGHT_POSITION:
+      gfx_lightPos = data;
+      break;
+    case GFX_LIGHT_COLOR:
+      gfx_lightColor = data;
+      break;
+    case GFX_AMBIENT_LIGHT:
+      gfx_ambientLight = data;
+      break;
+  }
+}
+
+void gfx_setLightType(gfx_light_t mode) { gfx_lightType = mode; }
+
+void gfx_setMatrix(gfx_matrix_t which, float4x4 data) {
+  switch (which) {
+    case GFX_MAT_VIEW:
+      gfx_view = data;
+      break;
+    case GFX_MAT_PROJECTION:
+      gfx_projection = data;
+      break;
+  }
+
+  // Recalculate view-projection matrix
+  gfx_viewProjection = mmul(gfx_projection, gfx_view);
+}
+
 
 /*
  * Copy the internal framebuffer to some other fb

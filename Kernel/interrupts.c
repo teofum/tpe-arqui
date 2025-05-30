@@ -172,6 +172,9 @@ void initSyscalls() {
   /* Graphics module */
   registerSyscall(0xA0, gfx_clear);
   registerSyscall(0xA1, gfx_drawPrimitives);
+  registerSyscall(0xAA, gfx_setLight);
+  registerSyscall(0xAB, gfx_setLightType);
+  registerSyscall(0xAC, gfx_setMatrix);
   registerSyscall(0xAF, gfx_present);
 
   /* Special */

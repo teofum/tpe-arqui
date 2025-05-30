@@ -35,6 +35,10 @@ float vdot(float3 a, float3 b);
 
 float3 vcross(float3 a, float3 b);
 
+float vabs(float3 v);
+
+float3 vnorm(float3 v);
+
 /* Vector operations */
 
 float3 vadd(float3 a, float3 b);
@@ -105,5 +109,17 @@ float4 mvmul(float4x4 m, float4 v);
 /* Matrices */
 
 float4x4 mat_perspective(float fov, float aspect, float near, float far);
+
+float4x4 mat_translation(float x, float y, float z);
+
+float4x4 mat_rotation(float angle, float3 rotationAxis);
+
+float4x4 mat_rotationX(float angle);
+float4x4 mat_rotationY(float angle);
+float4x4 mat_rotationZ(float angle);
+
+float4x4 mat_scale(float x, float y, float z);
+
+float4x4 mat_lookat(float3 pos, float3 target, float3 up);
 
 #endif

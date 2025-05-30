@@ -42,6 +42,10 @@ float3 vcross(float3 a, float3 b) {
   return r;
 }
 
+float vabs(float3 v) { return sqrt(vdot(v, v)); }
+
+float3 vnorm(float3 v) { return vdivs(v, vabs(v)); }
+
 /* Vector operations */
 
 float3 vadd(float3 a, float3 b) {
@@ -219,5 +223,82 @@ float4x4 mat_perspective(float fov, float aspect, float near, float far) {
 
   float4x4 r = {sx,   0.0f, 0.0f, 0.0f, 0.0f, sy,   0.0f,  0.0f,
                 0.0f, 0.0f, sz,   tz,   0.0f, 0.0f, -1.0f, 0.0f};
+  return r;
+}
+
+float4x4 mat_translation(float x, float y, float z) {
+  float4x4 r = {1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1};
+  return r;
+}
+
+float4x4 mat_rotation(float angle, float3 rotationAxis) {
+  float c = cos(angle);
+  float s = sin(angle);
+
+  float3 axis = vnorm(rotationAxis);
+  float3 temp = vmuls(axis, 1.0f - c);
+
+  float4x4 r = {
+    c + temp.x * axis.x,
+    temp.y * axis.x - s * axis.z,
+    temp.z * axis.x + s * axis.y,
+    0,
+    temp.x * axis.y + s * axis.z,
+    c + temp.y * axis.y,
+    temp.z * axis.y - s * axis.x,
+    0,
+    temp.x * axis.z - s * axis.y,
+    temp.y * axis.z + s * axis.x,
+    c + temp.z * axis.z,
+    0,
+    0,
+    0,
+    0,
+    1,
+  };
+  return r;
+}
+
+float4x4 mat_rotationX(float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+
+  float4x4 r = {1, 0, 0, 0, 0, c, -s, 0, 0, s, c, 0, 0, 0, 0, 1};
+  return r;
+}
+
+float4x4 mat_rotationY(float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+
+  float4x4 r = {c, 0, s, 0, 0, 1, 0, 0, -s, 0, c, 0, 0, 0, 0, 1};
+  return r;
+}
+
+float4x4 mat_rotationZ(float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+
+  float4x4 r = {c, 0, -s, 0, 0, s, c, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+  return r;
+}
+
+float4x4 mat_scale(float x, float y, float z) {
+  float4x4 r = {x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0, 0, 0, 0, 1};
+  return r;
+}
+
+float4x4 mat_lookat(float3 pos, float3 target, float3 up) {
+  float3 delta = vsub(pos, target);
+  if (vabs(delta) < 0.001f) return mat_scale(1, 1, 1);
+
+  float3 f = vnorm(delta);
+  float3 s = vnorm(vcross(up, f));
+  float3 u = vcross(f, s);
+
+  float4x4 r = {
+    s.x, s.y, s.z, -vdot(s, pos), u.x, u.y, u.z, -vdot(u, pos),
+    f.x, f.y, f.z, -vdot(f, pos), 0,   0,   0,   1,
+  };
   return r;
 }
