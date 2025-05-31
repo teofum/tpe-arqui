@@ -23,8 +23,10 @@ typedef struct {
 
   int size;//pensado para ser un radio, se puede usar para suplantar masa
 
-  float
-    gama;// friction/arraste // NO es exacto, es una idea mas simple, ver si queremos meter masa
+  float mass;// para colisions y podria afectar el gama
+  // si usamos la inversa de la masa nos ahoramos la division de float
+
+  float gama;// friction/arraste // NO es exacto, es una idea mas simple
 } physicsObject_t;
 
 typedef struct {// por alguna extrana rason no puedo usar floats aca
@@ -33,7 +35,8 @@ typedef struct {// por alguna extrana rason no puedo usar floats aca
 } vector_t;
 
 
-void drawObject(physicsObject_t *obj) {
+void drawObject(physicsObject_t *obj
+) {// TODO, hace falta algo para dibujar un rectangulo
   vga_rect(
     (obj->x - obj->size), (obj->y - obj->size), (obj->x + (obj->size * 2)),
     (obj->y + (obj->size * 2)), 0xffFF0080, 0
@@ -113,8 +116,8 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
 
   //add velocity
-  obj->vx += dir->x;
-  obj->vy += dir->y;
+  obj->vx += (dir->x);// * obj->mass);
+  obj->vy += (dir->y);// * obj->mass);
 
   //check max vel
   obj->vx = (chaeckMaxv(obj->vx));
@@ -144,14 +147,20 @@ void doCollision(physicsObject_t *a, physicsObject_t *b) {
   vector_t dir = {0};
   checkCollision(a, b, &dir);
   if ((dir.x != 0) || (dir.y != 0)) {
-    accelerateObject(b, &dir);
-    dir.x = -dir.x * a->size;
-    dir.y = -dir.y * b->size;
+
+    vector_t dirb = dir;
+    dirb.x *= b->mass;
+    dirb.y *= b->mass;
+    accelerateObject(b, &dirb);
+
+    dir.x = -(dir.x * a->mass);
+    dir.y = -(dir.y * b->mass);
     accelerateObject(a, &dir);
   } else {
     return;
   }
 }
+
 
 /*
 * asumiendo que son circulos 
@@ -163,7 +172,7 @@ void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float dify = b->y - a->y;
   float distsqr = sqr(difx) + sqr(dify);
 
-  if (distsqr < sqr(b->size + a->size)) {
+  if (distsqr <= sqr(b->size + a->size)) {
     dir->x = difx;
     dir->y = dify;
   }
@@ -179,6 +188,7 @@ int gg_startGame() {
   mc.y = VGA_HEIGHT / 2;
   mc.gama = 0.1;
   mc.size = 20;
+  mc.mass = 0.1;
 
 
   physicsObject_t ball = {0};
@@ -186,6 +196,7 @@ int gg_startGame() {
   ball.y = VGA_HEIGHT / 2;
   ball.gama = 0.05;
   ball.size = 10;
+  ball.mass = 1;
 
   while (1) {
     vector_t input = readImputs();
