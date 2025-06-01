@@ -1,8 +1,5 @@
 #include <golfGame.h>
 
-#define T 1
-#define VMAX 10
-
 
 void drawObject(physicsObject_t *obj
 ) {// TODO, hace falta algo para dibujar un circulo
