@@ -8,7 +8,7 @@
 
 //la necesite la robe de vga, utils.h estaria bueno
 #define abs(x) ((x) > 0 ? (x) : -(x))
-#define signo(x) ((x >= 0) ? 1 : -1)
+#define signo(x) ((x > 0) ? 1 : -1)
 #define sqr(x) ((x) * (x))
 #define chaeckMaxv(x) (x > VMAX ? VMAX : (x < -VMAX ? -VMAX : x))
 //
@@ -29,6 +29,16 @@ typedef struct {
   float gama;// friction/arraste // NO es exacto, es una idea mas simple
 } physicsObject_t;
 
+typedef struct {
+  float x;
+  float y;
+
+  int size;
+  float incline;
+
+} enviroment_t;
+
+
 typedef struct {// por alguna extrana rason no puedo usar floats aca
   int x;
   int y;
@@ -38,10 +48,18 @@ typedef struct {// por alguna extrana rason no puedo usar floats aca
 void drawObject(physicsObject_t *obj
 ) {// TODO, hace falta algo para dibujar un rectangulo
   vga_rect(
-    (obj->x - obj->size), (obj->y - obj->size), (obj->x + (obj->size * 2)),
-    (obj->y + (obj->size * 2)), 0xffFF0080, 0
+    (obj->x - obj->size), (obj->y - obj->size), (obj->x + obj->size),
+    (obj->y + obj->size), 0xffFF0080, 0
   );
 }
+
+void drawHole(enviroment_t *env) {
+  vga_rect(
+    (env->x - env->size), (env->y - env->size), (env->x + env->size),
+    (env->y + env->size), 0xff0000ff, 0
+  );
+}
+
 
 /*
 *   updates player info
@@ -86,11 +104,11 @@ void updateObject(physicsObject_t *obj) {
   obj->y += obj->vy * T;
 
   //che maxBounds
-  if ((obj->x - obj->size) < 0 || (obj->x + obj->size * 2) > VGA_WIDTH) {
+  if ((obj->x - obj->size) < 0 || (obj->x + obj->size) > VGA_WIDTH) {
     obj->x = oldx;
     obj->vx = -(obj->vx);
   }
-  if ((obj->y - obj->size) < 0 || (obj->y + obj->size * 2) > VGA_HEIGHT) {
+  if ((obj->y - obj->size) < 0 || (obj->y + obj->size) > VGA_HEIGHT) {
     obj->y = oldy;
     obj->vy = -(obj->vy);
   }
@@ -128,11 +146,11 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   obj->y += obj->vy * T;
 
   //che maxBounds
-  if ((obj->x - obj->size) < 0 || (obj->x + obj->size * 2) > VGA_WIDTH) {
+  if ((obj->x - obj->size) < 0 || (obj->x + obj->size) > VGA_WIDTH) {
     obj->x = oldx;
     obj->vx = -(obj->vx);
   }
-  if ((obj->y - obj->size) < 0 || (obj->y + obj->size * 2) > VGA_HEIGHT) {
+  if ((obj->y - obj->size) < 0 || (obj->y + obj->size) > VGA_HEIGHT) {
     obj->y = oldy;
     obj->vy = -(obj->vy);
   }
@@ -156,8 +174,29 @@ void doCollision(physicsObject_t *a, physicsObject_t *b) {
     dir.x = -(dir.x * a->mass);
     dir.y = -(dir.y * b->mass);
     accelerateObject(a, &dir);
-  } else {
-    return;
+  }
+}
+
+void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
+  vector_t dir = {0};
+  checkEnviroment(env, obj, &dir);
+  if ((dir.x != 0) || (dir.y != 0)) {
+    obj->vx += dir.x * env->incline;
+    obj->vy += dir.y * env->incline;
+  }
+}
+/* //IDEM checkColition
+* asumiendo que son circulos 
+* retorna el vetor de 'env' a 'obj'
+*/
+void checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
+  float difx = env->x - obj->x;
+  float dify = env->y - obj->y;
+  float distsqr = sqr(difx) + sqr(dify);
+
+  if (distsqr <= sqr(env->size + obj->size)) {
+    dir->x = signo(difx);
+    dir->y = signo(dify);
   }
 }
 
@@ -198,13 +237,22 @@ int gg_startGame() {
   ball.size = 10;
   ball.mass = 1;
 
+  enviroment_t hole = {0};
+  hole.x = 900;
+  hole.y = 200;
+  hole.size = 100;
+  hole.incline = 0.5;
+
   while (1) {
-    vector_t input = readImputs();
-    accelerateObject(&mc, &input);
     updateObject(&ball);
     doCollision(&mc, &ball);
+    doEnviroment(&hole, &mc);
+    vector_t input = readImputs();
+    accelerateObject(&mc, &input);
+
 
     vga_clear(0xFF00FF00);
+    drawHole(&hole);
     drawObject(&mc);
     drawObject(&ball);
     vga_present();
