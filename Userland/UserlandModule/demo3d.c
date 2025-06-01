@@ -22,11 +22,14 @@ int demo3d() {
   float3 target = {0, 0, 0};
   float3 up = {0, 1, 0};
 
-  float4x4 projection = mat_perspective(1.5f, 4.0f / 3.0f, 0.1f, 100.0f);
+  float4x4 projection = mat_perspective(1.5f, 4.0f / 3.0f, 0.1f, 10.0f);
 
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
-  float3 color = {0.5, 0.25, 0.75};
+  float3 colors[] = {
+    {0.0, 0.0, 0.5}, {0.0, 0.5, 0.0}, {0.5, 0.0, 0.0},
+    {0.0, 0.5, 0.5}, {0.5, 0.0, 0.5}, {0.5, 0.5, 0.0},
+  };
   float3 v[] = {{-1, -1, -1}, {-1, -1, 1}, {-1, 1, -1}, {-1, 1, 1},
                 {1, -1, -1},  {1, -1, 1},  {1, 1, -1},  {1, 1, 1}};
   uint32_t i[] = {0, 2, 1, 1, 2, 3, 4, 5, 6, 5, 7, 6, 0, 1, 4, 1, 5, 4,
@@ -34,14 +37,20 @@ int demo3d() {
 
   int key = 0;
   while (!key) {
+    gfx_clear(0x200020);
+
     pos.x = 4 * sin(angle);
     pos.y = 2 * sin(angle);
     pos.z = 4 * cos(angle);
     float4x4 view = mat_lookat(pos, target, up);
     gfx_setMatrix(GFX_MAT_VIEW, &view);
 
-    gfx_clear(0x200020);
-    gfx_drawPrimitivesIndexed(v, i, 12, color);
+    gfx_drawPrimitivesIndexed(v, i, 12, colors[0]);
+
+    view = mmul(view, mat_translation(0, 2, -1));
+    gfx_setMatrix(GFX_MAT_VIEW, &view);
+
+    gfx_drawPrimitivesIndexed(v, i, 12, colors[1]);
     gfx_present();
 
     uint64_t frametime = frames == 0 ? 0 : ticksElapsed * 55 / frames;

@@ -1,3 +1,4 @@
+#include "vga.h"
 #include <graphics.h>
 #include <stddef.h>
 
@@ -83,12 +84,15 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   float area = edgeFunction(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
 
   uint32_t offset = pixelOffset(left, top);
+  uint32_t depthOffset = top * VGA_WIDTH + left;
+
   uint32_t step = OFFSET_X;
   uint32_t line_offset = step * (right - left + 1);
+  uint32_t line_depthOffset = (right - left + 1);
   for (int32_t y = top; y <= bottom; y++) {
     for (int32_t x = left; x <= right; x++) {
-      float xp = (x * 2.0f) / VGA_WIDTH - 1.0f;
-      float yp = (y * -2.0f) / VGA_HEIGHT + 1.0f;
+      float xp = (x * 2.0f + 1.0f) / VGA_WIDTH - 1.0f;
+      float yp = (y * -2.0f - 1.0f) / VGA_HEIGHT + 1.0f;
 
       float w0 = edgeFunction(v1.x, v1.y, v2.x, v2.y, xp, yp);
       float w1 = edgeFunction(v2.x, v2.y, v0.x, v0.y, xp, yp);
@@ -100,21 +104,27 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
         w2 /= area;
 
         float z = v0.z * w0 + v1.z * w1 + v2.z * w2;
+        if (z >= 0.0f && z <= 1.0f &&
+            (z + 0.0001f) < _depthbuffer[depthOffset]) {
+          _depthbuffer[depthOffset] = z;
 
-        float r = c0.x * w0 + c1.x * w1 + c2.x * w2;
-        float g = c0.y * w0 + c1.y * w1 + c2.y * w2;
-        float b = c0.z * w0 + c1.z * w1 + c2.z * w2;
+          float r = c0.x * w0 + c1.x * w1 + c2.x * w2;
+          float g = c0.y * w0 + c1.y * w1 + c2.y * w2;
+          float b = c0.z * w0 + c1.z * w1 + c2.z * w2;
 
-        color_t color = rgba(
-          (int) (r * 255.0f), (int) (g * 255.0f), (int) (b * 255.0f), 0xff
-        );
+          color_t color = rgba(
+            (int) (r * 255.0f), (int) (g * 255.0f), (int) (b * 255.0f), 0xff
+          );
 
-        putpixel(fb, offset, color);
+          putpixel(fb, offset, color);
+        }
       }
 
       offset += step;
+      depthOffset += 1;
     }
     offset += OFFSET_Y - line_offset;
+    depthOffset += VGA_WIDTH - line_depthOffset;
   }
 }
 
@@ -133,6 +143,11 @@ void gfx_clear(color_t color) {
     fb[offset + 0] = data[0];
     fb[offset + 1] = data[1];
     fb[offset + 2] = data[2];
+  }
+
+  uint64_t depthSize = VGA_WIDTH * VGA_HEIGHT;
+  for (uint64_t offset = 0; offset < depthSize; offset++) {
+    _depthbuffer[offset] = 999.0f;
   }
 }
 
