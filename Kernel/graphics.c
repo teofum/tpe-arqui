@@ -151,6 +151,23 @@ void gfx_drawPrimitives(float3 *vertices, uint64_t n, float3 color) {
   }
 }
 
+void gfx_drawPrimitivesIndexed(
+  float3 *vertices, uint32_t *indices, uint64_t n, float3 color
+) {
+  for (uint64_t i = 0; i < n; i++) {
+    float4 v0 = vext(vertices[indices[0]], 1.0f);
+    float4 v1 = vext(vertices[indices[1]], 1.0f);
+    float4 v2 = vext(vertices[indices[2]], 1.0f);
+
+    v0 = mvmul(gfx_viewProjection, v0);
+    v1 = mvmul(gfx_viewProjection, v1);
+    v2 = mvmul(gfx_viewProjection, v2);
+
+    drawTriangle(vpersp(v0), vpersp(v1), vpersp(v2), color, color, color);
+    indices += 3;
+  }
+}
+
 void gfx_setLight(gfx_lightSetting_t which, float3 *data) {
   switch (which) {
     case GFX_LIGHT_POSITION:
