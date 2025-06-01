@@ -1,3 +1,4 @@
+#include "fpmath.h"
 #include "vga.h"
 #include <graphics.h>
 #include <stddef.h>
@@ -36,6 +37,7 @@ float _depthbuffer[VGA_WIDTH * VGA_HEIGHT];
  *   - Call drawPrimitives to request a draw (potentially multiple times)
  */
 
+float4x4 gfx_model;
 float4x4 gfx_view;
 float4x4 gfx_projection;
 float4x4 gfx_viewProjection;
@@ -151,35 +153,95 @@ void gfx_clear(color_t color) {
   }
 }
 
-void gfx_drawPrimitives(float3 *vertices, uint64_t n, float3 color) {
-  for (uint64_t i = 0; i < n; i++) {
-    float4 v0 = vext(vertices[0], 1.0f);
-    float4 v1 = vext(vertices[1], 1.0f);
-    float4 v2 = vext(vertices[2], 1.0f);
+static inline void drawPrimitiveFlat(float3 *v, uint32_t *i, float3 color) {
+  // Get vertex positions and transform to world space
+  float4 v0 = vext(v[i[0]], 1.0f);
+  float4 v1 = vext(v[i[1]], 1.0f);
+  float4 v2 = vext(v[i[2]], 1.0f);
 
-    v0 = mvmul(gfx_viewProjection, v0);
-    v1 = mvmul(gfx_viewProjection, v1);
-    v2 = mvmul(gfx_viewProjection, v2);
+  v0 = mvmul(gfx_model, v0);
+  v1 = mvmul(gfx_model, v1);
+  v2 = mvmul(gfx_model, v2);
 
-    drawTriangle(vpersp(v0), vpersp(v1), vpersp(v2), color, color, color);
-    vertices += 3;
+  // Transform to clip space
+  v0 = mvmul(gfx_viewProjection, v0);
+  v1 = mvmul(gfx_viewProjection, v1);
+  v2 = mvmul(gfx_viewProjection, v2);
+
+  drawTriangle(vpersp(v0), vpersp(v1), vpersp(v2), color, color, color);
+}
+
+static inline void
+drawPrimitive(float3 *v, float3 *n, uint32_t *vi, uint32_t *ni, float3 color) {
+  float3 c[3];
+  float3 vClip[3];
+
+  for (uint32_t i = 0; i < 3; i++) {
+    // Get vertex positions and transform to world space
+    float4 vertex = vext(v[vi[i]], 1.0f);
+    vertex = mvmul(gfx_model, vertex);
+
+    // Perform per-vertex lighting calculations in world space
+    float3 normal = n[ni[i]];
+    float3 light;
+
+    switch (gfx_lightType) {
+      case GFX_LIGHT_DIRECTIONAL:
+        light = vnorm(gfx_lightPos);
+        break;
+      case GFX_LIGHT_POINT:
+        light = vnorm(vsub(gfx_lightPos, vred(vertex)));
+    }
+
+    float intensity = vdot(normal, light);
+    intensity = max(intensity, 0.0f);
+
+    float3 lightColor = vmuls(gfx_lightColor, intensity);
+    lightColor = vadd(lightColor, gfx_ambientLight);
+    c[i] = vmul(color, lightColor);
+
+    // Transform to clip space
+    vertex = mvmul(gfx_viewProjection, vertex);
+    vClip[i] = vpersp(vertex);
+  }
+
+  drawTriangle(vClip[0], vClip[1], vClip[2], c[0], c[1], c[2]);
+}
+
+void gfx_drawPrimitives(
+  float3 *vertices, float3 *normals, uint64_t n, float3 color
+) {
+  static uint32_t indices[] = {0, 1, 2};
+
+  if (normals == NULL) {
+    for (uint64_t i = 0; i < n; i++) {
+      drawPrimitiveFlat(vertices, indices, color);
+      vertices += 3;
+    }
+  } else {
+    for (uint64_t i = 0; i < n; i++) {
+      drawPrimitive(vertices, normals, indices, indices, color);
+      vertices += 3;
+      normals += 3;
+    }
   }
 }
 
 void gfx_drawPrimitivesIndexed(
-  float3 *vertices, uint32_t *indices, uint64_t n, float3 color
+  float3 *vertices, float3 *normals, uint32_t *indices, uint32_t *normalIndices,
+  uint64_t n, float3 color
 ) {
-  for (uint64_t i = 0; i < n; i++) {
-    float4 v0 = vext(vertices[indices[0]], 1.0f);
-    float4 v1 = vext(vertices[indices[1]], 1.0f);
-    float4 v2 = vext(vertices[indices[2]], 1.0f);
-
-    v0 = mvmul(gfx_viewProjection, v0);
-    v1 = mvmul(gfx_viewProjection, v1);
-    v2 = mvmul(gfx_viewProjection, v2);
-
-    drawTriangle(vpersp(v0), vpersp(v1), vpersp(v2), color, color, color);
-    indices += 3;
+  if (normals == NULL) {
+    for (uint64_t i = 0; i < n; i++) {
+      drawPrimitiveFlat(vertices, indices, color);
+      indices += 3;
+    }
+  } else {
+    for (uint64_t i = 0; i < n; i++) {
+      drawPrimitive(vertices, normals, indices, normalIndices, color);
+      indices += 3;
+      normalIndices += 3;
+    }
   }
 }
 
@@ -201,18 +263,23 @@ void gfx_setLightType(gfx_light_t mode) { gfx_lightType = mode; }
 
 void gfx_setMatrix(gfx_matrix_t which, float4x4 *data) {
   switch (which) {
+    case GFX_MAT_MODEL:
+      gfx_model = *data;
+      break;
     case GFX_MAT_VIEW:
       gfx_view = *data;
+
+      // Recalculate view-projection matrix
+      gfx_viewProjection = mmul(gfx_projection, gfx_view);
       break;
     case GFX_MAT_PROJECTION:
       gfx_projection = *data;
+
+      // Recalculate view-projection matrix
+      gfx_viewProjection = mmul(gfx_projection, gfx_view);
       break;
   }
-
-  // Recalculate view-projection matrix
-  gfx_viewProjection = mmul(gfx_projection, gfx_view);
 }
-
 
 /*
  * Copy the internal framebuffer to some other fb

@@ -17,16 +17,20 @@ typedef enum {
 } gfx_lightSetting_t;
 
 typedef enum {
+  GFX_MAT_MODEL,
   GFX_MAT_VIEW,
   GFX_MAT_PROJECTION,
 } gfx_matrix_t;
 
 void gfx_clear(color_t color);
 
-void gfx_drawPrimitives(float3 *vertices, uint64_t n, float3 color);
+void gfx_drawPrimitives(
+  float3 *vertices, float3 *normals, uint64_t n, float3 color
+);
 
 void gfx_drawPrimitivesIndexed(
-  float3 *vertices, uint32_t *indices, uint64_t n, float3 color
+  float3 *vertices, float3 *normals, uint32_t *indices, uint32_t *normalIndices,
+  uint64_t n, float3 color
 );
 
 void gfx_setLight(gfx_lightSetting_t which, float3 *data);

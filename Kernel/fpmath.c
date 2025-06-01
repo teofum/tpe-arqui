@@ -33,6 +33,7 @@ float tan(float x) { return sin(x) / cos(x); }
 
 float vdot(float3 a, float3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
+
 float3 vcross(float3 a, float3 b) {
   float3 r = {
     a.y * b.z - a.z * b.y,
