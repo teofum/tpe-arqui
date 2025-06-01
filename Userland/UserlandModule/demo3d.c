@@ -29,23 +29,11 @@ int demo3d() {
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   float3 color = {0.5, 0.25, 0.75};
+  float3 v[] = {{0, 0, -1}, {0, 2, -1},  {1, 0, -1},
+                {0, 0, -2}, {0, -1, -2}, {-1, 0, -2}};
 
   int key = 0;
   while (!key) {
-    // Si se calculan "en el momento" funciona ok
-    float3 v[] = {
-      {0, 0, -1},
-      {sin(angle), cos(angle), -1},
-      {cos(angle), -sin(angle), -1},
-      {0, 0, -2},
-      {0, -1, -2},
-      {-1, 0, -2}
-    };
-
-    // Al descomentar esto drawPrimitives() cuelga qemu
-    // float3 v[] = {{0, 0, -1}, {0, 1, -1},  {1, 0, -1},
-    //               {0, 0, -2}, {0, -1, -2}, {-1, 0, -2}};
-
     gfx_clear(0x200020);
     gfx_drawPrimitives(v, 2, color);
     gfx_present();

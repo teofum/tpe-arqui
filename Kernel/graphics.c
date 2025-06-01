@@ -64,9 +64,9 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   int32_t xi0 = ((v0.x + 1.0f) / 2.0f) * VGA_WIDTH;
   int32_t xi1 = ((v1.x + 1.0f) / 2.0f) * VGA_WIDTH;
   int32_t xi2 = ((v2.x + 1.0f) / 2.0f) * VGA_WIDTH;
-  int32_t yi0 = ((v0.y + 1.0f) / 2.0f) * VGA_HEIGHT;
-  int32_t yi1 = ((v1.y + 1.0f) / 2.0f) * VGA_HEIGHT;
-  int32_t yi2 = ((v2.y + 1.0f) / 2.0f) * VGA_HEIGHT;
+  int32_t yi0 = VGA_HEIGHT - 1 - ((v0.y + 1.0f) / 2.0f) * VGA_HEIGHT;
+  int32_t yi1 = VGA_HEIGHT - 1 - ((v1.y + 1.0f) / 2.0f) * VGA_HEIGHT;
+  int32_t yi2 = VGA_HEIGHT - 1 - ((v2.y + 1.0f) / 2.0f) * VGA_HEIGHT;
 
   // Calculate triangle bounds in screen space
   int32_t top = min(yi0, min(yi1, yi2));
@@ -88,7 +88,7 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   for (int32_t y = top; y <= bottom; y++) {
     for (int32_t x = left; x <= right; x++) {
       float xp = (x * 2.0f) / VGA_WIDTH - 1.0f;
-      float yp = (y * 2.0f) / VGA_HEIGHT - 1.0f;
+      float yp = (y * -2.0f) / VGA_HEIGHT + 1.0f;
 
       float w0 = edgeFunction(v1.x, v1.y, v2.x, v2.y, xp, yp);
       float w1 = edgeFunction(v2.x, v2.y, v0.x, v0.y, xp, yp);
