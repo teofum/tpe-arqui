@@ -28,7 +28,8 @@ int demo3d() {
    */
 
   // Set half render resolution for speed
-  gfx_setRenderResolution(GFX_RES_HALF);
+  gfx_res_t renderRes = GFX_RES_HALF;
+  gfx_setRenderResolution(renderRes);
 
   // Set up view and projection matrices
   float3 pos = {0, 2, 4};
@@ -109,6 +110,18 @@ int demo3d() {
       ticksStart = _syscall(SYS_TICKS);
       frames = 0;
     }
+    if (kbd_keypressed(KEY_R)) {
+      if (renderRes == GFX_RES_HALF) {
+        renderRes = GFX_RES_FULL;
+      } else {
+        renderRes = GFX_RES_HALF;
+      }
+
+      gfx_setRenderResolution(renderRes);
+      ticksElapsed = 0;
+      ticksStart = _syscall(SYS_TICKS);
+      frames = 0;
+    }
 
     // For point light, make it orbit around the model
     if (lightType == GFX_LIGHT_POINT) {
@@ -161,7 +174,8 @@ int demo3d() {
       VGA_TEXT_BG
     );
     vga_text(0, 80, "[W] Toggle wireframe rendering", 0xffffff, 0, VGA_TEXT_BG);
-    vga_text(0, 96, "[Esc] or [Return] Exit", 0xffffff, 0, VGA_TEXT_BG);
+    vga_text(0, 96, "[R] Toggle half resolution", 0xffffff, 0, VGA_TEXT_BG);
+    vga_text(0, 112, "[Esc] or [Return] Exit", 0xffffff, 0, VGA_TEXT_BG);
 
     // Present the main framebuffer to the screen
     vga_present();
