@@ -18,7 +18,7 @@ int demo3d() {
   /*
    * Set up graphics system
    */
-  float3 pos = {0, 0, 4};
+  float3 pos = {0, 2, 4};
   float3 target = {0, 0, 0};
   float3 up = {0, 1, 0};
 
@@ -28,7 +28,7 @@ int demo3d() {
   gfx_setMatrix(GFX_MAT_VIEW, &view);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
-  float3 light = {-1, 1, 0.5};
+  float3 light = {-1, 0.5, -0.5};
   float3 lightcolor = {1, 1, 1};
   float3 ambient = {0.1, 0.1, 0.1};
 
@@ -38,13 +38,13 @@ int demo3d() {
   gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
 
   float3 colors[] = {
-    {0.0, 0.0, 0.5}, {0.0, 0.5, 0.0}, {0.5, 0.0, 0.0},
+    {0.5, 0.5, 1.0}, {0.5, 0.5, 0.5}, {0.5, 0.0, 0.0},
     {0.0, 0.5, 0.5}, {0.5, 0.0, 0.5}, {0.5, 0.5, 0.0},
   };
   float3 v[] = {{-1, -1, -1}, {-1, -1, 1}, {-1, 1, -1}, {-1, 1, 1},
                 {1, -1, -1},  {1, -1, 1},  {1, 1, -1},  {1, 1, 1}};
   float3 n[] = {
-    {0, 0, 1}, {0, 0, -1}, {0, 1, 0}, {0, -1, 0}, {1, 0, 0}, {-1, 0, 0},
+    {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1},
   };
   uint32_t vi[] = {0, 2, 1, 1, 2, 3, 4, 5, 6, 5, 7, 6, 0, 1, 4, 1, 5, 4,
                    2, 6, 3, 6, 7, 3, 0, 4, 2, 4, 6, 2, 3, 5, 1, 3, 7, 5};
@@ -54,6 +54,9 @@ int demo3d() {
   int key = 0;
   while (!key) {
     gfx_clear(0x200020);
+
+    lightcolor.y = cos(angle) * cos(angle);
+    gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
 
     float4x4 model = mat_rotationY(angle);
     gfx_setMatrix(GFX_MAT_MODEL, &model);

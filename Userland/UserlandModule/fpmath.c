@@ -200,6 +200,30 @@ void mtrans(float4x4 *m) {
   }
 }
 
+#define det2x2(a, b, c, d) ((a) * (d) - (b) * (c))
+
+float4x4 mtadj(float4x4 m) {
+  float4x4 c = {
+    det2x2(m.v[1][1], m.v[1][2], m.v[2][1], m.v[2][2]),
+    det2x2(m.v[1][0], m.v[1][2], m.v[2][0], m.v[2][2]),
+    det2x2(m.v[1][0], m.v[1][1], m.v[2][0], m.v[2][1]),
+    0,
+    det2x2(m.v[0][1], m.v[0][2], m.v[2][1], m.v[2][2]),
+    det2x2(m.v[0][0], m.v[0][2], m.v[2][0], m.v[2][2]),
+    det2x2(m.v[0][0], m.v[0][1], m.v[2][0], m.v[2][1]),
+    0,
+    det2x2(m.v[0][1], m.v[0][2], m.v[1][1], m.v[1][2]),
+    det2x2(m.v[0][0], m.v[0][2], m.v[1][0], m.v[1][2]),
+    det2x2(m.v[0][0], m.v[0][1], m.v[1][0], m.v[1][1]),
+    0,
+    0,
+    0,
+    0,
+    1,
+  };
+  return c;
+}
+
 /* Matrix-vector operations */
 
 float4 mvmul(float4x4 m, float4 v) {
@@ -211,6 +235,16 @@ float4 mvmul(float4x4 m, float4 v) {
   };
   return r;
 }
+
+float3 mvmul3(float4x4 m, float3 v) {
+  float3 r = {
+    v.x * m.v[0][0] + v.y * m.v[0][1] + v.z * m.v[0][2],
+    v.x * m.v[1][0] + v.y * m.v[1][1] + v.z * m.v[1][2],
+    v.x * m.v[2][0] + v.y * m.v[2][1] + v.z * m.v[2][2],
+  };
+  return r;
+}
+
 
 /* Matrices */
 

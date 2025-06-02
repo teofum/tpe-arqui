@@ -100,11 +100,30 @@ float4x4 msub(float4x4 a, float4x4 b);
 
 float4x4 mmul(float4x4 a, float4x4 b);
 
+/*
+ * Transpose a matrix in place.
+ */
 void mtrans(float4x4 *m);
+
+/*
+ * Calculate the transposed adjoint of a matrix, aka cofactor matrix.
+ * This function treats the input, and output, as 3x3 matrices. 4x4 matrix
+ * type is used for convenience only.
+ */
+float4x4 mtadj(float4x4 m);
 
 /* Matrix-vector operations */
 
+/*
+ * Multiply a 4x4 matrix by a 4-vector.
+ */
 float4 mvmul(float4x4 m, float4 v);
+
+/*
+ * Multiply a 3x3 matrix by a 3-vector.
+ * The matrix input is treated as 3x3; the last column and row are ignored.
+ */
+float3 mvmul3(float4x4 m, float3 v);
 
 /* Matrices */
 

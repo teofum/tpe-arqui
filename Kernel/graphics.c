@@ -38,6 +38,7 @@ float _depthbuffer[VGA_WIDTH * VGA_HEIGHT];
  */
 
 float4x4 gfx_model;
+float4x4 gfx_normalModel;
 float4x4 gfx_view;
 float4x4 gfx_projection;
 float4x4 gfx_viewProjection;
@@ -183,8 +184,10 @@ drawPrimitive(float3 *v, float3 *n, uint32_t *vi, uint32_t *ni, float3 color) {
 
     // Perform per-vertex lighting calculations in world space
     float3 normal = n[ni[i]];
-    float3 light;
+    normal = mvmul3(gfx_normalModel, normal);
+    normal = vnorm(normal);
 
+    float3 light;
     switch (gfx_lightType) {
       case GFX_LIGHT_DIRECTIONAL:
         light = vnorm(gfx_lightPos);
@@ -265,17 +268,14 @@ void gfx_setMatrix(gfx_matrix_t which, float4x4 *data) {
   switch (which) {
     case GFX_MAT_MODEL:
       gfx_model = *data;
+      gfx_normalModel = mtadj(gfx_model);
       break;
     case GFX_MAT_VIEW:
       gfx_view = *data;
-
-      // Recalculate view-projection matrix
       gfx_viewProjection = mmul(gfx_projection, gfx_view);
       break;
     case GFX_MAT_PROJECTION:
       gfx_projection = *data;
-
-      // Recalculate view-projection matrix
       gfx_viewProjection = mmul(gfx_projection, gfx_view);
       break;
   }
