@@ -72,8 +72,6 @@ edgeFunction(float ax, float ay, float bx, float by, float px, float py) {
  */
 static void
 drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
-  uint8_t *fb = _gfxFramebuffer;
-
   int32_t xi0 = ((v0.x + 1.0f) / 2.0f) * gfx_renderWidth;
   int32_t xi1 = ((v1.x + 1.0f) / 2.0f) * gfx_renderWidth;
   int32_t xi2 = ((v2.x + 1.0f) / 2.0f) * gfx_renderWidth;
@@ -108,9 +106,20 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
 
   float xstep = 2.0f / gfx_renderWidth;
   float ystep = -2.0f / gfx_renderHeight;
-  float xstart = -1.0f + (left + 0.5f) * xstep;
-  float xp = xstart;
+  float xp = -1.0f + (left + 0.5f) * xstep;
   float yp = 1.0f + (top + 0.5f) * ystep;
+
+  float w0s = edgeFunction(v1.x, v1.y, v2.x, v2.y, xp, yp);
+  float w1s = edgeFunction(v2.x, v2.y, v0.x, v0.y, xp, yp);
+  float w2s = edgeFunction(v0.x, v0.y, v1.x, v1.y, xp, yp);
+  float w0 = w0s, w1 = w1s, w2 = w2s;
+
+  float w0xstep = (v2.y - v1.y) * xstep;
+  float w1xstep = (v0.y - v2.y) * xstep;
+  float w2xstep = (v1.y - v0.y) * xstep;
+  float w0ystep = (v1.x - v2.x) * ystep;
+  float w1ystep = (v2.x - v0.x) * ystep;
+  float w2ystep = (v0.x - v1.x) * ystep;
 
   // Early exit optimization variable
   uint32_t drawn;
@@ -118,51 +127,54 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   for (int32_t y = top; y <= bottom; y++) {
     drawn = 0;
     for (int32_t x = left; x <= right; x++) {
-      float w0 = edgeFunction(v1.x, v1.y, v2.x, v2.y, xp, yp);
-      float w1 = edgeFunction(v2.x, v2.y, v0.x, v0.y, xp, yp);
-      float w2 = edgeFunction(v0.x, v0.y, v1.x, v1.y, xp, yp);
-
       if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-        w0 *= invArea;
-        w1 *= invArea;
-        w2 *= invArea;
+        float u = w0 * invArea;
+        float v = w1 * invArea;
+        float t = w2 * invArea;
 
         drawn = 1;
 
-        float z = v0.z * w0 + v1.z * w1 + v2.z * w2;
+        float z = v0.z * u + v1.z * v + v2.z * t;
         if (z >= 0.0f && z <= 1.0f &&
             (z + 0.0001f) < _depthbuffer[depthOffset]) {
           _depthbuffer[depthOffset] = z;
 
-          float r = c0.x * w0 + c1.x * w1 + c2.x * w2;
-          float g = c0.y * w0 + c1.y * w1 + c2.y * w2;
-          float b = c0.z * w0 + c1.z * w1 + c2.z * w2;
+          float r = c0.x * u + c1.x * v + c2.x * t;
+          float g = c0.y * u + c1.y * v + c2.y * t;
+          float b = c0.z * u + c1.z * v + c2.z * t;
 
           color_t color = rgba(
             (int) (r * 255.0f), (int) (g * 255.0f), (int) (b * 255.0f), 0xff
           );
 
-          putpixel(fb, offset, color);
+          putpixel(_gfxFramebuffer, offset, color);
         }
       } else if (drawn) {
         // Triangles are convex shapes; if we've drawn a pixel on this line
         // and the next one is out of bounds, we know for sure all the pixels
         // to the right of it are also out of bounds.
-        offset += step * (right - x + 1);
-        depthOffset += right - x + 1;
+        uint32_t rem = right - x + 1;
+        offset += step * rem;
+        depthOffset += rem;
         break;
       }
 
       offset += step;
       depthOffset += 1;
 
-      xp += xstep;
+      w0 += w0xstep;
+      w1 += w1xstep;
+      w2 += w2xstep;
     }
     offset += OFFSET_Y - line_offset;
     depthOffset += VGA_WIDTH - line_depthOffset;
 
-    xp = xstart;
-    yp += ystep;
+    w0s += w0ystep;
+    w0 = w0s;
+    w1s += w1ystep;
+    w1 = w1s;
+    w2s += w2ystep;
+    w2 = w2s;
   }
 }
 
