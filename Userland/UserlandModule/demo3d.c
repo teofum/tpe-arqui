@@ -21,6 +21,7 @@ int demo3d() {
 
   uint64_t ticksElapsed = 0, ticksStart = _syscall(SYS_TICKS), frames = 0;
   float angle = 0;
+  int wireframe = 0;
 
   /*
    * Set up graphics system
@@ -99,6 +100,15 @@ int demo3d() {
 
       gfx_setLightType(lightType);
     }
+    if (kbd_keypressed(KEY_W)) {
+      wireframe = !wireframe;
+
+      // Reset frametime counter; it works with averages so the drastically
+      // changing framerate throws it off
+      ticksElapsed = 0;
+      ticksStart = _syscall(SYS_TICKS);
+      frames = 0;
+    }
 
     // For point light, make it orbit around the model
     if (lightType == GFX_LIGHT_POINT) {
@@ -116,17 +126,31 @@ int demo3d() {
     gfx_setMatrix(GFX_MAT_MODEL, &model);
 
     // Draw the triangles
-    gfx_drawPrimitivesIndexed(
-      demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, 1567, colors[colorIdx]
-    );
+    if (wireframe) {
+      gfx_drawWireframeIndexed(demo3d_v, demo3d_vi, 1567, colors[colorIdx]);
+    } else {
+      gfx_drawPrimitivesIndexed(
+        demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, 1567, colors[colorIdx]
+      );
+    }
 
     // Present the framebuffer to the video driver main framebuffer
     gfx_present();
 
     // Draw the frametime counter
-    uint64_t frametime = frames == 0 ? 0 : ticksElapsed * 55 / frames;
+    uint64_t frametimeMicros = frames == 0 ? 0 : ticksElapsed * 55000 / frames;
+    uint64_t frametime = frametimeMicros / 1000;
+    uint64_t fpsTimes100 =
+      frametimeMicros == 0 ? 0 : 100000000 / frametimeMicros;
+    uint64_t fps = fpsTimes100 / 100;
+    frametimeMicros %= 1000;
+    fpsTimes100 %= 100;
+
     char buf[50];
-    sprintf(buf, "Frametime: %llums", frametime);
+    sprintf(
+      buf, "Frametime: %llu.%03llums (%llu.%02llu fps)", frametime,
+      frametimeMicros, fps, fpsTimes100
+    );
     vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
 
     // Draw text hints
@@ -136,7 +160,8 @@ int demo3d() {
       0, 64, "[K] Change light type (directional/point)", 0xffffff, 0,
       VGA_TEXT_BG
     );
-    vga_text(0, 80, "[Esc] or [Return] Exit", 0xffffff, 0, VGA_TEXT_BG);
+    vga_text(0, 80, "[W] Toggle wireframe rendering", 0xffffff, 0, VGA_TEXT_BG);
+    vga_text(0, 96, "[Esc] or [Return] Exit", 0xffffff, 0, VGA_TEXT_BG);
 
     // Present the main framebuffer to the screen
     vga_present();

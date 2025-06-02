@@ -151,6 +151,18 @@ gfx_drawPrimitivesIndexed:
     int 0x80
     ret
 
+global gfx_drawWireframe
+gfx_drawWireframe:
+    mov rax, 0xA3
+    int 0x80
+    ret
+
+global gfx_drawWireframeIndexed
+gfx_drawWireframeIndexed:
+    mov rax, 0xA4
+    int 0x80
+    ret
+
 global gfx_parseObj
 gfx_parseObj:
     mov rax, 0xA9

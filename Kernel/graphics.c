@@ -189,7 +189,7 @@ void gfx_clear(color_t color) {
   }
 }
 
-static inline void drawPrimitiveFlat(float3 *v, uint32_t *i, float3 color) {
+static void drawPrimitiveFlat(float3 *v, uint32_t *i, float3 color) {
   // Get vertex positions and transform to world space
   float4 v0 = vext(v[i[0]], 1.0f);
   float4 v1 = vext(v[i[1]], 1.0f);
@@ -288,6 +288,78 @@ void gfx_drawPrimitivesIndexed(
       normalIndices += 3;
     }
   }
+}
+
+static inline void drawWireframeImpl(float3 *v, uint32_t *i, color_t color) {
+  // Get vertex positions and transform to world space
+  float4 v0 = vext(v[i[0]], 1.0f);
+  float4 v1 = vext(v[i[1]], 1.0f);
+  float4 v2 = vext(v[i[2]], 1.0f);
+
+  v0 = mvmul(gfx_model, v0);
+  v1 = mvmul(gfx_model, v1);
+  v2 = mvmul(gfx_model, v2);
+
+  // Transform to clip space
+  v0 = mvmul(gfx_viewProjection, v0);
+  v1 = mvmul(gfx_viewProjection, v1);
+  v2 = mvmul(gfx_viewProjection, v2);
+
+  float3 v0f3 = vpersp(v0);
+  float3 v1f3 = vpersp(v1);
+  float3 v2f3 = vpersp(v2);
+
+  // Convert to integer screen space coordinates
+  int32_t xi0 = ((v0f3.x + 1.0f) / 2.0f) * gfx_renderWidth;
+  int32_t xi1 = ((v1f3.x + 1.0f) / 2.0f) * gfx_renderWidth;
+  int32_t xi2 = ((v2f3.x + 1.0f) / 2.0f) * gfx_renderWidth;
+  int32_t yi0 =
+    gfx_renderHeight - 1 - ((v0f3.y + 1.0f) / 2.0f) * gfx_renderHeight;
+  int32_t yi1 =
+    gfx_renderHeight - 1 - ((v1f3.y + 1.0f) / 2.0f) * gfx_renderHeight;
+  int32_t yi2 =
+    gfx_renderHeight - 1 - ((v2f3.y + 1.0f) / 2.0f) * gfx_renderHeight;
+
+  xi0 = min(VGA_WIDTH - 1, max(0, xi0));
+  xi1 = min(VGA_WIDTH - 1, max(0, xi1));
+  xi2 = min(VGA_WIDTH - 1, max(0, xi2));
+  yi0 = min(VGA_HEIGHT - 1, max(0, yi0));
+  yi1 = min(VGA_HEIGHT - 1, max(0, yi1));
+  yi2 = min(VGA_HEIGHT - 1, max(0, yi2));
+
+  // Draw lines
+  vga_line(xi0, yi0, xi1, yi1, color, 0);
+  vga_line(xi1, yi1, xi2, yi2, color, 0);
+  vga_line(xi2, yi2, xi0, yi0, color, 0);
+}
+
+void gfx_drawWireframe(float3 *vertices, uint64_t n, float3 c) {
+  static uint32_t indices[] = {0, 1, 2};
+  color_t color = rgba(
+    (int) (c.x * 255.0f), (int) (c.y * 255.0f), (int) (c.z * 255.0f), 0xff
+  );
+
+  vga_setFramebuffer(_gfxFramebuffer);
+  for (uint64_t i = 0; i < n; i++) {
+    drawWireframeImpl(vertices, indices, color);
+    vertices += 3;
+  }
+  vga_setFramebuffer(NULL);
+}
+
+void gfx_drawWireframeIndexed(
+  float3 *vertices, uint32_t *indices, uint64_t n, float3 c
+) {
+  color_t color = rgba(
+    (int) (c.x * 255.0f), (int) (c.y * 255.0f), (int) (c.z * 255.0f), 0xff
+  );
+
+  vga_setFramebuffer(_gfxFramebuffer);
+  for (uint64_t i = 0; i < n; i++) {
+    drawWireframeImpl(vertices, indices, color);
+    indices += 3;
+  }
+  vga_setFramebuffer(NULL);
 }
 
 void gfx_setLight(gfx_lightSetting_t which, float3 *data) {

@@ -38,6 +38,12 @@ void gfx_drawPrimitivesIndexed(
   uint64_t n, float3 color
 );
 
+void gfx_drawWireframe(float3 *vertices, uint64_t n, float3 color);
+
+void gfx_drawWireframeIndexed(
+  float3 *vertices, uint32_t *indices, uint64_t n, float3 color
+);
+
 void gfx_setLight(gfx_lightSetting_t which, float3 *data);
 
 void gfx_setLightType(gfx_light_t mode);
