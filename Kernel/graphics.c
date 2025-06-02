@@ -487,10 +487,12 @@ static const char *nextLine(const char *data) {
 }
 
 void gfx_parseObj(
-  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni
+  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni,
+  uint32_t *fc
 ) {
   char c;
-  uint32_t vc = 0, nc = 0, fc = 0;
+  uint32_t vc = 0, nc = 0;
+  *fc = 0;
   while ((c = *data++) != 0) {
     switch (c) {
       case 'v':
@@ -500,10 +502,8 @@ void gfx_parseObj(
           data = parseObjFloat3(data, n);
           *n = vnorm(*n);
           n++;
-          nc++;
         } else if (c == ' ') {
           data = parseObjFloat3(data, v++);
-          vc++;
         }
         break;
       case 'f':
@@ -512,12 +512,12 @@ void gfx_parseObj(
           data = parseObjIndices(data, vi, ni);
           vi += 3;
           ni += 3;
-          fc++;
+          (*fc)++;
         }
         break;
     }
     data = nextLine(data);
   }
 
-  printf("Parsed obj file: %u vertices, %u normals, %u faces\n", vc, nc, fc);
+  printf("Parsed obj file: %u vertices, %u normals, %u faces\n", vc, nc, *fc);
 }

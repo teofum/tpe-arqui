@@ -70,7 +70,8 @@ int demo3d() {
   };
 
   // Load the teapot model
-  gfx_parseObj(obj_utah, demo3d_v, demo3d_n, demo3d_vi, demo3d_ni);
+  uint32_t primCount;
+  gfx_parseObj(obj_utah, demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, &primCount);
 
   /*
    * Render loop
@@ -174,10 +175,12 @@ int demo3d() {
 
     // Draw the triangles
     if (wireframe) {
-      gfx_drawWireframeIndexed(demo3d_v, demo3d_vi, 1567, colors[colorIdx]);
+      gfx_drawWireframeIndexed(
+        demo3d_v, demo3d_vi, primCount, colors[colorIdx]
+      );
     } else {
       gfx_drawPrimitivesIndexed(
-        demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, 1567, colors[colorIdx]
+        demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, primCount, colors[colorIdx]
       );
     }
 

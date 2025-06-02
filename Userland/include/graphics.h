@@ -116,7 +116,9 @@ void gfx_present();
  * smaller array than needed results in undefined behavior.
  */
 void gfx_parseObj(
-  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni
+  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni,
+  uint32_t *fc
+
 );
 
 #endif
