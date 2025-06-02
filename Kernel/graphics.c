@@ -310,7 +310,7 @@ static const char *parseFloat(const char *data, float *out) {
       }
     }
     // Break *before* a newline so it gets processed by nextLine()
-    if (data[1] == '\n') break;
+    if (data[0] == '\n') break;
   }
 
   *out *= sign;
@@ -335,7 +335,7 @@ static const char *parseUnsigned(const char *data, uint32_t *out) {
       *out += digit;
     }
     // Break *before* a newline so it gets processed by nextLine()
-    if (data[1] == '\n') break;
+    if (data[0] == '\n') break;
   }
 
   return data;
@@ -365,15 +365,20 @@ void gfx_parseObj(
   const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni
 ) {
   char c;
+  uint32_t vc = 0, nc = 0, fc = 0;
   while ((c = *data++) != 0) {
     switch (c) {
       case 'v':
         c = *data++;
         if (c == 'n') {
           data++;// skip the space
-          data = parseObjFloat3(data, n++);
+          data = parseObjFloat3(data, n);
+          *n = vnorm(*n);
+          n++;
+          nc++;
         } else if (c == ' ') {
           data = parseObjFloat3(data, v++);
+          vc++;
         }
         break;
       case 'f':
@@ -382,9 +387,12 @@ void gfx_parseObj(
           data = parseObjIndices(data, vi, ni);
           vi += 3;
           ni += 3;
+          fc++;
         }
         break;
     }
     data = nextLine(data);
   }
+
+  printf("Parsed obj file: %u vertices, %u normals, %u faces\n", vc, nc, fc);
 }

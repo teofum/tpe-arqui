@@ -50,7 +50,6 @@ int demo3d() {
   };
 
   gfx_parseObj(obj_utah, demo3d_v, demo3d_n, demo3d_vi, demo3d_ni);
-  printf("loaded obj %u %u %u\n", demo3d_vi[0], demo3d_vi[1], demo3d_ni[0]);
 
   int key = 0;
   while (!key) {
