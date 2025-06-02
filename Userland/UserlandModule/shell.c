@@ -117,13 +117,13 @@ static int status(const char *param) {
 }
 
 extern void _throw_00();
-int throw00(){
+int throw00() {
   _throw_00();
   return 0;
 }
 
 extern void _throw_06();
-int throw06(){
+int throw06() {
   _throw_06();
   return 0;
 }
@@ -136,6 +136,7 @@ command_t commands[] = {
   {"clear", "Clear stdout", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
+  {"demo3d", "3d Graphics demo", demo3d},
   {"history", "Print command history", history},
   {"status", "Turn the system status bar on or off", status},
   {"exc00", "Tests Division by Zero Exception", throw00},
@@ -331,4 +332,3 @@ int startShell() {
 
   return 0;
 }
-

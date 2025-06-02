@@ -21,8 +21,8 @@ extern uint8_t endOfKernel;
 
 static const uint64_t PageSize = 0x1000;
 
-static void *const sampleCodeModuleAddress = (void *) 0x800000;
-static void *const sampleDataModuleAddress = (void *) 0xf00000;
+static void *const sampleCodeModuleAddress = (void *) 0x2000000;
+static void *const sampleDataModuleAddress = (void *) 0x3000000;
 
 typedef int (*entrypoint_t)();
 

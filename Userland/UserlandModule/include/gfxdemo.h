@@ -3,4 +3,6 @@
 
 int gfxdemo();
 
+int demo3d();
+
 #endif

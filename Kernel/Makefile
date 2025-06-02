@@ -10,10 +10,13 @@ LOADERSRC=loader.asm
 LOADEROBJECT=$(foreach I,$(LOADERSRC:.asm=.o),build/$I)
 STATICLIBS=
 
-all: $(KERNEL)
+all: $(KERNEL) out/kernel.elf
 
 $(KERNEL): out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
 	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
+
+out/kernel.elf: out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
+	$(LD) $(LDFLAGS) -T kernel.ld --oformat=elf64-x86-64 -o out/kernel.elf $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
 
 build/%.o: %.c
 	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@

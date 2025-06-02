@@ -1,5 +1,6 @@
 #Binary Files
 *.bin
+*.elf
 *.sys
 
 #The images

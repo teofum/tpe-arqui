@@ -9,10 +9,14 @@ LOADERSRC=_loader.c
 
 LOADEROBJECT=$(foreach I,$(LOADERSRC:.c=.o),build/$I)
 
-all: $(MODULE)
+all: $(MODULE) 0000-userlandModule.elf
 
 $(MODULE): out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
 	$(LD) $(LDFLAGS) -T userlandModule.ld -o ../$(MODULE) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
+
+0000-userlandModule.elf: out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
+	$(LD) $(LDFLAGS) -T userlandModule.ld --oformat=elf64-x86-64 -o ../0000-userlandModule.elf $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
+
 
 build/%.o: %.c
 	$(GCC) $(GCCFLAGS) -I./include -I../include -c $< -o $@

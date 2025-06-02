@@ -127,3 +127,74 @@ vga_copy:
     int 0x80
     ret
 
+global vga_copy2x
+vga_copy2x:
+    mov rax, 0x2D
+    int 0x80
+    ret
+
+global gfx_clear
+gfx_clear:
+    mov rax, 0xA0
+    int 0x80
+    ret
+
+global gfx_drawPrimitives
+gfx_drawPrimitives:
+    mov rax, 0xA1
+    int 0x80
+    ret
+
+global gfx_drawPrimitivesIndexed
+gfx_drawPrimitivesIndexed:
+    mov rax, 0xA2
+    int 0x80
+    ret
+
+global gfx_drawWireframe
+gfx_drawWireframe:
+    mov rax, 0xA3
+    int 0x80
+    ret
+
+global gfx_drawWireframeIndexed
+gfx_drawWireframeIndexed:
+    mov rax, 0xA4
+    int 0x80
+    ret
+
+global gfx_parseObj
+gfx_parseObj:
+    mov rax, 0xA9
+    int 0x80
+    ret
+
+global gfx_setLight
+gfx_setLight:
+    mov rax, 0xAA
+    int 0x80
+    ret
+
+global gfx_setLightType
+gfx_setLightType:
+    mov rax, 0xAB
+    int 0x80
+    ret
+
+global gfx_setMatrix
+gfx_setMatrix:
+    mov rax, 0xAC
+    int 0x80
+    ret
+
+global gfx_setRenderResolution
+gfx_setRenderResolution:
+    mov rax, 0xAD
+    int 0x80
+    ret
+
+global gfx_present
+gfx_present:
+    mov rax, 0xAF
+    int 0x80
+    ret

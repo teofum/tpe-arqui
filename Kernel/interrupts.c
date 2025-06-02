@@ -1,3 +1,4 @@
+#include "graphics.h"
 #include "io.h"
 #include "status.h"
 #include "vga.h"
@@ -160,6 +161,7 @@ void initSyscalls() {
   registerSyscall(0x2A, vga_present);
   registerSyscall(0x2B, vga_setFramebuffer);
   registerSyscall(0x2C, vga_copy);
+  registerSyscall(0x2D, vga_copy2x);
 
   /* Status bar */
   registerSyscall(0x40, status_enabled);
@@ -167,6 +169,19 @@ void initSyscalls() {
 
   /* Time/RTC */
   registerSyscall(0x50, ticks_elapsed);
+
+  /* Graphics module */
+  registerSyscall(0xA0, gfx_clear);
+  registerSyscall(0xA1, gfx_drawPrimitives);
+  registerSyscall(0xA2, gfx_drawPrimitivesIndexed);
+  registerSyscall(0xA3, gfx_drawWireframe);
+  registerSyscall(0xA4, gfx_drawWireframeIndexed);
+  registerSyscall(0xA9, gfx_parseObj);
+  registerSyscall(0xAA, gfx_setLight);
+  registerSyscall(0xAB, gfx_setLightType);
+  registerSyscall(0xAC, gfx_setMatrix);
+  registerSyscall(0xAD, gfx_setRenderResolution);
+  registerSyscall(0xAF, gfx_present);
 
   /* Special */
   registerSyscall(0xFF, _hlt);
