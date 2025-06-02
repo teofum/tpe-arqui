@@ -76,9 +76,20 @@ int gfxdemo() {
 
     vga_text(420, 700, " Press any key to exit ", 0, 0xffffff, VGA_TEXT_INV);
 
-    uint64_t frametime = frames == 0 ? 0 : ticksElapsed * 55 / frames;
+    // Draw the frametime counter
+    uint64_t frametimeMicros = frames == 0 ? 0 : ticksElapsed * 55000 / frames;
+    uint64_t frametime = frametimeMicros / 1000;
+    uint64_t fpsTimes100 =
+      frametimeMicros == 0 ? 0 : 100000000 / frametimeMicros;
+    uint64_t fps = fpsTimes100 / 100;
+    frametimeMicros %= 1000;
+    fpsTimes100 %= 100;
+
     char buf[50];
-    sprintf(buf, "Frametime: %llums", frametime);
+    sprintf(
+      buf, "Frametime: %llu.%03llums (%llu.%02llu fps)", frametime,
+      frametimeMicros, fps, fpsTimes100
+    );
     vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
 
     vga_present();
