@@ -37,9 +37,11 @@ int demo3d() {
   float3 up = {0, 1, 0};
 
   float4x4 view = mat_lookat(pos, target, up);
-  float4x4 projection = mat_perspective(1.5f, 4.0f / 3.0f, 0.1f, 10.0f);
-
   gfx_setMatrix(GFX_MAT_VIEW, &view);
+
+  float fovDegrees = 75.0f;
+  float4x4 projection =
+    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Light colors
@@ -122,6 +124,38 @@ int demo3d() {
       ticksStart = _syscall(SYS_TICKS);
       frames = 0;
     }
+    if (kbd_keypressed(KEY_COMMA)) {
+      fovDegrees += 5.0f;
+      projection =
+        mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+      gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
+    }
+    if (kbd_keypressed(KEY_PERIOD)) {
+      fovDegrees -= 5.0f;
+      projection =
+        mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+      gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
+    }
+    if (kbd_keypressed(KEY_ARROW_UP)) {
+      pos.y += 0.5f;
+      view = mat_lookat(pos, target, up);
+      gfx_setMatrix(GFX_MAT_VIEW, &view);
+    }
+    if (kbd_keypressed(KEY_ARROW_DOWN)) {
+      pos.y -= 0.5f;
+      view = mat_lookat(pos, target, up);
+      gfx_setMatrix(GFX_MAT_VIEW, &view);
+    }
+    if (kbd_keypressed(KEY_ARROW_LEFT)) {
+      pos.z += 0.5f;
+      view = mat_lookat(pos, target, up);
+      gfx_setMatrix(GFX_MAT_VIEW, &view);
+    }
+    if (kbd_keypressed(KEY_ARROW_RIGHT)) {
+      pos.z -= 0.5f;
+      view = mat_lookat(pos, target, up);
+      gfx_setMatrix(GFX_MAT_VIEW, &view);
+    }
 
     // For point light, make it orbit around the model
     if (lightType == GFX_LIGHT_POINT) {
@@ -175,7 +209,15 @@ int demo3d() {
     );
     vga_text(0, 80, "[W] Toggle wireframe rendering", 0xffffff, 0, VGA_TEXT_BG);
     vga_text(0, 96, "[R] Toggle half resolution", 0xffffff, 0, VGA_TEXT_BG);
-    vga_text(0, 112, "[Esc] or [Return] Exit", 0xffffff, 0, VGA_TEXT_BG);
+    vga_text(0, 112, "[,] [.] Change FOV", 0xffffff, 0, VGA_TEXT_BG);
+    vga_text(
+      0, 128, "[Up] [Down] Move camera up/down", 0xffffff, 0, VGA_TEXT_BG
+    );
+    vga_text(
+      0, 144, "[Left] [Right] Move camera back/forward", 0xffffff, 0,
+      VGA_TEXT_BG
+    );
+    vga_text(0, 160, "[Esc] or [Return] Exit", 0xffffff, 0, VGA_TEXT_BG);
 
     // Present the main framebuffer to the screen
     vga_present();
