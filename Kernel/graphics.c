@@ -86,7 +86,7 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   bottom = min(bottom, VGA_HEIGHT - 1);
   right = min(right, VGA_WIDTH - 1);
 
-  float area = edgeFunction(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
+  float invArea = 1.0f / edgeFunction(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
 
   uint32_t offset = pixelOffset(left, top);
   uint32_t depthOffset = top * VGA_WIDTH + left;
@@ -94,19 +94,29 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   uint32_t step = OFFSET_X;
   uint32_t line_offset = step * (right - left + 1);
   uint32_t line_depthOffset = (right - left + 1);
-  for (int32_t y = top; y <= bottom; y++) {
-    for (int32_t x = left; x <= right; x++) {
-      float xp = (x * 2.0f + 1.0f) / VGA_WIDTH - 1.0f;
-      float yp = (y * -2.0f - 1.0f) / VGA_HEIGHT + 1.0f;
 
+  float xstep = 2.0f / VGA_WIDTH;
+  float ystep = -2.0f / VGA_HEIGHT;
+  float xstart = -1.0f + (left + 0.5f) * xstep;
+  float xp = xstart;
+  float yp = 1.0f + (top + 0.5f) * ystep;
+
+  // Early exit optimization variable
+  uint32_t drawn;
+
+  for (int32_t y = top; y <= bottom; y++) {
+    drawn = 0;
+    for (int32_t x = left; x <= right; x++) {
       float w0 = edgeFunction(v1.x, v1.y, v2.x, v2.y, xp, yp);
       float w1 = edgeFunction(v2.x, v2.y, v0.x, v0.y, xp, yp);
       float w2 = edgeFunction(v0.x, v0.y, v1.x, v1.y, xp, yp);
 
       if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-        w0 /= area;
-        w1 /= area;
-        w2 /= area;
+        w0 *= invArea;
+        w1 *= invArea;
+        w2 *= invArea;
+
+        drawn = 1;
 
         float z = v0.z * w0 + v1.z * w1 + v2.z * w2;
         if (z >= 0.0f && z <= 1.0f &&
@@ -123,13 +133,25 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
 
           putpixel(fb, offset, color);
         }
+      } else if (drawn) {
+        // Triangles are convex shapes; if we've drawn a pixel on this line
+        // and the next one is out of bounds, we know for sure all the pixels
+        // to the right of it are also out of bounds.
+        offset += step * (right - x + 1);
+        depthOffset += right - x + 1;
+        break;
       }
 
       offset += step;
       depthOffset += 1;
+
+      xp += xstep;
     }
     offset += OFFSET_Y - line_offset;
     depthOffset += VGA_WIDTH - line_depthOffset;
+
+    xp = xstart;
+    yp += ystep;
   }
 }
 
