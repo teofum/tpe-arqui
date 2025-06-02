@@ -8,8 +8,8 @@
 #define T 1
 //afecta que tanto v se aplica por frame,                                    \
 //mas bajo se mueve mas lento pero va mas fluido
-
 #define VMAX 10
+#define TURNS_SPEED 1
 
 //la necesite la robe de vga, utils.h estaria bueno
 #define abs(x) ((x) >= 0 ? (x) : -(x))
@@ -31,6 +31,8 @@ typedef struct {
   // si usamos la inversa de la masa nos ahoramos la division de float
 
   float gama;// friction/arraste // NO es exacto, es una idea mas simple
+
+  float angle;
 
   color_t color;
 } physicsObject_t;

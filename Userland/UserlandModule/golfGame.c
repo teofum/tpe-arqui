@@ -1,10 +1,5 @@
 #include <golfGame.h>
 
-typedef struct {
-  /* data */
-} directionController_t;
-
-
 void drawObject(physicsObject_t *obj
 ) {// TODO, hace falta algo para dibujar un circulo
   vga_rect(
@@ -24,7 +19,7 @@ void drawHole(enviroment_t *env) {
 *   Reads player input and makes a vector of it 
 *   Note: onely 8 directions
 */
-vector_t readImputs() {
+void updatePlayerDirectional(physicsObject_t *obj) {
   kbd_pollEvents();
   vector_t arrowKeys = {0};
   int up = kbd_keydown(KEY_ARROW_UP);
@@ -35,7 +30,28 @@ vector_t readImputs() {
   if (up || down) { arrowKeys.y = (down - up); }
   if (left || right) { arrowKeys.x = (right - left); }
 
-  return arrowKeys;
+  accelerateObject(obj, &arrowKeys);
+}
+/*
+* tank controls for player, accelerates it
+* /aka if you use this, the player doesnt need to be
+* updated 
+*/
+void updatePlayerTank(physicsObject_t *obj) {
+  kbd_pollEvents();
+  int up = kbd_keydown(KEY_ARROW_UP);
+  int down = kbd_keydown(KEY_ARROW_DOWN);
+  int right = kbd_keydown(KEY_ARROW_RIGHT);
+  int left = kbd_keydown(KEY_ARROW_LEFT);
+
+  if (right) { obj->angle += TURNS_SPEED; }
+  if (left) { obj->angle -= TURNS_SPEED; }
+  if (up) {
+    vector_t dir = {0};
+    // dir.x = sinf(obj->angle);
+    // dir.y = cosf(obj->angle);
+    accelerateObject(obj, &dir);
+  }
 }
 
 
@@ -46,7 +62,6 @@ void updateObject(physicsObject_t *obj) {
   vector_t v0 = {0};
   accelerateObject(obj, &v0);
 }
-
 /*
 * Aplica "aceleracion" y actualiza el estado 
 */
@@ -117,7 +132,8 @@ void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float distsqr = sqr(difx) + sqr(dify);
 
   if (distsqr <= sqr(b->size + a->size)) {
-    dir->x = signo(difx);
+    dir->x = signo(difx
+    );//TODO esto no tiene que ser signo, tiene que ser cos y sin creo chequiar
     dir->y = signo(dify);
   }
 }
@@ -179,12 +195,11 @@ int gg_startGame() {
 
 
   while (1) {
+    updatePlayerDirectional(&mc);
     updateObject(&ball);
     doCollision(&mc, &ball);
     doEnviroment(&hole, &mc);
     doEnviroment(&hole, &ball);
-    vector_t input = readImputs();
-    accelerateObject(&mc, &input);
 
 
     vga_clear(0xFF00FF00);
