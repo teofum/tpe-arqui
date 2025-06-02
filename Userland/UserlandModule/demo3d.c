@@ -25,6 +25,11 @@ int demo3d() {
   /*
    * Set up graphics system
    */
+
+  // Set half render resolution for speed
+  gfx_setRenderResolution(GFX_RES_HALF);
+
+  // Set up view and projection matrices
   float3 pos = {0, 2, 4};
   float3 target = {0, 0, 0};
   float3 up = {0, 1, 0};
@@ -35,6 +40,7 @@ int demo3d() {
   gfx_setMatrix(GFX_MAT_VIEW, &view);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
+  // Set up lighting
   float3 light = {-1, 0.5, -0.5};
   float3 lightcolor = {1, 1, 1};
   float3 ambient = {0.1, 0.1, 0.1};
@@ -44,19 +50,21 @@ int demo3d() {
   gfx_setLight(GFX_AMBIENT_LIGHT, &ambient);
   gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
 
+  // Material colors
   float3 colors[] = {
     {0.5, 0.5, 1.0}, {0.5, 0.5, 0.5}, {0.5, 0.0, 0.0},
     {0.0, 0.5, 0.5}, {0.5, 0.0, 0.5}, {0.5, 0.5, 0.0},
   };
 
+  // Load the teapot model
   gfx_parseObj(obj_utah, demo3d_v, demo3d_n, demo3d_vi, demo3d_ni);
 
+  /*
+   * Render loop
+   */
   int key = 0;
   while (!key) {
     gfx_clear(0x200020);
-
-    lightcolor.y = cos(angle) * cos(angle);
-    gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
 
     float4x4 model = mat_rotationY(angle);
     model = mmul(model, mat_translation(0, -1.0, 0));
@@ -66,11 +74,6 @@ int demo3d() {
       demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, 1567, colors[0]
     );
 
-    // model = mmul(model, mat_scale(0.7f, 0.7f, 0.7f));
-    // model = mmul(mat_translation(1, 1, 1), model);
-    // gfx_setMatrix(GFX_MAT_MODEL, &model);
-    //
-    // gfx_drawPrimitivesIndexed(v, n, vi, ni, 12, colors[1]);
     gfx_present();
 
     uint64_t frametime = frames == 0 ? 0 : ticksElapsed * 55 / frames;

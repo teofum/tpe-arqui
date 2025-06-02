@@ -250,4 +250,10 @@ void vga_present();
  */
 void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset);
 
+/*
+ * Copy the top-left corner of a framebuffer to a different framebuffer,
+ * multiplying size by two.
+ */
+void vga_copy2x(uint8_t *dst, uint8_t *src);
+
 #endif

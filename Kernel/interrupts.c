@@ -161,6 +161,7 @@ void initSyscalls() {
   registerSyscall(0x2A, vga_present);
   registerSyscall(0x2B, vga_setFramebuffer);
   registerSyscall(0x2C, vga_copy);
+  registerSyscall(0x2D, vga_copy2x);
 
   /* Status bar */
   registerSyscall(0x40, status_enabled);
@@ -177,6 +178,7 @@ void initSyscalls() {
   registerSyscall(0xAA, gfx_setLight);
   registerSyscall(0xAB, gfx_setLightType);
   registerSyscall(0xAC, gfx_setMatrix);
+  registerSyscall(0xAD, gfx_setRenderResolution);
   registerSyscall(0xAF, gfx_present);
 
   /* Special */

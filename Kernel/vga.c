@@ -556,3 +556,26 @@ void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset) {
     (OFFSET_Y >> 3) * (VGA_HEIGHT - offset)
   );
 }
+
+void vga_copy2x(uint8_t *dst, uint8_t *src) {
+  if (dst == NULL) dst = _framebuffer;
+  if (src == NULL) src = _framebuffer;
+
+  uint8_t *dst2 = dst + OFFSET_Y;
+  uint64_t width = VGA_WIDTH >> 1;
+  uint64_t height = VGA_HEIGHT >> 1;
+  for (uint64_t y = 0; y < height; y++) {
+    for (uint64_t x = 0; x < width; x++) {
+      dst[0] = dst[3] = dst2[0] = dst2[3] = src[0];
+      dst[1] = dst[4] = dst2[1] = dst2[4] = src[1];
+      dst[2] = dst[5] = dst2[2] = dst2[5] = src[2];
+
+      src += OFFSET_X;
+      dst += (OFFSET_X << 1);
+      dst2 += (OFFSET_X << 1);
+    }
+    src += (OFFSET_Y >> 1);
+    dst += OFFSET_Y;
+    dst2 += OFFSET_Y;
+  }
+}

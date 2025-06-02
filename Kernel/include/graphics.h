@@ -22,6 +22,11 @@ typedef enum {
   GFX_MAT_PROJECTION,
 } gfx_matrix_t;
 
+typedef enum {
+  GFX_RES_FULL,
+  GFX_RES_HALF,
+} gfx_res_t;
+
 void gfx_clear(color_t color);
 
 void gfx_drawPrimitives(
@@ -38,6 +43,8 @@ void gfx_setLight(gfx_lightSetting_t which, float3 *data);
 void gfx_setLightType(gfx_light_t mode);
 
 void gfx_setMatrix(gfx_matrix_t which, float4x4 *data);
+
+void gfx_setRenderResolution(gfx_res_t res);
 
 void gfx_present();
 

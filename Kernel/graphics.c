@@ -28,6 +28,14 @@ uint8_t _gfxFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
 float _depthbuffer[VGA_WIDTH * VGA_HEIGHT];
 
 /*
+ * Render resolution settings.
+ * Rendering at half resolution is supported for faster rendering.
+ */
+uint32_t gfx_renderWidth = VGA_WIDTH;
+uint32_t gfx_renderHeight = VGA_HEIGHT;
+gfx_res_t gfx_res = GFX_RES_FULL;
+
+/*
  * Graphics system state.
  * The graphics system is managed through system calls, modifying its internal
  * state to control rendering and requesting draws.
@@ -66,12 +74,15 @@ static void
 drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   uint8_t *fb = _gfxFramebuffer;
 
-  int32_t xi0 = ((v0.x + 1.0f) / 2.0f) * VGA_WIDTH;
-  int32_t xi1 = ((v1.x + 1.0f) / 2.0f) * VGA_WIDTH;
-  int32_t xi2 = ((v2.x + 1.0f) / 2.0f) * VGA_WIDTH;
-  int32_t yi0 = VGA_HEIGHT - 1 - ((v0.y + 1.0f) / 2.0f) * VGA_HEIGHT;
-  int32_t yi1 = VGA_HEIGHT - 1 - ((v1.y + 1.0f) / 2.0f) * VGA_HEIGHT;
-  int32_t yi2 = VGA_HEIGHT - 1 - ((v2.y + 1.0f) / 2.0f) * VGA_HEIGHT;
+  int32_t xi0 = ((v0.x + 1.0f) / 2.0f) * gfx_renderWidth;
+  int32_t xi1 = ((v1.x + 1.0f) / 2.0f) * gfx_renderWidth;
+  int32_t xi2 = ((v2.x + 1.0f) / 2.0f) * gfx_renderWidth;
+  int32_t yi0 =
+    gfx_renderHeight - 1 - ((v0.y + 1.0f) / 2.0f) * gfx_renderHeight;
+  int32_t yi1 =
+    gfx_renderHeight - 1 - ((v1.y + 1.0f) / 2.0f) * gfx_renderHeight;
+  int32_t yi2 =
+    gfx_renderHeight - 1 - ((v2.y + 1.0f) / 2.0f) * gfx_renderHeight;
 
   // Calculate triangle bounds in screen space
   // Add one pixel padding to compensate for rounding errors
@@ -83,8 +94,8 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   // Intersect bounds with screen edges
   top = max(top, 0);
   left = max(left, 0);
-  bottom = min(bottom, VGA_HEIGHT - 1);
-  right = min(right, VGA_WIDTH - 1);
+  bottom = min(bottom, gfx_renderHeight - 1);
+  right = min(right, gfx_renderWidth - 1);
 
   float invArea = 1.0f / edgeFunction(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
 
@@ -95,8 +106,8 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   uint32_t line_offset = step * (right - left + 1);
   uint32_t line_depthOffset = (right - left + 1);
 
-  float xstep = 2.0f / VGA_WIDTH;
-  float ystep = -2.0f / VGA_HEIGHT;
+  float xstep = 2.0f / gfx_renderWidth;
+  float ystep = -2.0f / gfx_renderHeight;
   float xstart = -1.0f + (left + 0.5f) * xstep;
   float xp = xstart;
   float yp = 1.0f + (top + 0.5f) * ystep;
@@ -157,7 +168,7 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
 
 void gfx_clear(color_t color) {
   uint64_t *fb = (uint64_t *) _gfxFramebuffer;
-  uint64_t size = (OFFSET_Y >> 3) * VGA_HEIGHT;
+  uint64_t size = (OFFSET_Y >> 3) * gfx_renderHeight;
 
   uint64_t c = color & 0xffffff;
   uint64_t data[] = {
@@ -172,7 +183,7 @@ void gfx_clear(color_t color) {
     fb[offset + 2] = data[2];
   }
 
-  uint64_t depthSize = VGA_WIDTH * VGA_HEIGHT;
+  uint64_t depthSize = VGA_WIDTH * gfx_renderHeight;
   for (uint64_t offset = 0; offset < depthSize; offset++) {
     _depthbuffer[offset] = 999.0f;
   }
@@ -306,10 +317,22 @@ void gfx_setMatrix(gfx_matrix_t which, float4x4 *data) {
   }
 }
 
+void gfx_setRenderResolution(gfx_res_t res) {
+  gfx_res = res;
+  gfx_renderWidth = res == GFX_RES_HALF ? (VGA_WIDTH >> 1) : VGA_WIDTH;
+  gfx_renderHeight = res == GFX_RES_HALF ? (VGA_HEIGHT >> 1) : VGA_HEIGHT;
+}
+
 /*
  * Copy the internal framebuffer to some other fb
  */
-void gfx_present() { vga_copy(NULL, _gfxFramebuffer, 0); }
+void gfx_present() {
+  if (gfx_res == GFX_RES_HALF) {
+    vga_copy2x(NULL, _gfxFramebuffer);
+  } else {
+    vga_copy(NULL, _gfxFramebuffer, 0);
+  }
+}
 
 static const char *parseFloat(const char *data, float *out) {
   char c;

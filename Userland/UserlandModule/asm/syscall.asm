@@ -127,6 +127,12 @@ vga_copy:
     int 0x80
     ret
 
+global vga_copy2x
+vga_copy2x:
+    mov rax, 0x2D
+    int 0x80
+    ret
+
 global gfx_clear
 gfx_clear:
     mov rax, 0xA0
@@ -166,6 +172,12 @@ gfx_setLightType:
 global gfx_setMatrix
 gfx_setMatrix:
     mov rax, 0xAC
+    int 0x80
+    ret
+
+global gfx_setRenderResolution
+gfx_setRenderResolution:
+    mov rax, 0xAD
     int 0x80
     ret
 

@@ -154,4 +154,10 @@ extern void vga_present();
  */
 extern void vga_copy(uint8_t *dst, uint8_t *src, uint64_t offset);
 
+/*
+ * Copy the top-left corner of a framebuffer to a different framebuffer,
+ * multiplying size by two.
+ */
+void vga_copy2x(uint8_t *dst, uint8_t *src);
+
 #endif
