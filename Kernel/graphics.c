@@ -74,10 +74,11 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
   int32_t yi2 = VGA_HEIGHT - 1 - ((v2.y + 1.0f) / 2.0f) * VGA_HEIGHT;
 
   // Calculate triangle bounds in screen space
-  int32_t top = min(yi0, min(yi1, yi2));
-  int32_t left = min(xi0, min(xi1, xi2));
-  int32_t bottom = max(yi0, max(yi1, yi2));
-  int32_t right = max(xi0, max(xi1, xi2));
+  // Add one pixel padding to compensate for rounding errors
+  int32_t top = min(yi0, min(yi1, yi2)) - 1;
+  int32_t left = min(xi0, min(xi1, xi2)) - 1;
+  int32_t bottom = max(yi0, max(yi1, yi2)) + 1;
+  int32_t right = max(xi0, max(xi1, xi2)) + 1;
 
   // Intersect bounds with screen edges
   top = max(top, 0);
