@@ -65,6 +65,9 @@ float3 vcross(float3 a, float3 b);
 /* Magnitude (norm) of a vector */
 float vabs(float3 v);
 
+/* Squared magnitude (norm) of a vector */
+float vabssq(float3 v);
+
 /* Normalized vector */
 float3 vnorm(float3 v);
 

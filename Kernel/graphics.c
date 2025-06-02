@@ -223,17 +223,21 @@ drawPrimitive(float3 *v, float3 *n, uint32_t *vi, uint32_t *ni, float3 color) {
     normal = vnorm(normal);
 
     float3 light;
+    float intensity = 1.0f;
     switch (gfx_lightType) {
       case GFX_LIGHT_DIRECTIONAL:
         light = vnorm(gfx_lightPos);
         break;
       case GFX_LIGHT_POINT:
         light = vsub(gfx_lightPos, vred(vertex));
+        float distanceSq = vabssq(light);
+        intensity /= distanceSq;
+
         light = vnorm(light);
         break;
     }
 
-    float intensity = vdot(normal, light);
+    intensity *= vdot(normal, light);
     intensity = max(intensity, 0.0f);
 
     float3 lightColor = vmuls(gfx_lightColor, intensity);

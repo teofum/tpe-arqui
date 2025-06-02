@@ -102,8 +102,9 @@ int demo3d() {
 
     // For point light, make it orbit around the model
     if (lightType == GFX_LIGHT_POINT) {
-      light.x = 3.0f * sin(angle);
-      light.z = -3.0f * cos(angle);
+      light.x = 2.5f * sin(angle);
+      light.z = -2.5f * cos(angle);
+      gfx_setLight(GFX_LIGHT_POSITION, &light);
     }
 
     // Clear the internal framebuffer and depth buffer

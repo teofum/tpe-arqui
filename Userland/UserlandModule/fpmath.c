@@ -44,6 +44,8 @@ float3 vcross(float3 a, float3 b) {
 
 float vabs(float3 v) { return sqrt(vdot(v, v)); }
 
+float vabssq(float3 v) { return vdot(v, v); }
+
 float3 vnorm(float3 v) { return vdivs(v, vabs(v)); }
 
 /* Vector operations */
