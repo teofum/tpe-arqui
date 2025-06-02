@@ -228,7 +228,9 @@ drawPrimitive(float3 *v, float3 *n, uint32_t *vi, uint32_t *ni, float3 color) {
         light = vnorm(gfx_lightPos);
         break;
       case GFX_LIGHT_POINT:
-        light = vnorm(vsub(gfx_lightPos, vred(vertex)));
+        light = vsub(gfx_lightPos, vred(vertex));
+        light = vnorm(light);
+        break;
     }
 
     float intensity = vdot(normal, light);
