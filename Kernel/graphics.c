@@ -1,7 +1,8 @@
-#include "fpmath.h"
-#include "vga.h"
+#include <fpmath.h>
 #include <graphics.h>
+#include <print.h>
 #include <stddef.h>
+#include <vga.h>
 
 #define OFFSET_X (3)
 #define OFFSET_Y (3 * VGA_WIDTH)
@@ -203,7 +204,7 @@ drawPrimitive(float3 *v, float3 *n, uint32_t *vi, uint32_t *ni, float3 color) {
     lightColor = vadd(lightColor, gfx_ambientLight);
     c[i] = vmul(color, lightColor);
 
-    // Transform to clip space
+    // Transform vertex to clip space
     vertex = mvmul(gfx_viewProjection, vertex);
     vClip[i] = vpersp(vertex);
   }
@@ -285,3 +286,105 @@ void gfx_setMatrix(gfx_matrix_t which, float4x4 *data) {
  * Copy the internal framebuffer to some other fb
  */
 void gfx_present() { vga_copy(NULL, _gfxFramebuffer, 0); }
+
+static const char *parseFloat(const char *data, float *out) {
+  char c;
+  int decimal = 0;
+  float weight = 1.0f;
+  float sign = 1.0f;
+  *out = 0.0f;
+  while ((c = *data++) != ' ' && c != 0) {
+    if (c == '-') {
+      sign = -sign;
+    } else if (c == '.') {
+      decimal = 1;
+      weight *= 0.1f;
+    } else if (c >= '0' && c <= '9') {
+      uint32_t digit = c - '0';
+      if (decimal) {
+        *out += (float) digit * weight;
+        weight *= 0.1f;
+      } else {
+        *out *= 10.0f;
+        *out += (float) digit;
+      }
+    }
+    // Break *before* a newline so it gets processed by nextLine()
+    if (data[1] == '\n') break;
+  }
+
+  *out *= sign;
+  return data;
+}
+
+static const char *parseObjFloat3(const char *data, float3 *out) {
+  data = parseFloat(data, &out->x);
+  data = parseFloat(data, &out->y);
+  data = parseFloat(data, &out->z);
+
+  return data;
+}
+
+static const char *parseUnsigned(const char *data, uint32_t *out) {
+  char c;
+  *out = 0.0f;
+  while ((c = *data++) != ' ' && c != '/' && c != 0) {
+    if (c >= '0' && c <= '9') {
+      uint32_t digit = c - '0';
+      *out *= 10;
+      *out += digit;
+    }
+    // Break *before* a newline so it gets processed by nextLine()
+    if (data[1] == '\n') break;
+  }
+
+  return data;
+}
+
+static const char *
+parseObjIndices(const char *data, uint32_t *vi, uint32_t *ni) {
+  char c;
+  for (int i = 2; i >= 0; i--) {
+    data = parseUnsigned(data, &vi[i]);
+    vi[i]--;// Account for obj using 1-indexing for some unfathomable reason
+    while ((c = *data++) != '/' && c != ' ' && c != 0);
+    data = parseUnsigned(data, &ni[i]);
+    ni[i]--;
+  }
+
+  return data;
+}
+
+static const char *nextLine(const char *data) {
+  char c;
+  while ((c = *data++) != '\n' && c != 0);
+  return data;
+}
+
+void gfx_parseObj(
+  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni
+) {
+  char c;
+  while ((c = *data++) != 0) {
+    switch (c) {
+      case 'v':
+        c = *data++;
+        if (c == 'n') {
+          data++;// skip the space
+          data = parseObjFloat3(data, n++);
+        } else if (c == ' ') {
+          data = parseObjFloat3(data, v++);
+        }
+        break;
+      case 'f':
+        c = *data++;
+        if (c == ' ') {
+          data = parseObjIndices(data, vi, ni);
+          vi += 3;
+          ni += 3;
+        }
+        break;
+    }
+    data = nextLine(data);
+  }
+}

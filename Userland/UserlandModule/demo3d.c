@@ -7,6 +7,13 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
+extern const char *obj_utah;
+
+float3 demo3d_v[900];
+float3 demo3d_n[900];
+uint32_t demo3d_vi[1600 * 3];
+uint32_t demo3d_ni[1600 * 3];
+
 int demo3d() {
   // Disable status bar drawing while application is active
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
@@ -41,15 +48,9 @@ int demo3d() {
     {0.5, 0.5, 1.0}, {0.5, 0.5, 0.5}, {0.5, 0.0, 0.0},
     {0.0, 0.5, 0.5}, {0.5, 0.0, 0.5}, {0.5, 0.5, 0.0},
   };
-  float3 v[] = {{-1, -1, -1}, {-1, -1, 1}, {-1, 1, -1}, {-1, 1, 1},
-                {1, -1, -1},  {1, -1, 1},  {1, 1, -1},  {1, 1, 1}};
-  float3 n[] = {
-    {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1},
-  };
-  uint32_t vi[] = {0, 2, 1, 1, 2, 3, 4, 5, 6, 5, 7, 6, 0, 1, 4, 1, 5, 4,
-                   2, 6, 3, 6, 7, 3, 0, 4, 2, 4, 6, 2, 3, 5, 1, 3, 7, 5};
-  uint32_t ni[] = {1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3,
-                   2, 2, 2, 2, 2, 2, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4};
+
+  gfx_parseObj(obj_utah, demo3d_v, demo3d_n, demo3d_vi, demo3d_ni);
+  printf("loaded obj %u %u %u\n", demo3d_vi[0], demo3d_vi[1], demo3d_ni[0]);
 
   int key = 0;
   while (!key) {
@@ -59,15 +60,18 @@ int demo3d() {
     gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
 
     float4x4 model = mat_rotationY(angle);
+    model = mmul(model, mat_translation(0, -1.0, 0));
     gfx_setMatrix(GFX_MAT_MODEL, &model);
 
-    gfx_drawPrimitivesIndexed(v, n, vi, ni, 12, colors[0]);
+    gfx_drawPrimitivesIndexed(
+      demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, 1567, colors[0]
+    );
 
-    model = mmul(model, mat_scale(0.7f, 0.7f, 0.7f));
-    model = mmul(mat_translation(1, 1, 1), model);
-    gfx_setMatrix(GFX_MAT_MODEL, &model);
-
-    gfx_drawPrimitivesIndexed(v, n, vi, ni, 12, colors[1]);
+    // model = mmul(model, mat_scale(0.7f, 0.7f, 0.7f));
+    // model = mmul(mat_translation(1, 1, 1), model);
+    // gfx_setMatrix(GFX_MAT_MODEL, &model);
+    //
+    // gfx_drawPrimitivesIndexed(v, n, vi, ni, 12, colors[1]);
     gfx_present();
 
     uint64_t frametime = frames == 0 ? 0 : ticksElapsed * 55 / frames;

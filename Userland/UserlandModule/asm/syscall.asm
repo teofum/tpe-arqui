@@ -145,6 +145,12 @@ gfx_drawPrimitivesIndexed:
     int 0x80
     ret
 
+global gfx_parseObj
+gfx_parseObj:
+    mov rax, 0xA9
+    int 0x80
+    ret
+
 global gfx_setLight
 gfx_setLight:
     mov rax, 0xAA

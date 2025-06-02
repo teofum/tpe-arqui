@@ -41,4 +41,8 @@ void gfx_setMatrix(gfx_matrix_t which, float4x4 *data);
 
 void gfx_present();
 
+void gfx_parseObj(
+  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni
+);
+
 #endif
