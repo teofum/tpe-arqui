@@ -203,6 +203,7 @@ drawPrimitive(float3 *v, float3 *n, uint32_t *vi, uint32_t *ni, float3 color) {
     float3 lightColor = vmuls(gfx_lightColor, intensity);
     lightColor = vadd(lightColor, gfx_ambientLight);
     c[i] = vmul(color, lightColor);
+    c[i] = vsat(c[i]);
 
     // Transform vertex to clip space
     vertex = mvmul(gfx_viewProjection, vertex);

@@ -88,6 +88,15 @@ float3 vdivs(float3 a, float s) {
   return r;
 }
 
+float3 vsat(float3 v) {
+  float3 r = {
+    min(1.0f, max(0.0f, v.x)),
+    min(1.0f, max(0.0f, v.y)),
+    min(1.0f, max(0.0f, v.z)),
+  };
+  return r;
+}
+
 /* Vector conversions */
 
 /*

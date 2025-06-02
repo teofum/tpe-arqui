@@ -57,6 +57,11 @@ float3 vdiv(float3 a, float3 b);
 
 float3 vdivs(float3 a, float s);
 
+/*
+ * Clamp the ocmponents of a vector between 0 and 1
+ */
+float3 vsat(float3 v);
+
 /* Vector conversions */
 
 /*
