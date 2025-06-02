@@ -1,5 +1,9 @@
 #include <golfGame.h>
 
+typedef struct {
+  /* data */
+} directionController_t;
+
 
 void drawObject(physicsObject_t *obj
 ) {// TODO, hace falta algo para dibujar un circulo
@@ -85,17 +89,20 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
 */
 void doCollision(physicsObject_t *a, physicsObject_t *b) {
 
+  float va = abs(a->vx) + abs(a->vy);
+  float vb = abs(b->vx) + abs(b->vy);
+
   vector_t dir = {0};
   checkCollision(a, b, &dir);
   if ((dir.x != 0) || (dir.y != 0)) {
 
     vector_t dirb = dir;
-    dirb.x *= b->mass;
-    dirb.y *= b->mass;
+    dirb.x *= (b->mass * (va + vb));
+    dirb.y *= (b->mass * (va + vb));
     accelerateObject(b, &dirb);
 
-    dir.x = -(dir.x * a->mass);
-    dir.y = -(dir.y * b->mass);
+    dir.x *= -((a->mass * (va + vb)));
+    dir.y *= -((a->mass * (va + vb)));
     accelerateObject(a, &dir);
   }
 }
@@ -110,10 +117,11 @@ void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float distsqr = sqr(difx) + sqr(dify);
 
   if (distsqr <= sqr(b->size + a->size)) {
-    dir->x = difx;
-    dir->y = dify;
+    dir->x = signo(difx);
+    dir->y = signo(dify);
   }
 }
+
 
 /*
 * checks if obj is in a hole or mount and applyes a apropiate vel
@@ -155,7 +163,6 @@ int gg_startGame() {
   mc.size = 20;
   mc.mass = 0.1;
 
-
   physicsObject_t ball = {0};
   ball.color = 0xffFF00A0;
   ball.x = VGA_WIDTH / 4;
@@ -169,6 +176,7 @@ int gg_startGame() {
   hole.y = 200;
   hole.size = 100;
   hole.incline = 0.5;
+
 
   while (1) {
     updateObject(&ball);

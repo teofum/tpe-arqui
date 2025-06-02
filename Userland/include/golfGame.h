@@ -12,8 +12,8 @@
 #define VMAX 10
 
 //la necesite la robe de vga, utils.h estaria bueno
-#define abs(x) ((x) > 0 ? (x) : -(x))
-#define signo(x) ((x > 0) ? 1 : -1)
+#define abs(x) ((x) >= 0 ? (x) : -(x))
+#define signo(x) (((x) == 0) ? 0 : ((x) > 0 ? 1 : -1))
 #define sqr(x) ((x) * (x))
 #define chaeckMaxv(x) (x > VMAX ? VMAX : (x < -VMAX ? -VMAX : x))
 //
