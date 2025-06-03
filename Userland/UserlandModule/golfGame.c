@@ -16,7 +16,9 @@ void drawHole(enviroment_t *env) {
 
 
 /*
-*   Reads player input and makes a vector of it 
+*   Reads player input and accelerates it
+*   /aka if you use this, the player doesnt need to be
+*   updated 
 *   Note: onely 8 directions
 */
 void updatePlayerDirectional(physicsObject_t *obj) {
@@ -44,12 +46,14 @@ void updatePlayerTank(physicsObject_t *obj) {
   int right = kbd_keydown(KEY_ARROW_RIGHT);
   int left = kbd_keydown(KEY_ARROW_LEFT);
 
+  // if (right) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }  //no anda el %
+  // if (left) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }
   if (right) { obj->angle += TURNS_SPEED; }
   if (left) { obj->angle -= TURNS_SPEED; }
   if (up) {
     vector_t dir = {0};
-    // dir.x = sinf(obj->angle);
-    // dir.y = cosf(obj->angle);
+    dir.x = cos(obj->angle);
+    dir.y = sin(obj->angle);
     accelerateObject(obj, &dir);
   }
 }
@@ -111,7 +115,7 @@ void doCollision(physicsObject_t *a, physicsObject_t *b) {
   checkCollision(a, b, &dir);
   if ((dir.x != 0) || (dir.y != 0)) {
 
-    vector_t dirb = dir;
+    vector_t dirb = dir;//TODO: esto esta andando raro
     dirb.x *= (b->mass * (va + vb));
     dirb.y *= (b->mass * (va + vb));
     accelerateObject(b, &dirb);
@@ -132,9 +136,9 @@ void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float distsqr = sqr(difx) + sqr(dify);
 
   if (distsqr <= sqr(b->size + a->size)) {
-    dir->x = signo(difx
-    );//TODO esto no tiene que ser signo, tiene que ser cos y sin creo chequiar
-    dir->y = signo(dify);
+    //TODO, habria que normalizarlo o algo asi/ ///////////////////////
+    dir->x = (difx);
+    dir->y = (dify);
   }
 }
 
@@ -195,7 +199,8 @@ int gg_startGame() {
 
 
   while (1) {
-    updatePlayerDirectional(&mc);
+    // updatePlayerDirectional(&mc);
+    updatePlayerTank(&mc);
     updateObject(&ball);
     doCollision(&mc, &ball);
     doEnviroment(&hole, &mc);

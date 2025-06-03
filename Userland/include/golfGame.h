@@ -1,6 +1,7 @@
 #ifndef GOLF_GAME
 #define GOLF_GAME 0
 
+#include <fpmath.h>
 #include <kbd.h>
 #include <stdint.h>
 #include <vga.h>
@@ -9,7 +10,7 @@
 //afecta que tanto v se aplica por frame,                                    \
 //mas bajo se mueve mas lento pero va mas fluido
 #define VMAX 10
-#define TURNS_SPEED 1
+#define TURNS_SPEED 0.01
 
 //la necesite la robe de vga, utils.h estaria bueno
 #define abs(x) ((x) >= 0 ? (x) : -(x))
