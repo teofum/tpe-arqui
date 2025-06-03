@@ -1,6 +1,7 @@
 #include <golfGame.h>
 
-void drawObject(physicsObject_t *obj
+void drawObject(
+  physicsObject_t *obj
 ) {// TODO, hace falta algo para dibujar un circulo
   vga_rect(
     (obj->x - obj->size), (obj->y - obj->size), (obj->x + obj->size),
@@ -14,58 +15,6 @@ void drawHole(enviroment_t *env) {
   );
 }
 
-
-/*
-*   Reads player input and accelerates it
-*   /aka if you use this, the player doesnt need to be
-*   updated 
-*   Note: onely 8 directions
-*/
-void updatePlayerDirectional(physicsObject_t *obj) {
-  kbd_pollEvents();
-  vector_t arrowKeys = {0};
-  int up = kbd_keydown(KEY_ARROW_UP);
-  int down = kbd_keydown(KEY_ARROW_DOWN);
-  int right = kbd_keydown(KEY_ARROW_RIGHT);
-  int left = kbd_keydown(KEY_ARROW_LEFT);
-
-  if (up || down) { arrowKeys.y = (down - up); }
-  if (left || right) { arrowKeys.x = (right - left); }
-
-  accelerateObject(obj, &arrowKeys);
-}
-/*
-* tank controls for player, accelerates it
-* /aka if you use this, the player doesnt need to be
-* updated 
-*/
-void updatePlayerTank(physicsObject_t *obj) {
-  kbd_pollEvents();
-  int up = kbd_keydown(KEY_ARROW_UP);
-  int down = kbd_keydown(KEY_ARROW_DOWN);
-  int right = kbd_keydown(KEY_ARROW_RIGHT);
-  int left = kbd_keydown(KEY_ARROW_LEFT);
-
-  // if (right) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }  //no anda el %
-  // if (left) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }
-  if (right) { obj->angle += TURNS_SPEED; }
-  if (left) { obj->angle -= TURNS_SPEED; }
-  if (up) {
-    vector_t dir = {0};
-    dir.x = cos(obj->angle);
-    dir.y = sin(obj->angle);
-    accelerateObject(obj, &dir);
-  }
-}
-
-
-/*
-* Actualiza el estado sin aplicarle una aceleracion
-*/
-void updateObject(physicsObject_t *obj) {
-  vector_t v0 = {0};
-  accelerateObject(obj, &v0);
-}
 /*
 * Aplica "aceleracion" y actualiza el estado 
 */
@@ -104,6 +53,75 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
 }
 
 /*
+*   Reads player input and accelerates it
+*   /aka if you use this, the player doesnt need to be
+*   updated 
+*   Note: onely 8 directions
+*/
+void updatePlayerDirectional(physicsObject_t *obj) {
+  kbd_pollEvents();
+  vector_t arrowKeys = {0};
+  int up = kbd_keydown(KEY_ARROW_UP);
+  int down = kbd_keydown(KEY_ARROW_DOWN);
+  int right = kbd_keydown(KEY_ARROW_RIGHT);
+  int left = kbd_keydown(KEY_ARROW_LEFT);
+
+  if (up || down) { arrowKeys.y = (down - up); }
+  if (left || right) { arrowKeys.x = (right - left); }
+
+  accelerateObject(obj, &arrowKeys);
+}
+
+/*
+* tank controls for player, accelerates it
+* /aka if you use this, the player doesnt need to be
+* updated 
+*/
+void updatePlayerTank(physicsObject_t *obj) {
+  kbd_pollEvents();
+  int up = kbd_keydown(KEY_ARROW_UP);
+  int down = kbd_keydown(KEY_ARROW_DOWN);
+  int right = kbd_keydown(KEY_ARROW_RIGHT);
+  int left = kbd_keydown(KEY_ARROW_LEFT);
+
+  // if (right) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }  //no anda el %
+  // if (left) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }
+  if (right) { obj->angle += TURNS_SPEED; }
+  if (left) { obj->angle -= TURNS_SPEED; }
+  if (up) {
+    vector_t dir = {0};
+    dir.x = cos(obj->angle);
+    dir.y = sin(obj->angle);
+    accelerateObject(obj, &dir);
+  }
+}
+
+/*
+* Actualiza el estado sin aplicarle una aceleracion
+*/
+void updateObject(physicsObject_t *obj) {
+  vector_t v0 = {0};
+  accelerateObject(obj, &v0);
+}
+
+/*
+* asumiendo que son circulos 
+* retorna el vetor de 'a' a 'b'
+*/ //notalolo: final menos inicial
+void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
+
+  float difx = b->x - a->x;
+  float dify = b->y - a->y;
+  float distsqr = sqr(difx) + sqr(dify);
+
+  if (distsqr <= sqr(b->size + a->size)) {
+    //TODO, habria que normalizarlo o algo asi/ ///////////////////////
+    dir->x = (difx);
+    dir->y = (dify);
+  }
+}
+
+/*
 * checks if a colition happens and applyes a repeling vel
 */
 void doCollision(physicsObject_t *a, physicsObject_t *b) {
@@ -125,35 +143,7 @@ void doCollision(physicsObject_t *a, physicsObject_t *b) {
     accelerateObject(a, &dir);
   }
 }
-/*
-* asumiendo que son circulos 
-* retorna el vetor de 'a' a 'b'
-*/ //notalolo: final menos inicial
-void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
 
-  float difx = b->x - a->x;
-  float dify = b->y - a->y;
-  float distsqr = sqr(difx) + sqr(dify);
-
-  if (distsqr <= sqr(b->size + a->size)) {
-    //TODO, habria que normalizarlo o algo asi/ ///////////////////////
-    dir->x = (difx);
-    dir->y = (dify);
-  }
-}
-
-
-/*
-* checks if obj is in a hole or mount and applyes a apropiate vel
-*/
-void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
-  vector_t dir = {0};
-  checkEnviroment(env, obj, &dir);
-  if ((dir.x != 0) || (dir.y != 0)) {
-    obj->vx += dir.x * env->incline;
-    obj->vy += dir.y * env->incline;
-  }
-}
 /* //IDEM checkColition
 * asumiendo que son circulos 
 * retorna el vetor de 'env' a 'obj'
@@ -169,6 +159,17 @@ void checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
   }
 }
 
+/*
+* checks if obj is in a hole or mount and applyes a apropiate vel
+*/
+void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
+  vector_t dir = {0};
+  checkEnviroment(env, obj, &dir);
+  if ((dir.x != 0) || (dir.y != 0)) {
+    obj->vx += dir.x * env->incline;
+    obj->vy += dir.y * env->incline;
+  }
+}
 
 /*
 * Setup y main game loop
@@ -177,16 +178,16 @@ int gg_startGame() {
 
   physicsObject_t mc = {0};
   mc.color = 0xffFF0080;
-  mc.x = VGA_WIDTH / 2;
-  mc.y = VGA_HEIGHT / 2;
+  mc.x = VGA_WIDTH * 0.5f;
+  mc.y = VGA_HEIGHT * 0.5f;
   mc.gama = 0.1;
   mc.size = 20;
   mc.mass = 0.1;
 
   physicsObject_t ball = {0};
   ball.color = 0xffFF00A0;
-  ball.x = VGA_WIDTH / 4;
-  ball.y = VGA_HEIGHT / 2;
+  ball.x = VGA_WIDTH * 4.0f;
+  ball.y = VGA_HEIGHT * 4.0f;
   ball.gama = 0.05;
   ball.size = 10;
   ball.mass = 1;
@@ -205,7 +206,6 @@ int gg_startGame() {
     doCollision(&mc, &ball);
     doEnviroment(&hole, &mc);
     doEnviroment(&hole, &ball);
-
 
     vga_clear(0xFF00FF00);
     drawHole(&hole);
