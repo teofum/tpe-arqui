@@ -162,6 +162,7 @@ void initSyscalls() {
   registerSyscall(0x2B, vga_setFramebuffer);
   registerSyscall(0x2C, vga_copy);
   registerSyscall(0x2D, vga_copy2x);
+  registerSyscall(0x2E, vga_bitmap);
 
   /* Status bar */
   registerSyscall(0x40, status_enabled);

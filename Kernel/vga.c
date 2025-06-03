@@ -31,6 +31,12 @@
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
+typedef enum {
+  VGA_BMP_TRUECOLOR = 0x0,
+  VGA_BMP_256,
+  VGA_BMP_16,
+} vga_colormode_t;
+
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 /*
@@ -525,6 +531,92 @@ void vga_textWrap(
     }
 
     i++;
+  }
+}
+
+static inline void
+putpixels(uint64_t offset, uint16_t scale, color_t color, uint8_t flags) {
+  for (int i = 0; i < scale; i++) {
+    for (int j = 0; j < scale; j++) {
+      blendpixel(
+        VGA_FRAMEBUFFER, offset + i * OFFSET_Y + j * OFFSET_X, color, flags
+      );
+    }
+  }
+}
+
+void vga_bitmap(
+  uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
+) {
+  // First 8 bytes of bitmap data are a header, with 4 bytes for width and height each
+  uint32_t width = *(uint32_t *) data;
+  data += 4;
+  uint32_t height = *(uint32_t *) data;
+  data += 4;
+
+  vga_colormode_t colormode = *(uint32_t *) data;
+  data += 4;
+  uint32_t paletteSize =
+    colormode == VGA_BMP_TRUECOLOR ? 0 : (colormode == VGA_BMP_256 ? 256 : 16);
+
+  color_t palette[256];
+  for (uint32_t i = 0; i < paletteSize; i++) {
+    palette[i] = *(uint32_t *) data;
+    data += 4;
+  }
+
+  uint32_t y1 = y0 + height;
+  uint32_t x1 = x0 + width;
+
+  uint32_t i = 0;
+  uint64_t offset = pixelOffset(x0, y0);
+  uint64_t lineStart = offset;
+
+  uint64_t xOffset = OFFSET_X * scale;
+  uint64_t yOffset = OFFSET_Y * scale;
+
+  switch (colormode) {
+    case VGA_BMP_TRUECOLOR:
+      for (uint16_t y = y0; y < y1; y++) {
+        for (uint16_t x = x0; x < x1; x++) {
+          // Offset data pointer left by one byte so we get RGB data, alpha is thrown away.
+          putpixels(offset, scale, *(uint32_t *) (data - 1), flags);
+          offset += xOffset;
+          data += 3;
+        }
+
+        lineStart += yOffset;
+        offset = lineStart;
+      }
+      break;
+    case VGA_BMP_256:
+      for (uint16_t y = y0; y < y1; y++) {
+        for (uint16_t x = x0; x < x1; x++) {
+          color_t color = palette[*data++];
+          putpixels(offset, scale, color, flags);
+          offset += xOffset;
+        }
+
+        lineStart += yOffset;
+        offset = lineStart;
+      }
+      break;
+    case VGA_BMP_16:
+      for (uint16_t y = y0; y < y1; y++) {
+        for (uint16_t x = x0; x < x1; x++) {
+          uint8_t idx = data[i >> 1];
+          idx = (i % 2) ? idx & 0x0f : idx >> 4;
+
+          color_t color = palette[idx];
+          putpixels(offset, scale, color, flags);
+          offset += xOffset;
+          i++;
+        }
+
+        lineStart += yOffset;
+        offset = lineStart;
+      }
+      break;
   }
 }
 
