@@ -6,11 +6,11 @@
 #include <stdint.h>
 #include <vga.h>
 
-#define T 1
+#define T 1.0f
 //afecta que tanto v se aplica por frame,                                    \
 //mas bajo se mueve mas lento pero va mas fluido
-#define VMAX 10
-#define TURNS_SPEED 0.01
+#define VMAX 0.8f
+#define TURNS_SPEED 0.01f
 
 //la necesite la robe de vga, utils.h estaria bueno
 #define abs(x) ((x) >= 0 ? (x) : -(x))
@@ -31,7 +31,7 @@ typedef struct {
   float mass;// para colisions y podria afectar el gama
   // si usamos la inversa de la masa nos ahoramos la division de float
 
-  float gama;// friction/arraste // NO es exacto, es una idea mas simple
+  float drag;// friction/arraste // NO es exacto, es una idea mas simple
 
   float angle;
 
@@ -44,13 +44,12 @@ typedef struct {
 
   int size;
   float incline;
-
 } enviroment_t;
 
 
 typedef struct {// por alguna extrana rason no puedo usar floats aca
-  int x;
-  int y;
+  float x;
+  float y;
 } vector_t;
 
 

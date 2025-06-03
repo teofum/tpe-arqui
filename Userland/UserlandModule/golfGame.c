@@ -1,4 +1,6 @@
+#include <fpmath.h>
 #include <golfGame.h>
+#include <syscall.h>
 
 void drawObject(
   physicsObject_t *obj
@@ -7,6 +9,11 @@ void drawObject(
     (obj->x - obj->size), (obj->y - obj->size), (obj->x + obj->size),
     (obj->y + obj->size), obj->color, 0
   );
+
+  vector_t p;
+  p.x = obj->x + 20.0f * cos(obj->angle);
+  p.y = obj->y + 20.0f * sin(obj->angle);
+  vga_line(obj->x, obj->y, p.x, p.y, 0xffffff, 0);
 }
 void drawHole(enviroment_t *env) {
   vga_rect(
@@ -19,36 +26,17 @@ void drawHole(enviroment_t *env) {
 * Aplica "aceleracion" y actualiza el estado 
 */
 void accelerateObject(physicsObject_t *obj, vector_t *dir) {
-  float oldvx = obj->vx;// es para que no oscile dont worry about it
-  float oldvy = obj->vy;
-  float oldx = obj->x;//para bounds
-  float oldy = obj->y;
+  // Add velocity
+  obj->vx += dir->x;
+  obj->vy += dir->y;
 
-  //add drag
-  obj->vx -= (obj->vx * obj->gama);
-  obj->vy -= (obj->vy * obj->gama);
-  //make sure that drag doesnt push the other way
-  if ((oldvx * obj->vx) < 0) { obj->vx = 0; }//tiene que solo aplicar al gama
-  if ((oldvy * obj->vy) < 0) { obj->vy = 0; }
-
-  //add velocity
-  obj->vx += (dir->x);// * obj->mass);
-  obj->vy += (dir->y);// * obj->mass);
-  //check max vel
-  obj->vx = (chaeckMaxv(obj->vx));
-  obj->vy = (chaeckMaxv(obj->vy));
-
-  //update pos
-  obj->x += obj->vx * T;
-  obj->y += obj->vy * T;
-  //che maxBounds
-  if ((obj->x - obj->size) < 0 || (obj->x + obj->size) > VGA_WIDTH) {
-    obj->x = oldx;
-    obj->vx = -(obj->vx);
-  }
-  if ((obj->y - obj->size) < 0 || (obj->y + obj->size) > VGA_HEIGHT) {
-    obj->y = oldy;
-    obj->vy = -(obj->vy);
+  // Cap velocity
+  // TODO this should be a parameter for different objects
+  float v = sqrt(sqr(obj->vx) + sqr(obj->vy));
+  if (v > VMAX) {
+    float factor = VMAX / v;
+    obj->vx *= factor;
+    obj->vy *= factor;
   }
 }
 
@@ -84,14 +72,19 @@ void updatePlayerTank(physicsObject_t *obj) {
   int right = kbd_keydown(KEY_ARROW_RIGHT);
   int left = kbd_keydown(KEY_ARROW_LEFT);
 
-  // if (right) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }  //no anda el %
-  // if (left) { obj->angle = (obj->angle * TURNS_SPEED) % (2 * M_PI); }
-  if (right) { obj->angle += TURNS_SPEED; }
-  if (left) { obj->angle -= TURNS_SPEED; }
+  if (right) {
+    obj->angle += TURNS_SPEED;
+    if (obj->angle > M_PI) obj->angle -= 2.0f * M_PI;
+  }
+  if (left) {
+    obj->angle -= TURNS_SPEED;
+    if (obj->angle < -M_PI) obj->angle += 2.0f * M_PI;
+  }
   if (up) {
-    vector_t dir = {0};
-    dir.x = cos(obj->angle);
-    dir.y = sin(obj->angle);
+    vector_t dir;
+    // TODO make acceleration a constant
+    dir.x = 0.5f * cos(obj->angle);
+    dir.y = 0.5f * sin(obj->angle);
     accelerateObject(obj, &dir);
   }
 }
@@ -100,8 +93,29 @@ void updatePlayerTank(physicsObject_t *obj) {
 * Actualiza el estado sin aplicarle una aceleracion
 */
 void updateObject(physicsObject_t *obj) {
-  vector_t v0 = {0};
-  accelerateObject(obj, &v0);
+  float oldvx = obj->vx;// es para que no oscile dont worry about it
+  float oldvy = obj->vy;
+
+  float oldx = obj->x;//para bounds
+  float oldy = obj->y;
+
+  //add drag
+  obj->vx -= obj->vx * obj->drag;
+  obj->vy -= obj->vy * obj->drag;
+
+  //update pos
+  obj->x += obj->vx * T;
+  obj->y += obj->vy * T;
+
+  // //che maxBounds
+  if ((obj->x - obj->size) < 0 || (obj->x + obj->size) > VGA_WIDTH - 1) {
+    obj->x = oldx;
+    obj->vx = -(obj->vx);
+  }
+  if ((obj->y - obj->size) < 0 || (obj->y + obj->size) > VGA_HEIGHT - 1) {
+    obj->y = oldy;
+    obj->vy = -(obj->vy);
+  }
 }
 
 /*
@@ -109,7 +123,6 @@ void updateObject(physicsObject_t *obj) {
 * retorna el vetor de 'a' a 'b'
 */ //notalolo: final menos inicial
 void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
-
   float difx = b->x - a->x;
   float dify = b->y - a->y;
   float distsqr = sqr(difx) + sqr(dify);
@@ -125,14 +138,12 @@ void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
 * checks if a colition happens and applyes a repeling vel
 */
 void doCollision(physicsObject_t *a, physicsObject_t *b) {
-
   float va = abs(a->vx) + abs(a->vy);
   float vb = abs(b->vx) + abs(b->vy);
 
   vector_t dir = {0};
   checkCollision(a, b, &dir);
   if ((dir.x != 0) || (dir.y != 0)) {
-
     vector_t dirb = dir;//TODO: esto esta andando raro
     dirb.x *= (b->mass * (va + vb));
     dirb.y *= (b->mass * (va + vb));
@@ -175,20 +186,24 @@ void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
 * Setup y main game loop
 */
 int gg_startGame() {
+  // Disable status bar drawing while application is active
+  uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
+  _syscall(SYS_STATUS_SET_ENABLED, 0);
 
   physicsObject_t mc = {0};
-  mc.color = 0xffFF0080;
+  mc.color = 0xFF0080;
   mc.x = VGA_WIDTH * 0.5f;
   mc.y = VGA_HEIGHT * 0.5f;
-  mc.gama = 0.1;
+  mc.drag = 0.03f;
   mc.size = 20;
-  mc.mass = 0.1;
+  mc.mass = 0.1f;
+  mc.angle = 0.0f;
 
   physicsObject_t ball = {0};
   ball.color = 0xffFF00A0;
   ball.x = VGA_WIDTH * 4.0f;
   ball.y = VGA_HEIGHT * 4.0f;
-  ball.gama = 0.05;
+  ball.drag = 0.05;
   ball.size = 10;
   ball.mass = 1;
 
@@ -198,20 +213,24 @@ int gg_startGame() {
   hole.size = 100;
   hole.incline = 0.5;
 
-
   while (1) {
     // updatePlayerDirectional(&mc);
     updatePlayerTank(&mc);
-    updateObject(&ball);
-    doCollision(&mc, &ball);
-    doEnviroment(&hole, &mc);
-    doEnviroment(&hole, &ball);
+    updateObject(&mc);
+    // updateObject(&ball);
+    // doCollision(&mc, &ball);
+    // doEnviroment(&hole, &mc);
+    // doEnviroment(&hole, &ball);
 
     vga_clear(0xFF00FF00);
-    drawHole(&hole);
+    // drawHole(&hole);
     drawObject(&mc);
-    drawObject(&ball);
+    // drawObject(&ball);
     vga_present();
   }
+
+  // Restore status bar enabled state
+  _syscall(SYS_STATUS_SET_ENABLED, statusEnabled);
+
   return 0;
 }
