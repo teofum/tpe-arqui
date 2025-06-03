@@ -1,3 +1,4 @@
+#include "golfGame.h"
 #include <print.h>
 #include <shell.h>
 #include <strings.h>
@@ -141,6 +142,7 @@ command_t commands[] = {
   {"status", "Turn the system status bar on or off", status},
   {"exc00", "Tests Division by Zero Exception", throw00},
   {"exc06", "Test OpCode Exception", throw06},
+  {"golf", "Play Golf", gg_startGame},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
