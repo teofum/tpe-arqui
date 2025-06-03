@@ -116,6 +116,18 @@ static int status(const char *param) {
   return 2;
 }
 
+extern void _throw_00();
+int throw00() {
+  _throw_00();
+  return 0;
+}
+
+extern void _throw_06();
+int throw06() {
+  _throw_06();
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -124,8 +136,11 @@ command_t commands[] = {
   {"clear", "Clear stdout", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
+  {"demo3d", "3d Graphics demo", demo3d},
   {"history", "Print command history", history},
   {"status", "Turn the system status bar on or off", status},
+  {"exc00", "Tests Division by Zero Exception", throw00},
+  {"exc06", "Test OpCode Exception", throw06},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 

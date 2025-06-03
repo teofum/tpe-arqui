@@ -1,5 +1,6 @@
 #ifndef VGA_H
 #define VGA_H
+
 #include <stdint.h>
 
 #define VGA_WIDTH 1024
@@ -248,5 +249,11 @@ void vga_present();
  * Set either framebuffer to NULL to use the default framebuffer.
  */
 void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset);
+
+/*
+ * Copy the top-left corner of a framebuffer to a different framebuffer,
+ * multiplying size by two.
+ */
+void vga_copy2x(uint8_t *dst, uint8_t *src);
 
 #endif
