@@ -133,6 +133,12 @@ vga_copy2x:
     int 0x80
     ret
 
+global vga_bitmap
+vga_bitmap:
+    mov rax, 0x2E
+    int 0x80
+    ret
+
 global gfx_clear
 gfx_clear:
     mov rax, 0xA0
