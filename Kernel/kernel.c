@@ -38,45 +38,21 @@ void *getStackBase() {
 }
 
 void *initializeKernelBinary() {
-  char buffer[10];
+  // Initialize video driver
+  // vga_init();
 
-  ncPrint("[x64BareBones]");
-  ncNewline();
+  // Initialize stdout
+  // io_init();
 
-  ncPrint("CPU Vendor:");
-  ncPrint(cpuVendor(buffer));
-  ncNewline();
+  // printf("[x64BareBones]\n");
 
-  ncPrint("[Loading modules]");
-  ncNewline();
+  // printf("[Loading modules]\n");
   void *moduleAddresses[] = {sampleCodeModuleAddress, sampleDataModuleAddress};
-
   loadModules(&endOfKernelBinary, moduleAddresses);
-  ncPrint("[Done]");
-  ncNewline();
-  ncNewline();
-
-  ncPrint("[Initializing kernel's binary]");
-  ncNewline();
+  // printf("[Done]\n\n");
 
   clearBSS(&bss, &endOfKernel - &bss);
 
-  ncPrint("  text: 0x");
-  ncPrintHex((uint64_t) &text);
-  ncNewline();
-  ncPrint("  rodata: 0x");
-  ncPrintHex((uint64_t) &rodata);
-  ncNewline();
-  ncPrint("  data: 0x");
-  ncPrintHex((uint64_t) &data);
-  ncNewline();
-  ncPrint("  bss: 0x");
-  ncPrintHex((uint64_t) &bss);
-  ncNewline();
-
-  ncPrint("[Done]");
-  ncNewline();
-  ncNewline();
   return getStackBase();
 }
 

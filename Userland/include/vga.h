@@ -144,6 +144,15 @@ extern void vga_textWrap(
 );
 
 /*
+ * Draw a bitmap image.
+ * Bitmaps are stored in 8bpc RGB format, with a header encoding image size.
+ * Flags are currently unused, parameter is reserved.
+ */
+void vga_bitmap(
+  uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
+);
+
+/*
  * Present the current framebuffer to the screen. 
  */
 extern void vga_present();
