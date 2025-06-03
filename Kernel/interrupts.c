@@ -182,6 +182,7 @@ void initSyscalls() {
   registerSyscall(0xAB, gfx_setLightType);
   registerSyscall(0xAC, gfx_setMatrix);
   registerSyscall(0xAD, gfx_setRenderResolution);
+  registerSyscall(0xAE, gfx_getFramebuffer);
   registerSyscall(0xAF, gfx_present);
 
   /* Special */

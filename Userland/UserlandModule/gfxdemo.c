@@ -4,8 +4,6 @@
 #include <syscall.h>
 #include <vga.h>
 
-uint8_t *image = (uint8_t *) 0x3000000;
-
 int gfxdemo() {
   // Disable status bar drawing while application is active
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
@@ -17,8 +15,6 @@ int gfxdemo() {
   int key = 0;
   while (!key) {
     vga_clear(0x00000080 | (green << 8));
-
-    vga_bitmap(256, 128, image, 2, VGA_ALPHA_BLEND);
 
     green += d;
     if (green == 0xff || green == 0) d = -d;

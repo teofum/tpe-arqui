@@ -1,6 +1,32 @@
 #include <fpmath.h>
 #include <golfGame.h>
+#include <graphics.h>
+#include <stddef.h>
 #include <syscall.h>
+#include <vga.h>
+
+#define deg2rad(x) ((x) / 180.0f * M_PI)
+
+uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
+
+extern const char *obj_capybase;
+extern const char *obj_capyface;
+extern const char *obj_capyclub;
+
+float3 v_base[150];
+float3 n_base[150];
+uint32_t vi_base[280 * 3];
+uint32_t ni_base[280 * 3];
+
+float3 v_face[23];
+float3 n_face[23];
+uint32_t vi_face[20 * 3];
+uint32_t ni_face[20 * 3];
+
+float3 v_club[12];
+float3 n_club[12];
+uint32_t vi_club[20 * 3];
+uint32_t ni_club[20 * 3];
 
 void drawObject(
   physicsObject_t *obj
@@ -47,7 +73,6 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
 *   Note: onely 8 directions
 */
 void updatePlayerDirectional(physicsObject_t *obj) {
-  kbd_pollEvents();
   vector_t arrowKeys = {0};
   int up = kbd_keydown(KEY_ARROW_UP);
   int down = kbd_keydown(KEY_ARROW_DOWN);
@@ -66,7 +91,6 @@ void updatePlayerDirectional(physicsObject_t *obj) {
 * updated 
 */
 void updatePlayerTank(physicsObject_t *obj) {
-  kbd_pollEvents();
   int up = kbd_keydown(KEY_ARROW_UP);
   int down = kbd_keydown(KEY_ARROW_DOWN);
   int right = kbd_keydown(KEY_ARROW_RIGHT);
@@ -182,6 +206,118 @@ void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
   }
 }
 
+static void showTitleScreen() {
+  float a = 0.0f, capyAngle = 0.0f;
+
+  /*
+   * Graphics setup
+   */
+
+  // Set half render resolution for speed
+  gfx_res_t renderRes = GFX_RES_HALF;
+  // gfx_setRenderResolution(renderRes);
+
+  // Set up view and projection matrices
+  float3 pos = {0, 1, 3.5f};
+  float3 target = {0, 0, 0};
+  float3 up = {0, 1, 0};
+
+  float4x4 view = mat_lookat(pos, target, up);
+  gfx_setMatrix(GFX_MAT_VIEW, &view);
+
+  float fovDegrees = 75.0f;
+  float4x4 projection =
+    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+  gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
+
+  // Set up lighting
+  float3 light = {-1, 3, -1};
+  float3 lightcolor = {2, 2, 2};
+  float3 ambient = vmuls(lightcolor, 0.5f);
+
+  gfx_light_t lightType = GFX_LIGHT_DIRECTIONAL;
+  gfx_setLightType(lightType);
+  gfx_setLight(GFX_LIGHT_POSITION, &light);
+  gfx_setLight(GFX_AMBIENT_LIGHT, &ambient);
+  gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
+
+  // Load the capybara models
+  uint32_t pc_base, pc_face, pc_club;
+  gfx_parseObj(obj_capybase, v_base, n_base, vi_base, ni_base, &pc_base);
+  gfx_parseObj(obj_capyface, v_face, n_face, vi_face, ni_face, &pc_face);
+  gfx_parseObj(obj_capyclub, v_club, n_club, vi_club, ni_club, &pc_club);
+
+  float3 color_base = {0.312f, 0.085f, 0.007f};
+  float3 color_face = {0.082f, 0.021f, 0.001f};
+  float3 color_club = {0.706f, 0.706f, 0.706f};
+
+  /*
+   * Draw loop
+   */
+  kbd_event_t ev = {0};
+  while (!ev.key) {
+    // Clear graphics frame and depth buffers
+    gfx_clear(0);
+
+    // Pass the graphics framebuffer to the VGA driver for 2D drawing
+    // This lets us draw shapes behind the 3d graphics
+    vga_setFramebuffer(gfx_getFramebuffer());
+
+    // Draw a nice background
+    // Sky
+    vga_gradient(
+      0, 0, VGA_WIDTH - 1, (VGA_HEIGHT >> 1) - 1, colors(0x1a32e6, 0x07d0f8),
+      VGA_GRAD_V
+    );
+
+    // Grass
+    vga_gradient(
+      0, VGA_HEIGHT >> 1, VGA_WIDTH - 1, VGA_HEIGHT - 1,
+      colors(0x83fa00, 0x008f00), VGA_GRAD_V
+    );
+
+    // 3D graphics
+    // Create a model matrix and set it
+    float4x4 model = mat_rotationY(capyAngle);
+    model = mmul(model, mat_translation(0, -1.3, 0));
+    gfx_setMatrix(GFX_MAT_MODEL, &model);
+
+    // Draw the capybara
+    gfx_drawPrimitivesIndexed(
+      v_face, n_face, vi_face, ni_face, pc_face, color_face
+    );
+    gfx_drawPrimitivesIndexed(
+      v_base, n_base, vi_base, ni_base, pc_base, color_base
+    );
+    gfx_drawPrimitivesIndexed(
+      v_club, n_club, vi_club, ni_club, pc_club, color_club
+    );
+
+    // Present gfx buffer to VGA main framebuffer
+    gfx_present();
+
+    // Restore the default VGA framebuffer to draw on top of the 3D graphics
+    vga_setFramebuffer(NULL);
+
+    // Draw the title logo (it floats!)
+    vga_bitmap(256, 128 - 12 * sin(a), titlescreenLogo, 2, VGA_ALPHA_BLEND);
+
+    // Draw some text
+    vga_text(424, 500, "Press any key to start", 0xffffff, 0, VGA_TEXT_BG);
+    vga_text(824, 736, "(c) 1998 TONKATSU GAMES", 0xffffff, 0, 0);
+
+    // Draw everything to screen
+    vga_present();
+
+    // Update vars and get keyboard event
+    a += 0.01f;
+    if (a > M_PI) a -= 2.0f * M_PI;
+    capyAngle -= 0.05f;
+    if (capyAngle < -M_PI) capyAngle += 2.0f * M_PI;
+    ev = kbd_getKeyEvent();
+  }
+}
+
 /*
 * Setup y main game loop
 */
@@ -190,6 +326,14 @@ int gg_startGame() {
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
+  // Display the title screen
+  showTitleScreen();
+
+  // TODO: player select screen (1P - 2P)
+
+  /*
+   * Set up game objects
+   */
   physicsObject_t mc = {0};
   mc.color = 0xFF0080;
   mc.x = VGA_WIDTH * 0.5f;
@@ -213,8 +357,14 @@ int gg_startGame() {
   hole.size = 100;
   hole.incline = 0.5;
 
+  /*
+   * Game loop
+   */
   while (1) {
-    // updatePlayerDirectional(&mc);
+    // Update keyboard input
+    kbd_pollEvents();
+
+    // Update physics
     updatePlayerTank(&mc);
     updateObject(&mc);
     // updateObject(&ball);
@@ -222,6 +372,7 @@ int gg_startGame() {
     // doEnviroment(&hole, &mc);
     // doEnviroment(&hole, &ball);
 
+    // Draw game
     vga_clear(0xFF00FF00);
     // drawHole(&hole);
     drawObject(&mc);

@@ -199,6 +199,12 @@ gfx_setRenderResolution:
     int 0x80
     ret
 
+global gfx_getFramebuffer
+gfx_getFramebuffer:
+    mov rax, 0xAE
+    int 0x80
+    ret
+
 global gfx_present
 gfx_present:
     mov rax, 0xAF

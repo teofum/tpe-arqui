@@ -533,3 +533,5 @@ void gfx_parseObj(
 
   printf("Parsed obj file: %u vertices, %u normals, %u faces\n", vc, nc, *fc);
 }
+
+uint8_t *gfx_getFramebuffer() { return _gfxFramebuffer; }

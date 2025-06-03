@@ -118,7 +118,12 @@ void gfx_present();
 void gfx_parseObj(
   const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni,
   uint32_t *fc
-
 );
+
+/*
+ * Get a pointer to the internal framebuffer. Useful if we want to draw on the
+ * framebuffer directly, for example to combine 2D and 3D graphics.
+ */
+uint8_t *gfx_getFramebuffer();
 
 #endif
