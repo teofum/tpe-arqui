@@ -43,7 +43,7 @@ void drawObject(physicsObject_t *obj
 void drawEnviroment(enviroment_t *env) {
   vga_rect(
     (env->x - env->size), (env->y - env->size), (env->x + env->size),
-    (env->y + env->size), 0xff0000ff, 0
+    (env->y + env->size), 0xff009000, 0
   );
 }
 
@@ -101,6 +101,32 @@ void updatePlayerTank(physicsObject_t *obj) {
   int down = kbd_keydown(KEY_ARROW_DOWN);
   int right = kbd_keydown(KEY_ARROW_RIGHT);
   int left = kbd_keydown(KEY_ARROW_LEFT);
+
+  if (right) {
+    obj->angle += TURNS_SPEED;
+    if (obj->angle > M_PI) obj->angle -= 2.0f * M_PI;
+  }
+  if (left) {
+    obj->angle -= TURNS_SPEED;
+    if (obj->angle < -M_PI) obj->angle += 2.0f * M_PI;
+  }
+  if (up) {
+    vector_t dir;
+    // TODO make acceleration a constant
+    dir.x = 1.0f * cos(obj->angle);
+    dir.y = 1.0f * sin(obj->angle);
+    accelerateObject(obj, &dir);
+  }
+  if (down) {
+    obj->vx *= BRAKING;
+    obj->vy *= BRAKING;
+  }
+}
+void updatePlayerTankWASD(physicsObject_t *obj) {
+  int up = kbd_keydown(KEY_W);
+  int down = kbd_keydown(KEY_S);
+  int right = kbd_keydown(KEY_D);
+  int left = kbd_keydown(KEY_A);
 
   if (right) {
     obj->angle += TURNS_SPEED;
@@ -367,17 +393,26 @@ int gg_startGame() {
   /*
    * Set up game objects
    */
-  physicsObject_t mc = {0};
-  mc.color = 0xFF0080;
-  mc.x = VGA_WIDTH * 0.5f;
-  mc.y = VGA_HEIGHT * 0.5f;
-  mc.drag = 0.06f;
-  mc.size = 20;
-  mc.mass = 0.1f;
-  mc.angle = 0.0f;
+  physicsObject_t p1 = {0};
+  p1.color = 0xFF0000ff;
+  p1.x = VGA_WIDTH * 0.5f;
+  p1.y = VGA_HEIGHT * 0.5f;
+  p1.drag = 0.06f;
+  p1.size = 20;
+  p1.mass = 0.1f;
+  p1.angle = 0.0f;
+
+  physicsObject_t p2 = {0};
+  p2.color = 0xFFff0000;
+  p2.x = VGA_WIDTH * 0.5f;
+  p2.y = VGA_HEIGHT * 0.5f;
+  p2.drag = 0.06f;
+  p2.size = 20;
+  p2.mass = 0.1f;
+  p2.angle = 0.0f;
 
   physicsObject_t ball = {0};
-  ball.color = 0xffFF00A0;
+  ball.color = 0xffb0b0b0;
   ball.x = VGA_WIDTH * 0.5f;  // 4.0f;
   ball.y = VGA_HEIGHT * 0.25f;//* 4.0f;
   ball.drag = 0.05;
@@ -404,18 +439,29 @@ int gg_startGame() {
     kbd_pollEvents();
 
     // Update physics
-    updatePlayerTank(&mc);
-    updateObject(&mc);
+    updatePlayerTank(&p1);
+    updateObject(&p1);
+    doCollision(&p1, &ball);
+
+    updatePlayerTankWASD(&p2);
+    updateObject(&p2);
+    doCollision(&p2, &ball);
+
     updateObject(&ball);
-    doCollision(&mc, &ball);
-    doEnviroment(&env, &mc);
+
+    doCollision(&p1, &p2);
+
+    doEnviroment(&env, &p1);
+    doEnviroment(&env, &p2);
+
     doEnviroment(&env, &ball);
     if (checkHole(&ball, &winingHole)) { loop = 0; }
 
     // Draw game
     vga_clear(0xFF00FF00);
     drawEnviroment(&env);
-    drawObject(&mc);
+    drawObject(&p2);
+    drawObject(&p1);
     drawObject(&ball);
     drawHole(&winingHole);
     vga_present();
