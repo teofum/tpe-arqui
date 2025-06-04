@@ -247,7 +247,7 @@ static void showTitleScreen() {
   gfx_parseObj(obj_capyface, v_face, n_face, vi_face, ni_face, &pc_face);
   gfx_parseObj(obj_capyclub, v_club, n_club, vi_club, ni_club, &pc_club);
 
-  float3 color_base = {0.312f, 0.085f, 0.007f};
+  float3 color_base = {0.232f, 0.115f, 0.087f};
   float3 color_face = {0.082f, 0.021f, 0.001f};
   float3 color_club = {0.706f, 0.706f, 0.706f};
 
@@ -268,6 +268,9 @@ static void showTitleScreen() {
     vga_gradient(
       0, 0, VGA_WIDTH - 1, (VGA_HEIGHT >> 1) - 1, colors(0x1a32e6, 0x07d0f8),
       VGA_GRAD_V
+    );
+    vga_shade(
+      0, 0, VGA_WIDTH - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080, VGA_ALPHA_BLEND
     );
 
     // Grass
@@ -300,7 +303,7 @@ static void showTitleScreen() {
     vga_setFramebuffer(NULL);
 
     // Draw the title logo (it floats!)
-    vga_bitmap(256, 128 - 12 * sin(a), titlescreenLogo, 2, VGA_ALPHA_BLEND);
+    vga_bitmap(256, 128 - 18 * sin(a), titlescreenLogo, 2, VGA_ALPHA_BLEND);
 
     // Draw some text
     vga_text(424, 500, "Press any key to start", 0xffffff, 0, VGA_TEXT_BG);
