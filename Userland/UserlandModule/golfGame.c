@@ -10,6 +10,45 @@
 
 #define TITLE_TEXT_BLINK_MS 500
 
+typedef struct {
+  float x;
+  float y;
+
+  float vx;
+  float vy;
+
+  int size;//pensado para ser un radio, se puede usar para suplantar masa
+
+  float mass;// para colisions y podria afectar el gama
+  // si usamos la inversa de la masa nos ahoramos la division de float
+
+  float drag;// friction/arraste // NO es exacto, es una idea mas simple
+
+  float angle;
+
+  color_t color;
+} physicsObject_t;
+
+typedef struct {
+  float x;
+  float y;
+
+  int size;
+  float incline;
+} enviroment_t;
+
+typedef struct {
+  float x;
+  float y;
+
+  int size;
+} hole_t;
+
+typedef struct {
+  float x;
+  float y;
+} vector_t;
+
 typedef enum {
   GG_SCREEN_TITLE,
   GG_SCREEN_PLAYERSELECT,
@@ -217,8 +256,8 @@ int checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
   float distsqr = sqr(difx) + sqr(dify);
 
   if (distsqr <= sqr(env->size + obj->size)) {
-    dir->x = signo(difx);
-    dir->y = signo(dify);
+    dir->x = sign(difx);
+    dir->y = sign(dify);
     // en vez de signo habria que normalizarlo para q el modulo sea siempre 1 o algo asi
     return 1;
   } else {
