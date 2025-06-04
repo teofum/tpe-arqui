@@ -10,6 +10,28 @@
 
 #define TITLE_TEXT_BLINK_MS 500
 
+#define TERRAIN_SIZE_X 15
+#define TERRAIN_SIZE_Y 10
+#define TERRAIN_SIZE_UNITS_X ((float) VGA_WIDTH / TERRAIN_SIZE_X)
+#define TERRAIN_SIZE_UNITS_Y ((float) VGA_HEIGHT / TERRAIN_SIZE_Y)
+
+#define VMAX 1.2f
+#define TURNS_SPEED 0.01f
+#define ACCELERATION 0.4f
+#define GRAVITY 0.2f
+#define BRAKING 0.9
+
+#define abs(x) ((x) >= 0 ? (x) : -(x))
+#define sign(x) (((x) == 0) ? 0 : ((x) > 0 ? 1 : -1))
+#define sqr(x) ((x) * (x))
+
+#define rgba(r, g, b, a) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
+
+typedef struct {
+  float x;
+  float y;
+} vector_t;
+
 typedef struct {
   float x;
   float y;
@@ -38,16 +60,17 @@ typedef struct {
 } enviroment_t;
 
 typedef struct {
+  float height[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
+  float3 normals[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
+  vector_t slopes[TERRAIN_SIZE_X][TERRAIN_SIZE_Y];
+} terrain_t;
+
+typedef struct {
   float x;
   float y;
 
   int size;
 } hole_t;
-
-typedef struct {
-  float x;
-  float y;
-} vector_t;
 
 typedef enum {
   GG_SCREEN_TITLE,
@@ -84,6 +107,28 @@ static inline void updateTimer() {
   totalTicks += frametime;
 }
 
+void drawTerrainDebug(terrain_t *terrain) {
+  uint32_t w = VGA_WIDTH / TERRAIN_SIZE_X;
+  uint32_t h = VGA_HEIGHT / TERRAIN_SIZE_Y;
+
+  for (uint32_t y = 0; y < TERRAIN_SIZE_Y; y++) {
+    for (uint32_t x = 0; x < TERRAIN_SIZE_X; x++) {
+      vector_t s = terrain->slopes[x][y];
+
+      color_t color = rgba(
+        (uint32_t) (s.x * 127 + 127), (uint32_t) (s.y * 127 + 127), 127, 0
+      );
+      vga_rect(x * w, y * h, (x + 1) * w - 1, (y + 1) * h - 1, color, 0);
+    }
+  }
+  for (uint32_t y = 0; y <= TERRAIN_SIZE_Y; y++) {
+    for (uint32_t x = 0; x <= TERRAIN_SIZE_X; x++) {
+      float3 n = terrain->normals[x][y];
+      vga_line(w * x, h * y, w * x + n.x * 20, h * y + n.z * 20, 0x0, 0);
+    }
+  }
+}
+
 void drawObject(
   physicsObject_t *obj
 ) {// TODO, hace falta algo para dibujar un circulo
@@ -97,6 +142,7 @@ void drawObject(
   p.y = obj->y + 20.0f * sin(obj->angle);
   vga_line(obj->x, obj->y, p.x, p.y, 0xffffff, 0);
 }
+
 void drawEnviroment(enviroment_t *env) {
   vga_rect(
     (env->x - env->size), (env->y - env->size), (env->x + env->size),
@@ -268,13 +314,19 @@ int checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
 /*
 * checks if obj is in a hole or mount and applyes a apropiate vel
 */
-void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
-  vector_t dir = {0};
-  if (checkEnviroment(env, obj, &dir)) {
-    obj->vx += dir.x * env->incline * frametime;
-    obj->vy += dir.y * env->incline * frametime;
-  }
+void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
+  uint32_t x = obj->x / TERRAIN_SIZE_UNITS_X;
+  uint32_t y = obj->y / TERRAIN_SIZE_UNITS_Y;
+
+  x = max(0, min(TERRAIN_SIZE_UNITS_X - 1, x));
+  y = max(0, min(TERRAIN_SIZE_UNITS_Y - 1, y));
+
+  vector_t s = terrain->slopes[x][y];
+
+  obj->vx += GRAVITY * s.x * abs(s.x);
+  obj->vy += GRAVITY * s.y * abs(s.y);
 }
+
 /*
 *   valida si la pelota entra en el agujero y gana
 */
@@ -290,7 +342,68 @@ int checkHole(physicsObject_t *obj, hole_t *hole) {
   }
 }
 
+static void generateTerrain(terrain_t *terrain) {
+  for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
+    for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
+      // test terrain gen
+      terrain->height[x][y] =
+        sqr((float) y / TERRAIN_SIZE_Y * 2.0f - 1.0f) * -200.0f +
+        sqr((float) x / TERRAIN_SIZE_X * 2.0f - 1.0f) * -200.0f;
+    }
+  }
 
+  // Generate terrain normals from heightmap
+  for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
+    for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
+      terrain->normals[x][y].y = 1.0f;
+
+      int x0 = max(0, x - 1);
+      int x1 = min(TERRAIN_SIZE_X, x + 1);
+      int y0 = max(0, y - 1);
+      int y1 = min(TERRAIN_SIZE_Y, y + 1);
+
+      float h[] = {
+        terrain->height[x0][y0],
+        terrain->height[x1][y0],
+        terrain->height[x0][y1],
+        terrain->height[x1][y1],
+      };
+      float dx = ((h[1] + h[2]) - (h[0] + h[2]));
+      float dy = ((h[2] + h[3]) - (h[0] + h[1]));
+
+      float sx = dx / TERRAIN_SIZE_UNITS_X;
+      float sy = dy / TERRAIN_SIZE_UNITS_Y;
+
+      float3 normal = {sx, 1.0f, sy};
+      terrain->normals[x][y] = vnorm(normal);
+    }
+  }
+
+  // Generate terrain slopes
+  for (uint32_t y = 0; y < TERRAIN_SIZE_Y; y++) {
+    for (uint32_t x = 0; x < TERRAIN_SIZE_X; x++) {
+      float h[] = {
+        terrain->height[x][y],
+        terrain->height[x + 1][y],
+        terrain->height[x][y + 1],
+        terrain->height[x + 1][y + 1],
+      };
+      float dx = ((h[1] + h[2]) - (h[0] + h[2]));
+      float dy = ((h[2] + h[3]) - (h[0] + h[1]));
+
+      float sx = dx / TERRAIN_SIZE_UNITS_X;
+      float sy = dy / TERRAIN_SIZE_UNITS_Y;
+
+      terrain->slopes[x][y].x = sx;
+      terrain->slopes[x][y].y = sy;
+    }
+  }
+}
+
+/*
+ * Show the title screen/main menu and handle input.
+ * Returns when the game should be started.
+ */
 static void showTitleScreen() {
   gg_screen_t screen = GG_SCREEN_TITLE;
   float a = 0.0f, capyAngle = (M_PI * -0.75);
@@ -450,6 +563,9 @@ int gg_startGame() {
   /*
    * Set up game objects
    */
+  terrain_t terrain;
+  generateTerrain(&terrain);
+
   physicsObject_t p1 = {0};
   p1.color = 0xFF0000ff;
   p1.x = VGA_WIDTH * 0.5f;
@@ -516,14 +632,12 @@ int gg_startGame() {
 
     doCollision(&p1, &p2);
 
-    doEnviroment(&env, &p1);
-    doEnviroment(&env, &p2);
-
-    doEnviroment(&env, &ball);
+    applyGravity(&terrain, &ball);
     if (checkHole(&ball, &winingHole)) { loop = 0; }
 
     // Draw game
-    vga_clear(0xFF00FF00);
+    // vga_clear(0xFF00FF00);
+    drawTerrainDebug(&terrain);
     drawEnviroment(&env);
     drawObject(&p2);
     drawObject(&p1);

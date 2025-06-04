@@ -213,8 +213,9 @@ int demo3d() {
     angle += 0.01;
     if (angle > M_PI) angle -= 2.0f * M_PI;
 
-    frametime = _syscall(SYS_TICKS) - ticksTotal;
-    ticksTotal += frametime;
+    uint64_t ticks = _syscall(SYS_TICKS);
+    frametime = ticks - ticksTotal;
+    ticksTotal = ticks;
   }
 
   // Restore status bar enabled state
