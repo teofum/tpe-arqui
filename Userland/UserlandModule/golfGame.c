@@ -356,8 +356,12 @@ static void generateTerrain(terrain_t *terrain) {
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
       // test terrain gen
-      float height = sqr((float) y / TERRAIN_SIZE_Y * 2.0f - 1.0f) * 2.0f +
-                     sqr((float) x / TERRAIN_SIZE_X * 2.0f - 1.0f) * 2.0f;
+      float u = (float) y / TERRAIN_SIZE_Y * 15.0f;
+      float v = (float) x / TERRAIN_SIZE_X * 10.0f;
+      while (u > M_PI) { u -= 2.0f * M_PI; }
+      while (v > M_PI) { v -= 2.0f * M_PI; }
+
+      float height = sin(u) * 0.2f - cos(v) * 0.2f;
 
       float3 vertex = {
         (float) x * TERRAIN_SIZE_UNITS_X - 0.5f * FIELD_WIDTH, height,
@@ -730,7 +734,7 @@ int gg_startGame() {
   ball.x = FIELD_WIDTH * 0.5f;
   ball.y = FIELD_HEIGHT * 0.25f;
   ball.drag = 0.005f;
-  ball.size = 0.2f;
+  ball.size = 0.1f;
   ball.mass = 1.0f;
 
   // hole_t winingHole = {0};
