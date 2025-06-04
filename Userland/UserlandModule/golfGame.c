@@ -47,10 +47,17 @@ void drawObject(
   p.y = obj->y + 20.0f * sin(obj->angle);
   vga_line(obj->x, obj->y, p.x, p.y, 0xffffff, 0);
 }
-void drawHole(enviroment_t *env) {
+void drawEnviroment(enviroment_t *env) {
   vga_rect(
     (env->x - env->size), (env->y - env->size), (env->x + env->size),
     (env->y + env->size), 0xff0000ff, 0
+  );
+}
+
+void drawHole(hole_t *hole) {
+  vga_rect(
+    (hole->x - hole->size), (hole->y - hole->size), (hole->x + hole->size),
+    (hole->y + hole->size), 0xff000000, 0
   );
 }
 
@@ -113,9 +120,13 @@ void updatePlayerTank(physicsObject_t *obj) {
   if (up) {
     vector_t dir;
     // TODO make acceleration a constant
-    dir.x = 0.5f * cos(obj->angle);
-    dir.y = 0.5f * sin(obj->angle);
+    dir.x = 1.0f * cos(obj->angle);
+    dir.y = 1.0f * sin(obj->angle);
     accelerateObject(obj, &dir);
+  }
+  if (down) {
+    obj->vx *= BRAKING;
+    obj->vy *= BRAKING;
   }
 }
 
@@ -152,7 +163,7 @@ void updateObject(physicsObject_t *obj) {
 * asumiendo que son circulos 
 * retorna el vetor de 'a' a 'b'
 */ //notalolo: final menos inicial
-void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
+int checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float difx = b->x - a->x;
   float dify = b->y - a->y;
   float distsqr = sqr(difx) + sqr(dify);
@@ -161,6 +172,9 @@ void checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
     //TODO, habria que normalizarlo o algo asi/ ///////////////////////
     dir->x = (difx);
     dir->y = (dify);
+    return 1;
+  } else {
+    return 0;
   }
 }
 
@@ -172,9 +186,8 @@ void doCollision(physicsObject_t *a, physicsObject_t *b) {
   float vb = abs(b->vx) + abs(b->vy);
 
   vector_t dir = {0};
-  checkCollision(a, b, &dir);
-  if ((dir.x != 0) || (dir.y != 0)) {
-    vector_t dirb = dir;//TODO: esto esta andando raro
+  if (checkCollision(a, b, &dir)) {
+    vector_t dirb = dir;
     dirb.x *= (b->mass * (va + vb));
     dirb.y *= (b->mass * (va + vb));
     accelerateObject(b, &dirb);
@@ -189,7 +202,7 @@ void doCollision(physicsObject_t *a, physicsObject_t *b) {
 * asumiendo que son circulos 
 * retorna el vetor de 'env' a 'obj'
 */
-void checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
+int checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
   float difx = env->x - obj->x;
   float dify = env->y - obj->y;
   float distsqr = sqr(difx) + sqr(dify);
@@ -197,6 +210,10 @@ void checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
   if (distsqr <= sqr(env->size + obj->size)) {
     dir->x = signo(difx);
     dir->y = signo(dify);
+    // en vez de signo habria que normalizarlo para q el modulo sea siempre 1 o algo asi
+    return 1;
+  } else {
+    return 0;
   }
 }
 
@@ -205,16 +222,30 @@ void checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
 */
 void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
   vector_t dir = {0};
-  checkEnviroment(env, obj, &dir);
-  if ((dir.x != 0) || (dir.y != 0)) {
+  if (checkEnviroment(env, obj, &dir)) {
     obj->vx += dir.x * env->incline;
     obj->vy += dir.y * env->incline;
   }
 }
+/*
+*   valida si la pelota entra en el agujero y gana
+*/
+int checkHole(physicsObject_t *obj, hole_t *hole) {
+  float difx = hole->x - obj->x;
+  float dify = hole->y - obj->y;
+  float distsqr = sqr(difx) + sqr(dify);
+
+  if (distsqr <= sqr(hole->size + obj->size)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 
 static void showTitleScreen() {
   gg_screen_t screen = GG_SCREEN_TITLE;
-  float a = 0.0f, capyAngle = 0.0f;
+  float a = 0.0f, capyAngle = (M_PI * -0.75);
   uint32_t textBlinkTimer = 0;
 
   /*
@@ -368,45 +399,53 @@ int gg_startGame() {
   mc.color = 0xFF0080;
   mc.x = VGA_WIDTH * 0.5f;
   mc.y = VGA_HEIGHT * 0.5f;
-  mc.drag = 0.03f;
+  mc.drag = 0.06f;
   mc.size = 20;
   mc.mass = 0.1f;
   mc.angle = 0.0f;
 
   physicsObject_t ball = {0};
   ball.color = 0xffFF00A0;
-  ball.x = VGA_WIDTH * 4.0f;
-  ball.y = VGA_HEIGHT * 4.0f;
+  ball.x = VGA_WIDTH * 0.5f;  // 4.0f;
+  ball.y = VGA_HEIGHT * 0.25f;//* 4.0f;
   ball.drag = 0.05;
   ball.size = 10;
   ball.mass = 1;
 
-  enviroment_t hole = {0};
-  hole.x = 900;
-  hole.y = 200;
-  hole.size = 100;
-  hole.incline = 0.5;
+  enviroment_t env = {0};
+  env.x = 900;
+  env.y = 200;
+  env.size = 100;
+  env.incline = 0.5;
+
+  hole_t winingHole = {0};
+  winingHole.x = 100;
+  winingHole.y = 100;
+  winingHole.size = 50;
 
   /*
    * Game loop
    */
-  while (1) {
+  int loop = 1;
+  while (loop) {
     // Update keyboard input
     kbd_pollEvents();
 
     // Update physics
     updatePlayerTank(&mc);
     updateObject(&mc);
-    // updateObject(&ball);
-    // doCollision(&mc, &ball);
-    // doEnviroment(&hole, &mc);
-    // doEnviroment(&hole, &ball);
+    updateObject(&ball);
+    doCollision(&mc, &ball);
+    doEnviroment(&env, &mc);
+    doEnviroment(&env, &ball);
+    if (checkHole(&ball, &winingHole)) { loop = 0; }
 
     // Draw game
     vga_clear(0xFF00FF00);
-    // drawHole(&hole);
+    drawEnviroment(&env);
     drawObject(&mc);
-    // drawObject(&ball);
+    drawObject(&ball);
+    drawHole(&winingHole);
     vga_present();
   }
 
