@@ -1,3 +1,4 @@
+#include <audio.h>
 #include <print.h>
 #include <status.h>
 #include <time.h>
@@ -8,6 +9,20 @@
 extern uint8_t _rtc_getTime(uint64_t descriptor);// de rtc.asm
 
 uint64_t ticks = 0;
+
+/*
+ * Escribe un byte en un puerto de E/S
+ */
+extern void outb(uint16_t port, uint8_t value);
+
+void timer_init() {
+  // Set mode 2, channel 0, high/low byte
+  outb(0x43, 0x36);
+
+  uint16_t div = 1193;// 1193182 Hz / 1000 Hz = 1193
+  outb(0x40, div & 0xff);
+  outb(0x40, div >> 8);
+}
 
 void timer_handler() {
   ticks++;

@@ -9,7 +9,7 @@ int gfxdemo() {
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
-  uint64_t ticksElapsed = 0, ticksStart = _syscall(SYS_TICKS), frames = 0;
+  uint64_t frametime = 0, ticksTotal = _syscall(SYS_TICKS);
   uint8_t green = 0;
   int d = 1;
   int key = 0;
@@ -77,26 +77,21 @@ int gfxdemo() {
     vga_text(420, 700, " Press any key to exit ", 0, 0xffffff, VGA_TEXT_INV);
 
     // Draw the frametime counter
-    uint64_t frametimeMicros = frames == 0 ? 0 : ticksElapsed * 55000 / frames;
-    uint64_t frametime = frametimeMicros / 1000;
-    uint64_t fpsTimes100 =
-      frametimeMicros == 0 ? 0 : 100000000 / frametimeMicros;
+    uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
     uint64_t fps = fpsTimes100 / 100;
-    frametimeMicros %= 1000;
     fpsTimes100 %= 100;
 
     char buf[50];
     sprintf(
-      buf, "Frametime: %llu.%03llums (%llu.%02llu fps)", frametime,
-      frametimeMicros, fps, fpsTimes100
+      buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
     );
     vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
 
     vga_present();
 
     key = kbd_getKeyEvent().key;
-    frames++;
-    ticksElapsed = _syscall(SYS_TICKS) - ticksStart;
+    frametime = _syscall(SYS_TICKS) - ticksTotal;
+    ticksTotal += frametime;
   }
 
   // Restore status bar enabled state

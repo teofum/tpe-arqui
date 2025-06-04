@@ -1,6 +1,6 @@
 #include <audio.h>
 #include <stdint.h>
-#include <time.h> // Falta implementarlo bien?
+#include <time.h>// Falta implementarlo bien?
 
 /* Funciones externas de audio_asm */
 /**
@@ -59,9 +59,7 @@ static void audio_delay(uint16_t ms) {
   uint16_t start = ticks_elapsed();
   uint16_t elapsed;
 
-  do {
-    elapsed = ticks_elapsed() - start;
-  } while (elapsed < ms);
+  do { elapsed = ticks_elapsed() - start; } while (elapsed < ms);
 }
 
 void audio_beep(uint16_t frequency, uint16_t duration) {
@@ -71,4 +69,3 @@ void audio_beep(uint16_t frequency, uint16_t duration) {
 }
 
 void audio_shutdown(void) { audio_stop(); }
-

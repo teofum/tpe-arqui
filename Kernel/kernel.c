@@ -1,4 +1,5 @@
 #include "status.h"
+#include "time.h"
 #include <audio.h>
 #include <interrupts.h>
 #include <io.h>
@@ -61,6 +62,9 @@ int main() {
   initSyscalls();
   initInterrupts();
   loadIDT();
+
+  // Init timer
+  timer_init();
 
   // Initialize video driver
   vga_init();
