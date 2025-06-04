@@ -18,10 +18,10 @@
 #define TERRAIN_SIZE_UNITS_X (FIELD_WIDTH / TERRAIN_SIZE_X)
 #define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
 
-#define VMAX 1.2f
+#define VMAX 1.0f
 #define TURNS_SPEED 0.01f
-#define ACCELERATION 0.4f
-#define GRAVITY 0.2f
+#define ACCELERATION 0.01f
+#define GRAVITY 0.1f
 #define BRAKING 0.9
 
 #define abs(x) ((x) >= 0 ? (x) : -(x))
@@ -31,6 +31,8 @@
 #define rgba(r, g, b, a) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
 
 #define height(t, xx, yy) (t->v[(xx)][(yy)].y)
+
+#define lerp(a, b, t) ((a) * (1.0f - (t)) + (b) * (t))
 
 typedef struct {
   float x;
@@ -44,7 +46,7 @@ typedef struct {
   float vx;
   float vy;
 
-  int size;//pensado para ser un radio, se puede usar para suplantar masa
+  float size;//pensado para ser un radio, se puede usar para suplantar masa
 
   float mass;// para colisions y podria afectar el gama
   // si usamos la inversa de la masa nos ahoramos la division de float
@@ -252,11 +254,11 @@ void updateObject(physicsObject_t *obj) {
   obj->y += obj->vy;
 
   // //che maxBounds
-  if ((obj->x - obj->size) < 0 || (obj->x + obj->size) > VGA_WIDTH - 1) {
+  if ((obj->x - obj->size) < 0.0f || (obj->x + obj->size) > FIELD_WIDTH) {
     obj->x = oldx;
     obj->vx = -(obj->vx);
   }
-  if ((obj->y - obj->size) < 0 || (obj->y + obj->size) > VGA_HEIGHT - 1) {
+  if ((obj->y - obj->size) < 0.0f || (obj->y + obj->size) > FIELD_HEIGHT) {
     obj->y = oldy;
     obj->vy = -(obj->vy);
   }
@@ -327,8 +329,8 @@ void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
   uint32_t x = obj->x / TERRAIN_SIZE_UNITS_X;
   uint32_t y = obj->y / TERRAIN_SIZE_UNITS_Y;
 
-  x = max(0, min(TERRAIN_SIZE_UNITS_X - 1, x));
-  y = max(0, min(TERRAIN_SIZE_UNITS_Y - 1, y));
+  x = max(0, min(TERRAIN_SIZE_X - 1, x));
+  y = max(0, min(TERRAIN_SIZE_Y - 1, y));
 
   vector_t s = terrain->slopes[x][y];
 
@@ -471,11 +473,43 @@ static void renderTerrain(terrain_t *terrain) {
     (float3 *) terrain->v, (float3 *) terrain->normals, terrain->indices,
     terrain->indices, TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
   );
+  // gfx_drawWireframeIndexed(
+  //   (float3 *) terrain->v, terrain->indices,
+  //   TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
+  // );
 }
 
-static void renderPlayer(physicsObject_t *player) {
-  float4x4 model = mat_rotationY(player->angle);
-  model = mmul(model, mat_translation(player->x, 0.0f, player->y));
+static void renderPlayer(physicsObject_t *player, terrain_t *terrain) {
+  float angle = -player->angle - M_PI * 0.5f;
+  if (angle < -M_PI) angle += M_PI * 2.0f;
+
+  float fx = player->x / TERRAIN_SIZE_UNITS_X;
+  float fy = player->y / TERRAIN_SIZE_UNITS_Y;
+  uint32_t x = fx;
+  uint32_t y = fy;
+
+  x = max(0, min(TERRAIN_SIZE_X - 1, x));
+  y = max(0, min(TERRAIN_SIZE_Y - 1, y));
+
+  float h[] = {
+    height(terrain, x, y),
+    height(terrain, x + 1, y),
+    height(terrain, x, y + 1),
+    height(terrain, x + 1, y + 1),
+  };
+
+  float h0 = lerp(h[0], h[1], fx - x);
+  float h1 = lerp(h[2], h[3], fx - x);
+
+  float height = lerp(h0, h1, fy - y);
+
+  float4x4 model = mat_rotationY(angle);
+  model = mmul(
+    mat_translation(
+      player->x - FIELD_WIDTH * 0.5f, height, player->y - FIELD_HEIGHT * 0.5f
+    ),
+    model
+  );
   gfx_setMatrix(GFX_MAT_MODEL, &model);
 
   float3 color_base = {0.232f, 0.115f, 0.087f};
@@ -661,19 +695,19 @@ int gg_startGame() {
 
   physicsObject_t p1 = {0};
   p1.color = 0xFF0000ff;
-  p1.x = VGA_WIDTH * 0.5f;
-  p1.y = VGA_HEIGHT * 0.5f;
+  p1.x = FIELD_WIDTH * 0.5f;
+  p1.y = FIELD_HEIGHT * 0.5f;
   p1.drag = 0.06f;
-  p1.size = 20;
+  p1.size = 0.05f;
   p1.mass = 0.1f;
   p1.angle = 0.0f;
 
   physicsObject_t p2 = {0};
   p2.color = 0xFFff0000;
-  p2.x = VGA_WIDTH * 0.5f;
-  p2.y = VGA_HEIGHT * 0.5f;
+  p2.x = FIELD_WIDTH * 0.5f;
+  p2.y = FIELD_HEIGHT * 0.5f;
   p2.drag = 0.06f;
-  p2.size = 20;
+  p2.size = 0.05f;
   p2.mass = 0.1f;
   p2.angle = 0.0f;
 
@@ -681,20 +715,14 @@ int gg_startGame() {
   ball.color = 0xffb0b0b0;
   ball.x = VGA_WIDTH * 0.5f;  // 4.0f;
   ball.y = VGA_HEIGHT * 0.25f;//* 4.0f;
-  ball.drag = 0.005;
-  ball.size = 10;
+  ball.drag = 0.005f;
+  ball.size = 0.02f;
   ball.mass = 1;
 
-  enviroment_t env = {0};
-  env.x = 900;
-  env.y = 200;
-  env.size = 100;
-  env.incline = 0.05f;
-
-  hole_t winingHole = {0};
-  winingHole.x = 100;
-  winingHole.y = 100;
-  winingHole.size = 50;
+  // hole_t winingHole = {0};
+  // winingHole.x = 100;
+  // winingHole.y = 100;
+  // winingHole.size = 50;
 
   keycode_t p1Keys[] = {KEY_W, KEY_S, KEY_D, KEY_A};
   keycode_t p2Keys[] = {
@@ -729,7 +757,7 @@ int gg_startGame() {
     doCollision(&p1, &p2);
 
     applyGravity(&terrain, &ball);
-    if (checkHole(&ball, &winingHole)) { loop = 0; }
+    // if (checkHole(&ball, &winingHole)) { loop = 0; }
 
     // Draw game
     // vga_clear(0xFF00FF00);
@@ -742,8 +770,8 @@ int gg_startGame() {
 
     gfx_clear(0);
 
-    renderPlayer(&p1);
-    renderPlayer(&p2);
+    renderPlayer(&p1, &terrain);
+    renderPlayer(&p2, &terrain);
 
     renderTerrain(&terrain);
 
