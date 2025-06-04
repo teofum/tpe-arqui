@@ -271,9 +271,9 @@ void updateObject(physicsObject_t *obj) {
 int checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float difx = b->x - a->x;
   float dify = b->y - a->y;
-  float distsqr = sqr(difx) + sqr(dify);
+  float dist = sqrt(sqr(difx) + sqr(dify));
 
-  if (distsqr <= sqr(b->size + a->size)) {
+  if (dist <= b->size + a->size) {
     //TODO, habria que normalizarlo o algo asi/ ///////////////////////
     dir->x = (difx);
     dir->y = (dify);
@@ -697,8 +697,8 @@ int gg_startGame() {
   p1.color = 0xFF0000ff;
   p1.x = FIELD_WIDTH * 0.5f;
   p1.y = FIELD_HEIGHT * 0.5f;
-  p1.drag = 0.06f;
-  p1.size = 0.05f;
+  p1.drag = 0.02f;
+  p1.size = 1.0f;
   p1.mass = 0.1f;
   p1.angle = 0.0f;
 
@@ -706,8 +706,8 @@ int gg_startGame() {
   p2.color = 0xFFff0000;
   p2.x = FIELD_WIDTH * 0.5f;
   p2.y = FIELD_HEIGHT * 0.5f;
-  p2.drag = 0.06f;
-  p2.size = 0.05f;
+  p2.drag = 0.02f;
+  p2.size = 1.0f;
   p2.mass = 0.1f;
   p2.angle = 0.0f;
 
