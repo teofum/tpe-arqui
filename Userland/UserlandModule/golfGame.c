@@ -54,8 +54,6 @@ typedef struct {
   float drag;// friction/arraste // NO es exacto, es una idea mas simple
 
   float angle;
-
-  color_t color;
 } physicsObject_t;
 
 typedef struct {
@@ -145,7 +143,7 @@ void drawObject(
 ) {// TODO, hace falta algo para dibujar un circulo
   vga_rect(
     (obj->x - obj->size), (obj->y - obj->size), (obj->x + obj->size),
-    (obj->y + obj->size), obj->color, 0
+    (obj->y + obj->size), 0xff00ff, 0
   );
 
   vector_t p;
@@ -479,12 +477,9 @@ static void renderTerrain(terrain_t *terrain) {
   // );
 }
 
-static void renderPlayer(physicsObject_t *player, terrain_t *terrain) {
-  float angle = -player->angle - M_PI * 0.5f;
-  if (angle < -M_PI) angle += M_PI * 2.0f;
-
-  float fx = player->x / TERRAIN_SIZE_UNITS_X;
-  float fy = player->y / TERRAIN_SIZE_UNITS_Y;
+static float getTerrainHeightAt(terrain_t *terrain, float fx, float fy) {
+  fx /= TERRAIN_SIZE_UNITS_X;
+  fx /= TERRAIN_SIZE_UNITS_Y;
   uint32_t x = fx;
   uint32_t y = fy;
 
@@ -501,7 +496,14 @@ static void renderPlayer(physicsObject_t *player, terrain_t *terrain) {
   float h0 = lerp(h[0], h[1], fx - x);
   float h1 = lerp(h[2], h[3], fx - x);
 
-  float height = lerp(h0, h1, fy - y);
+  return lerp(h0, h1, fy - y);
+}
+
+static void renderPlayer(physicsObject_t *player, terrain_t *terrain) {
+  float angle = -player->angle - M_PI * 0.5f;
+  if (angle < -M_PI) angle += M_PI * 2.0f;
+
+  float height = getTerrainHeightAt(terrain, player->x, player->y);
 
   float4x4 model = mat_rotationY(angle);
   model = mmul(
@@ -525,6 +527,21 @@ static void renderPlayer(physicsObject_t *player, terrain_t *terrain) {
   );
   gfx_drawPrimitivesIndexed(
     v_club, n_club, vi_club, ni_club, pc_club, color_club
+  );
+}
+
+static void renderBall(physicsObject_t *ball, terrain_t *terrain) {
+  float height = getTerrainHeightAt(terrain, ball->x, ball->y);
+
+  float4x4 model = mat_translation(
+    ball->x - FIELD_WIDTH * 0.5f, height, ball->y - FIELD_HEIGHT * 0.5f
+  );
+  model = mmul(model, mat_scale(0.2f, 0.2f, 0.1f));
+  gfx_setMatrix(GFX_MAT_MODEL, &model);
+
+  float3 color_base = {0.8f, 0.0f, 0.0f};
+  gfx_drawPrimitivesIndexed(
+    v_base, n_base, vi_base, ni_base, pc_base, color_base
   );
 }
 
@@ -694,7 +711,6 @@ int gg_startGame() {
   generateTerrain(&terrain);
 
   physicsObject_t p1 = {0};
-  p1.color = 0xFF0000ff;
   p1.x = FIELD_WIDTH * 0.5f;
   p1.y = FIELD_HEIGHT * 0.5f;
   p1.drag = 0.02f;
@@ -703,7 +719,6 @@ int gg_startGame() {
   p1.angle = 0.0f;
 
   physicsObject_t p2 = {0};
-  p2.color = 0xFFff0000;
   p2.x = FIELD_WIDTH * 0.5f;
   p2.y = FIELD_HEIGHT * 0.5f;
   p2.drag = 0.02f;
@@ -712,12 +727,11 @@ int gg_startGame() {
   p2.angle = 0.0f;
 
   physicsObject_t ball = {0};
-  ball.color = 0xffb0b0b0;
-  ball.x = VGA_WIDTH * 0.5f;  // 4.0f;
-  ball.y = VGA_HEIGHT * 0.25f;//* 4.0f;
+  ball.x = FIELD_WIDTH * 0.5f;
+  ball.y = FIELD_HEIGHT * 0.25f;
   ball.drag = 0.005f;
-  ball.size = 0.02f;
-  ball.mass = 1;
+  ball.size = 0.2f;
+  ball.mass = 1.0f;
 
   // hole_t winingHole = {0};
   // winingHole.x = 100;
@@ -760,18 +774,23 @@ int gg_startGame() {
     // if (checkHole(&ball, &winingHole)) { loop = 0; }
 
     // Draw game
-    // vga_clear(0xFF00FF00);
-    // drawTerrainDebug(&terrain);
-    // drawEnviroment(&env);
-    // drawObject(&p2);
-    // drawObject(&p1);
-    // drawObject(&ball);
-    // drawHole(&winingHole);
-
     gfx_clear(0);
+
+    vga_setFramebuffer(gfx_getFramebuffer());
+    vga_gradient(
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
+      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
+    );
+    vga_shade(
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
+      VGA_ALPHA_BLEND
+    );
+    vga_setFramebuffer(NULL);
 
     renderPlayer(&p1, &terrain);
     renderPlayer(&p2, &terrain);
+
+    renderBall(&ball, &terrain);
 
     renderTerrain(&terrain);
 
