@@ -7,6 +7,12 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
+typedef enum {
+  GG_SCREEN_TITLE,
+  GG_SCREEN_PLAYERSELECT,
+  GG_SCREEN_GAME,
+} gg_screen_t;
+
 uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
 
 extern const char *obj_capybase;
@@ -207,15 +213,16 @@ void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
 }
 
 static void showTitleScreen() {
+  gg_screen_t screen = GG_SCREEN_TITLE;
   float a = 0.0f, capyAngle = 0.0f;
+  uint32_t textBlinkTimer = 0;
 
   /*
    * Graphics setup
    */
 
-  // Set half render resolution for speed
-  gfx_res_t renderRes = GFX_RES_HALF;
-  // gfx_setRenderResolution(renderRes);
+  // Set full render resolution for the main menu, we're not rendering much
+  gfx_setRenderResolution(GFX_RES_FULL);
 
   // Set up view and projection matrices
   float3 pos = {0, 1, 3.5f};
@@ -255,7 +262,7 @@ static void showTitleScreen() {
    * Draw loop
    */
   kbd_event_t ev = {0};
-  while (!ev.key) {
+  while (screen != GG_SCREEN_GAME) {
     // Clear graphics frame and depth buffers
     gfx_clear(0);
 
@@ -305,19 +312,41 @@ static void showTitleScreen() {
     // Draw the title logo (it floats!)
     vga_bitmap(256, 128 - 18 * sin(a), titlescreenLogo, 2, VGA_ALPHA_BLEND);
 
-    // Draw some text
-    vga_text(424, 500, "Press any key to start", 0xffffff, 0, VGA_TEXT_BG);
+    // Draw UI text
+    if (screen == GG_SCREEN_TITLE && textBlinkTimer > 20) {
+      vga_text(424, 500, "Press any key to start", 0xffffff, 0, VGA_TEXT_BG);
+    }
+
+    if (screen == GG_SCREEN_PLAYERSELECT) {
+      vga_rect(300, 400, 700, 600, 0, 0);
+      vga_text(320, 420, "TODO player select", 0xffffff, 0, 0);
+      vga_text(320, 440, "Press RETURN to play", 0xffffff, 0, 0);
+
+      // TODO: player select screen (1P - 2P)
+    }
+
     vga_text(824, 736, "(c) 1998 TONKATSU GAMES", 0xffffff, 0, 0);
 
     // Draw everything to screen
     vga_present();
 
-    // Update vars and get keyboard event
+    // Update vars
+    // TODO deltatime
     a += 0.01f;
     if (a > M_PI) a -= 2.0f * M_PI;
     capyAngle -= 0.05f;
     if (capyAngle < -M_PI) capyAngle += 2.0f * M_PI;
+    textBlinkTimer = (textBlinkTimer + 1) % 40;
+
+    // Process input
     ev = kbd_getKeyEvent();
+    if (ev.key) {
+      if (screen == GG_SCREEN_TITLE) {
+        screen = GG_SCREEN_PLAYERSELECT;
+      } else if (screen == GG_SCREEN_PLAYERSELECT && ev.key == KEY_RETURN) {
+        screen = GG_SCREEN_GAME;
+      }
+    }
   }
 }
 
@@ -331,8 +360,6 @@ int gg_startGame() {
 
   // Display the title screen
   showTitleScreen();
-
-  // TODO: player select screen (1P - 2P)
 
   /*
    * Set up game objects
