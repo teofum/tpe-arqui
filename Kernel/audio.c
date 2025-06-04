@@ -1,6 +1,7 @@
 #include <audio.h>
 #include <stdint.h>
-#include <time.h> // Falta implementarlo bien?
+#include <time.h>
+#include <libasm.h>
 
 /* Funciones externas de audio_asm */
 /**
@@ -26,10 +27,11 @@ extern void outb(uint16_t port, uint8_t value);
 
 /* Bits de control del Speaker */
 #define SPEAKER_ENABLE_BIT 0x03 /* Bits para habilitar el PC speaker*/
+#define SPEAKER_DISABLE_BIT 0xFC
 
 
 void audio_play(uint16_t frequency) {
-  if (frequency <= 1) {
+  if (frequency == 0) {
     audio_stop();
     return;
   }
@@ -50,14 +52,13 @@ void audio_play(uint16_t frequency) {
 
 void audio_stop(void) {
   /* Desconecta el PC Speaker del canal 2 del PIT */
-  uint8_t tmp = inb(PC_SPEAKER_PORT) & ~SPEAKER_ENABLE_BIT;
+  uint8_t tmp = inb(PC_SPEAKER_PORT) & SPEAKER_DISABLE_BIT;
   outb(PC_SPEAKER_PORT, tmp);
 }
 
-// Con el time.c de la catedra
-static void audio_delay(uint16_t ms) {
-  uint16_t start = ticks_elapsed();
-  uint16_t elapsed;
+void audio_delay(uint16_t ms) {
+  unsigned int start = ticks_elapsed();
+  unsigned int elapsed;
 
   do {
     elapsed = ticks_elapsed() - start;
@@ -65,9 +66,26 @@ static void audio_delay(uint16_t ms) {
 }
 
 void audio_beep(uint16_t frequency, uint16_t duration) {
-  if (frequency > 1) audio_play(frequency);
+  _sti();
+  if (frequency != 0) audio_play(frequency);
   audio_delay(duration);
   audio_stop();
+  _cli();
+}
+
+void audio_tone_sequence(const uint16_t* frequencies, const uint16_t* durations, uint8_t count) {
+  _sti();
+  if (!frequencies || !durations) return;
+  for (uint8_t i = 0; i < count; i++) {
+    if (frequencies[i] == 0) {
+      audio_stop();
+    } else {
+      audio_play(frequencies[i]);
+    }
+    audio_delay(durations[i]);
+  }
+  audio_stop();
+  _cli();
 }
 
 void audio_shutdown(void) { audio_stop(); }

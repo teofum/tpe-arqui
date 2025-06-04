@@ -9,6 +9,7 @@
 #include <status.h>
 #include <stdint.h>
 #include <time.h>
+#include <audio.h>
 
 #define ID_TIMER_TICK 0x20
 #define ID_KEYBOARD 0x21
@@ -163,6 +164,10 @@ void initSyscalls() {
   registerSyscall(0x2C, vga_copy);
   registerSyscall(0x2D, vga_copy2x);
   registerSyscall(0x2E, vga_bitmap);
+
+  /* Audio */
+  registerSyscall(0x30, audio_beep);
+  registerSyscall(0x31, audio_tone_sequence);
 
   /* Status bar */
   registerSyscall(0x40, status_enabled);
@@ -397,3 +402,4 @@ void showCPUState() {
   char key = 0;
   while (!key) { key = kbd_getKeyEvent().key; }
 }
+

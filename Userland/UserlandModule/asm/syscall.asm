@@ -10,7 +10,7 @@ _syscall:
     mov r8, r9
 
     int 0x80
-    
+
     ret
 
 global kbd_pollEvents
@@ -204,3 +204,15 @@ gfx_present:
     mov rax, 0xAF
     int 0x80
     ret
+
+global audio_beep
+audio_beep:
+  mov rax, 0x30
+  int 0x80
+  ret
+
+global audio_tone_seq
+audio_tone_seq:
+  mov rax, 0x31
+  int 0x80
+  ret

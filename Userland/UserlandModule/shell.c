@@ -1,5 +1,6 @@
 #include <print.h>
 #include <shell.h>
+#include <stdint.h>
 #include <strings.h>
 #include <syscall.h>
 
@@ -128,6 +129,18 @@ int throw06() {
   return 0;
 }
 
+static int beep() {
+  _syscall(0x30, 1200, 30);
+  return 0;
+}
+
+static int music(){
+  uint16_t frequencies[] = {};
+  uint16_t durations[] = {};
+  uint16_t count;
+  _syscall(0x31, frequencies, durations);
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -141,6 +154,7 @@ command_t commands[] = {
   {"status", "Turn the system status bar on or off", status},
   {"exc00", "Tests Division by Zero Exception", throw00},
   {"exc06", "Test OpCode Exception", throw06},
+  {"beep", "Plays a short beep", beep},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
@@ -332,3 +346,4 @@ int startShell() {
 
   return 0;
 }
+
