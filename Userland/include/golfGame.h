@@ -6,11 +6,11 @@
 #include <stdint.h>
 #include <vga.h>
 
-#define T 0.5f
 //afecta que tanto v se aplica por frame,                                    \
 //mas bajo se mueve mas lento pero va mas fluido
-#define VMAX 10.0f
-#define TURNS_SPEED 0.1f
+#define VMAX 1.0f
+#define TURNS_SPEED 0.01f
+#define ACCELERATION 0.2f
 #define BRAKING 0.9
 
 //la necesite la robe de vga, utils.h estaria bueno

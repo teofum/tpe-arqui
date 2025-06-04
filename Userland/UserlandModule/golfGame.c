@@ -1,3 +1,4 @@
+#include "kbd.h"
 #include <fpmath.h>
 #include <golfGame.h>
 #include <graphics.h>
@@ -6,6 +7,8 @@
 #include <vga.h>
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
+
+#define TITLE_TEXT_BLINK_MS 500
 
 typedef enum {
   GG_SCREEN_TITLE,
@@ -33,6 +36,14 @@ float3 v_club[12];
 float3 n_club[12];
 uint32_t vi_club[20 * 3];
 uint32_t ni_club[20 * 3];
+
+uint64_t frametime = 0;
+uint64_t totalTicks = 0;
+
+static inline void updateTimer() {
+  frametime = _syscall(SYS_TICKS) - totalTicks;
+  totalTicks += frametime;
+}
 
 void drawObject(
   physicsObject_t *obj
@@ -100,54 +111,26 @@ void updatePlayerDirectional(physicsObject_t *obj) {
 
 /*
 * tank controls for player, accelerates it
-* /aka if you use this, the player doesnt need to be
-* updated 
 */
-void updatePlayerTank(physicsObject_t *obj) {
-  int up = kbd_keydown(KEY_ARROW_UP);
-  int down = kbd_keydown(KEY_ARROW_DOWN);
-  int right = kbd_keydown(KEY_ARROW_RIGHT);
-  int left = kbd_keydown(KEY_ARROW_LEFT);
+void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
+  int up = kbd_keydown(keys[0]);
+  int down = kbd_keydown(keys[1]);
+  int right = kbd_keydown(keys[2]);
+  int left = kbd_keydown(keys[3]);
 
   if (right) {
-    obj->angle += TURNS_SPEED;
+    obj->angle += TURNS_SPEED * frametime;
     if (obj->angle > M_PI) obj->angle -= 2.0f * M_PI;
   }
   if (left) {
-    obj->angle -= TURNS_SPEED;
+    obj->angle -= TURNS_SPEED * frametime;
     if (obj->angle < -M_PI) obj->angle += 2.0f * M_PI;
   }
   if (up) {
     vector_t dir;
     // TODO make acceleration a constant
-    dir.x = 1.0f * cos(obj->angle);
-    dir.y = 1.0f * sin(obj->angle);
-    accelerateObject(obj, &dir);
-  }
-  if (down) {
-    obj->vx *= BRAKING;
-    obj->vy *= BRAKING;
-  }
-}
-void updatePlayerTankWASD(physicsObject_t *obj) {
-  int up = kbd_keydown(KEY_W);
-  int down = kbd_keydown(KEY_S);
-  int right = kbd_keydown(KEY_D);
-  int left = kbd_keydown(KEY_A);
-
-  if (right) {
-    obj->angle += TURNS_SPEED;
-    if (obj->angle > M_PI) obj->angle -= 2.0f * M_PI;
-  }
-  if (left) {
-    obj->angle -= TURNS_SPEED;
-    if (obj->angle < -M_PI) obj->angle += 2.0f * M_PI;
-  }
-  if (up) {
-    vector_t dir;
-    // TODO make acceleration a constant
-    dir.x = 1.0f * cos(obj->angle);
-    dir.y = 1.0f * sin(obj->angle);
+    dir.x = ACCELERATION * frametime * cos(obj->angle);
+    dir.y = ACCELERATION * frametime * sin(obj->angle);
     accelerateObject(obj, &dir);
   }
   if (down) {
@@ -167,12 +150,12 @@ void updateObject(physicsObject_t *obj) {
   float oldy = obj->y;
 
   //add drag
-  obj->vx -= obj->vx * obj->drag;
-  obj->vy -= obj->vy * obj->drag;
+  obj->vx *= 1.0f - obj->drag * frametime;
+  obj->vy *= 1.0f - obj->drag * frametime;
 
   //update pos
-  obj->x += obj->vx * T;
-  obj->y += obj->vy * T;
+  obj->x += obj->vx;
+  obj->y += obj->vy;
 
   // //che maxBounds
   if ((obj->x - obj->size) < 0 || (obj->x + obj->size) > VGA_WIDTH - 1) {
@@ -249,8 +232,8 @@ int checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
 void doEnviroment(enviroment_t *env, physicsObject_t *obj) {
   vector_t dir = {0};
   if (checkEnviroment(env, obj, &dir)) {
-    obj->vx += dir.x * env->incline;
-    obj->vy += dir.y * env->incline;
+    obj->vx += dir.x * env->incline * frametime;
+    obj->vy += dir.y * env->incline * frametime;
   }
 }
 /*
@@ -320,6 +303,9 @@ static void showTitleScreen() {
    */
   kbd_event_t ev = {0};
   while (screen != GG_SCREEN_GAME) {
+    // Update the timer
+    updateTimer();
+
     // Clear graphics frame and depth buffers
     gfx_clear(0);
 
@@ -370,7 +356,8 @@ static void showTitleScreen() {
     vga_bitmap(256, 128 - 18 * sin(a), titlescreenLogo, 2, VGA_ALPHA_BLEND);
 
     // Draw UI text
-    if (screen == GG_SCREEN_TITLE && textBlinkTimer > 20) {
+    if (screen == GG_SCREEN_TITLE &&
+        textBlinkTimer > (TITLE_TEXT_BLINK_MS >> 1)) {
       vga_text(424, 500, "Press any key to start", 0xffffff, 0, VGA_TEXT_BG);
     }
 
@@ -389,11 +376,11 @@ static void showTitleScreen() {
 
     // Update vars
     // TODO deltatime
-    a += 0.01f;
+    a += 0.005f * frametime;
     if (a > M_PI) a -= 2.0f * M_PI;
-    capyAngle -= 0.05f;
+    capyAngle -= 0.01f * frametime;
     if (capyAngle < -M_PI) capyAngle += 2.0f * M_PI;
-    textBlinkTimer = (textBlinkTimer + 1) % 40;
+    textBlinkTimer = (textBlinkTimer + frametime) % TITLE_TEXT_BLINK_MS;
 
     // Process input
     ev = kbd_getKeyEvent();
@@ -414,6 +401,9 @@ int gg_startGame() {
   // Disable status bar drawing while application is active
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
+
+  // Init deltatime timer
+  totalTicks = _syscall(SYS_TICKS);
 
   // Display the title screen
   showTitleScreen();
@@ -443,7 +433,7 @@ int gg_startGame() {
   ball.color = 0xffb0b0b0;
   ball.x = VGA_WIDTH * 0.5f;  // 4.0f;
   ball.y = VGA_HEIGHT * 0.25f;//* 4.0f;
-  ball.drag = 0.05;
+  ball.drag = 0.005;
   ball.size = 10;
   ball.mass = 1;
 
@@ -451,27 +441,35 @@ int gg_startGame() {
   env.x = 900;
   env.y = 200;
   env.size = 100;
-  env.incline = 0.5;
+  env.incline = 0.05f;
 
   hole_t winingHole = {0};
   winingHole.x = 100;
   winingHole.y = 100;
   winingHole.size = 50;
 
+  keycode_t p1Keys[] = {KEY_W, KEY_S, KEY_D, KEY_A};
+  keycode_t p2Keys[] = {
+    KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT
+  };
+
   /*
    * Game loop
    */
   int loop = 1;
   while (loop) {
+    // Update the timer
+    updateTimer();
+
     // Update keyboard input
     kbd_pollEvents();
 
     // Update physics
-    updatePlayerTank(&p1);
+    updatePlayerTank(&p1, p1Keys);
     updateObject(&p1);
     doCollision(&p1, &ball);
 
-    updatePlayerTankWASD(&p2);
+    updatePlayerTank(&p2, p2Keys);
     updateObject(&p2);
     doCollision(&p2, &ball);
 
