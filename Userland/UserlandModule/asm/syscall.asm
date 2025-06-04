@@ -193,8 +193,8 @@ gfx_setMatrix:
     int 0x80
     ret
 
-global gfx_setRenderResolution
-gfx_setRenderResolution:
+global gfx_setFlag
+gfx_setFlag:
     mov rax, 0xAD
     int 0x80
     ret

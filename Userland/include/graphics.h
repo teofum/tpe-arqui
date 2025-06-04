@@ -35,9 +35,10 @@ typedef enum {
  * Render resolution settings
  */
 typedef enum {
-  GFX_RES_FULL,
-  GFX_RES_HALF,
-} gfx_res_t;
+  GFX_HALFRES = 0x01,
+  GFX_DEPTH_TEST = 0x02,
+  GFX_DEPTH_WRITE = 0x04,
+} gfx_flags_t;
 
 /*
  * Clear the internal frame and depth buffers.
@@ -97,10 +98,10 @@ void gfx_setLightType(gfx_light_t mode);
 void gfx_setMatrix(gfx_matrix_t which, float4x4 *data);
 
 /*
- * Set render resolution.
+ * Set renderer flags.
  * The driver supports rendering at half resolution for increased performance.
  */
-void gfx_setRenderResolution(gfx_res_t res);
+void gfx_setFlag(gfx_flags_t flag, uint8_t value);
 
 /*
  * Present the internal framebuffer to the VGA driver's main framebuffer.

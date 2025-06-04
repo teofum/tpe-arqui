@@ -28,8 +28,8 @@ int demo3d() {
    */
 
   // Set half render resolution for speed
-  gfx_res_t renderRes = GFX_RES_HALF;
-  gfx_setRenderResolution(renderRes);
+  uint8_t halfres = 1;
+  gfx_setFlag(GFX_HALFRES, halfres);
 
   // Set up view and projection matrices
   float3 pos = {0, 2, 4};
@@ -106,13 +106,8 @@ int demo3d() {
     }
     if (kbd_keypressed(KEY_W)) { wireframe = !wireframe; }
     if (kbd_keypressed(KEY_R)) {
-      if (renderRes == GFX_RES_HALF) {
-        renderRes = GFX_RES_FULL;
-      } else {
-        renderRes = GFX_RES_HALF;
-      }
-
-      gfx_setRenderResolution(renderRes);
+      halfres = !halfres;
+      gfx_setFlag(GFX_HALFRES, halfres);
     }
     if (kbd_keypressed(KEY_COMMA)) {
       fovDegrees += 5.0f;

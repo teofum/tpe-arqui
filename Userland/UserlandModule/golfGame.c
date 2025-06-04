@@ -109,7 +109,7 @@ uint32_t ni_club[20 * 3];
 uint32_t pc_base, pc_face, pc_club;
 
 float3 v_hole[7];
-uint32_t vi_hole[15] = {1, 6, 0, 1, 3, 2, 6, 5, 4, 6, 4, 3, 1, 6, 3};
+uint32_t vi_hole[15] = {1, 6, 0, 1, 2, 3, 6, 4, 5, 6, 3, 4, 1, 3, 6};
 
 uint64_t frametime = 0;
 uint64_t totalTicks = 0;
@@ -447,7 +447,7 @@ static void generateTerrain(terrain_t *terrain) {
 
 static void setupGameRender() {
   // Set half render resolution for the game for increased framerate
-  gfx_setRenderResolution(GFX_RES_HALF);
+  gfx_setFlag(GFX_HALFRES, 1);
 
   // Set up view and projection matrices
   float3 pos = {0, 10.0f, 3.5f};
@@ -570,7 +570,9 @@ static void renderHole(hole_t *hole, terrain_t *terrain) {
   gfx_setMatrix(GFX_MAT_MODEL, &model);
 
   float3 color_hole = {0.0f, 0.0f, 0.0f};
-  gfx_drawPrimitivesIndexed(v_hole, NULL, vi_hole, NULL, pc_base, color_hole);
+  gfx_setFlag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 0);
+  gfx_drawPrimitivesIndexed(v_hole, NULL, vi_hole, vi_hole, 5, color_hole);
+  gfx_setFlag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 1);
 
   // TODO flag
 }
@@ -589,7 +591,7 @@ static void showTitleScreen() {
    */
 
   // Set full render resolution for the main menu, we're not rendering much
-  gfx_setRenderResolution(GFX_RES_FULL);
+  gfx_setFlag(GFX_HALFRES, 0);
 
   // Set up view and projection matrices
   float3 pos = {0, 1, 3.5f};
@@ -820,14 +822,14 @@ int gg_startGame() {
     );
     vga_setFramebuffer(NULL);
 
+    renderTerrain(&terrain);
+
+    renderHole(&hole, &terrain);
+
     renderPlayer(&p1, &terrain);
     renderPlayer(&p2, &terrain);
 
     renderBall(&ball, &terrain);
-
-    renderTerrain(&terrain);
-
-    renderHole(&hole, &terrain);
 
     gfx_present();
     vga_present();

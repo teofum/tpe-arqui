@@ -33,7 +33,6 @@ float _depthbuffer[VGA_WIDTH * VGA_HEIGHT];
  */
 uint32_t gfx_renderWidth = VGA_WIDTH;
 uint32_t gfx_renderHeight = VGA_HEIGHT;
-gfx_res_t gfx_res = GFX_RES_FULL;
 
 /*
  * Graphics system state.
@@ -56,6 +55,8 @@ float3 gfx_lightPos;
 float3 gfx_lightColor;
 float3 gfx_ambientLight;
 gfx_light_t gfx_lightType = GFX_LIGHT_DIRECTIONAL;
+
+gfx_flags_t gfx_flags = GFX_DEPTH_TEST | GFX_DEPTH_WRITE;
 
 /*
  * End of state.
@@ -136,8 +137,9 @@ drawTriangle(float3 v0, float3 v1, float3 v2, float3 c0, float3 c1, float3 c2) {
 
         float z = v0.z * u + v1.z * v + v2.z * t;
         if (z >= 0.0f && z <= 1.0f &&
-            (z + 0.0001f) < _depthbuffer[depthOffset]) {
-          _depthbuffer[depthOffset] = z;
+            (!(gfx_flags & GFX_DEPTH_TEST) ||
+             (z + 0.0001f) < _depthbuffer[depthOffset])) {
+          if (gfx_flags & GFX_DEPTH_WRITE) _depthbuffer[depthOffset] = z;
 
           float r = c0.x * u + c1.x * v + c2.x * t;
           float g = c0.y * u + c1.y * v + c2.y * t;
@@ -407,17 +409,26 @@ void gfx_setMatrix(gfx_matrix_t which, float4x4 *data) {
   }
 }
 
-void gfx_setRenderResolution(gfx_res_t res) {
-  gfx_res = res;
-  gfx_renderWidth = res == GFX_RES_HALF ? (VGA_WIDTH >> 1) : VGA_WIDTH;
-  gfx_renderHeight = res == GFX_RES_HALF ? (VGA_HEIGHT >> 1) : VGA_HEIGHT;
+static void setRenderResolution(int half) {
+  gfx_renderWidth = half ? (VGA_WIDTH >> 1) : VGA_WIDTH;
+  gfx_renderHeight = half ? (VGA_HEIGHT >> 1) : VGA_HEIGHT;
+}
+
+void gfx_setFlag(gfx_flags_t flag, uint8_t value) {
+  if (value) {
+    gfx_flags |= flag;
+  } else {
+    gfx_flags &= ~flag;
+  }
+
+  if (flag == GFX_HALFRES) { setRenderResolution(value); }
 }
 
 /*
  * Copy the internal framebuffer to some other fb
  */
 void gfx_present() {
-  if (gfx_res == GFX_RES_HALF) {
+  if (gfx_flags & GFX_HALFRES) {
     vga_copy2x(NULL, _gfxFramebuffer);
   } else {
     vga_copy(NULL, _gfxFramebuffer, 0);
