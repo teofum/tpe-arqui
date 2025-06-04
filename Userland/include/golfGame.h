@@ -6,11 +6,12 @@
 #include <stdint.h>
 #include <vga.h>
 
-#define T 1.0f
+#define T 0.5f
 //afecta que tanto v se aplica por frame,                                    \
 //mas bajo se mueve mas lento pero va mas fluido
-#define VMAX 0.8f
-#define TURNS_SPEED 0.01f
+#define VMAX 10.0f
+#define TURNS_SPEED 0.1f
+#define BRAKING 0.9
 
 //la necesite la robe de vga, utils.h estaria bueno
 #define abs(x) ((x) >= 0 ? (x) : -(x))
@@ -46,8 +47,14 @@ typedef struct {
   float incline;
 } enviroment_t;
 
+typedef struct {
+  float x;
+  float y;
 
-typedef struct {// por alguna extrana rason no puedo usar floats aca
+  int size;
+} hole_t;
+
+typedef struct {
   float x;
   float y;
 } vector_t;
