@@ -10,10 +10,13 @@
 
 #define TITLE_TEXT_BLINK_MS 500
 
+#define FIELD_WIDTH 15.0f
+#define FIELD_HEIGHT 10.0f
+
 #define TERRAIN_SIZE_X 15
 #define TERRAIN_SIZE_Y 10
-#define TERRAIN_SIZE_UNITS_X ((float) VGA_WIDTH / TERRAIN_SIZE_X)
-#define TERRAIN_SIZE_UNITS_Y ((float) VGA_HEIGHT / TERRAIN_SIZE_Y)
+#define TERRAIN_SIZE_UNITS_X (FIELD_WIDTH / TERRAIN_SIZE_X)
+#define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
 
 #define VMAX 1.2f
 #define TURNS_SPEED 0.01f
@@ -26,6 +29,8 @@
 #define sqr(x) ((x) * (x))
 
 #define rgba(r, g, b, a) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
+
+#define height(t, xx, yy) (t->v[(xx)][(yy)].y)
 
 typedef struct {
   float x;
@@ -60,9 +65,11 @@ typedef struct {
 } enviroment_t;
 
 typedef struct {
-  float height[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
+  float3 v[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
   float3 normals[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
   vector_t slopes[TERRAIN_SIZE_X][TERRAIN_SIZE_Y];
+
+  uint32_t indices[TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 6];
 } terrain_t;
 
 typedef struct {
@@ -323,8 +330,8 @@ void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
 
   vector_t s = terrain->slopes[x][y];
 
-  obj->vx += GRAVITY * s.x * abs(s.x);
-  obj->vy += GRAVITY * s.y * abs(s.y);
+  obj->vx -= GRAVITY * s.x * abs(s.x);
+  obj->vy -= GRAVITY * s.y * abs(s.y);
 }
 
 /*
@@ -343,16 +350,22 @@ int checkHole(physicsObject_t *obj, hole_t *hole) {
 }
 
 static void generateTerrain(terrain_t *terrain) {
+  // Generate terrain vertices
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
       // test terrain gen
-      terrain->height[x][y] =
-        sqr((float) y / TERRAIN_SIZE_Y * 2.0f - 1.0f) * -200.0f +
-        sqr((float) x / TERRAIN_SIZE_X * 2.0f - 1.0f) * -200.0f;
+      float height = sqr((float) y / TERRAIN_SIZE_Y * 2.0f - 1.0f) * 2.0f +
+                     sqr((float) x / TERRAIN_SIZE_X * 2.0f - 1.0f) * 2.0f;
+
+      float3 vertex = {
+        (float) x * TERRAIN_SIZE_UNITS_X - 0.5f * FIELD_WIDTH, height,
+        (float) y * TERRAIN_SIZE_UNITS_Y - 0.5f * FIELD_HEIGHT
+      };
+      terrain->v[x][y] = vertex;
     }
   }
 
-  // Generate terrain normals from heightmap
+  // Generate terrain normals from heightmap for rendering
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
       terrain->normals[x][y].y = 1.0f;
@@ -363,10 +376,10 @@ static void generateTerrain(terrain_t *terrain) {
       int y1 = min(TERRAIN_SIZE_Y, y + 1);
 
       float h[] = {
-        terrain->height[x0][y0],
-        terrain->height[x1][y0],
-        terrain->height[x0][y1],
-        terrain->height[x1][y1],
+        height(terrain, x0, y0),
+        height(terrain, x1, y0),
+        height(terrain, x0, y1),
+        height(terrain, x1, y1),
       };
       float dx = ((h[1] + h[2]) - (h[0] + h[2]));
       float dy = ((h[2] + h[3]) - (h[0] + h[1]));
@@ -379,14 +392,14 @@ static void generateTerrain(terrain_t *terrain) {
     }
   }
 
-  // Generate terrain slopes
+  // Generate terrain slopes for physics
   for (uint32_t y = 0; y < TERRAIN_SIZE_Y; y++) {
     for (uint32_t x = 0; x < TERRAIN_SIZE_X; x++) {
       float h[] = {
-        terrain->height[x][y],
-        terrain->height[x + 1][y],
-        terrain->height[x][y + 1],
-        terrain->height[x + 1][y + 1],
+        height(terrain, x, y),
+        height(terrain, x + 1, y),
+        height(terrain, x, y + 1),
+        height(terrain, x + 1, y + 1),
       };
       float dx = ((h[1] + h[2]) - (h[0] + h[2]));
       float dy = ((h[2] + h[3]) - (h[0] + h[1]));
@@ -398,6 +411,68 @@ static void generateTerrain(terrain_t *terrain) {
       terrain->slopes[x][y].y = sy;
     }
   }
+
+  // Generate terrain indices for rendering
+  for (uint32_t y = 0; y < TERRAIN_SIZE_Y; y++) {
+    for (uint32_t x = 0; x < TERRAIN_SIZE_X; x++) {
+      uint32_t i = y * TERRAIN_SIZE_X + x;
+      uint32_t iv = x * (TERRAIN_SIZE_Y + 1) + y;
+
+      terrain->indices[i * 6 + 0] = iv;
+      terrain->indices[i * 6 + 1] = iv + (TERRAIN_SIZE_Y + 1);
+      terrain->indices[i * 6 + 2] = iv + (TERRAIN_SIZE_Y + 1) + 1;
+      terrain->indices[i * 6 + 3] = iv;
+      terrain->indices[i * 6 + 4] = iv + (TERRAIN_SIZE_Y + 1) + 1;
+      terrain->indices[i * 6 + 5] = iv + 1;
+    }
+  }
+}
+
+static void setupGameRender() {
+  // Set half render resolution for the game for increased framerate
+  gfx_setRenderResolution(GFX_RES_HALF);
+
+  // Set up view and projection matrices
+  float3 pos = {0, 10.0f, 3.5f};
+  float3 target = {0, 0, 0};
+  float3 up = {0, 1, 0};
+
+  float4x4 view = mat_lookat(pos, target, up);
+  gfx_setMatrix(GFX_MAT_VIEW, &view);
+
+  float fovDegrees = 75.0f;
+  float4x4 projection =
+    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 100.0f);
+  gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
+
+  // Set up lighting
+  float3 light = {-1, 3, -1};
+  float3 lightcolor = {2, 2, 2};
+  float3 ambient = vmuls(lightcolor, 0.5f);
+
+  gfx_light_t lightType = GFX_LIGHT_DIRECTIONAL;
+  gfx_setLightType(lightType);
+  gfx_setLight(GFX_LIGHT_POSITION, &light);
+  gfx_setLight(GFX_AMBIENT_LIGHT, &ambient);
+  gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
+}
+
+static void renderTerrain(terrain_t *terrain) {
+  // Set transform to identity
+  float4x4 model = mat_scale(1, 1, 1);
+  gfx_setMatrix(GFX_MAT_MODEL, &model);
+
+  float3 terrainColor = {0.1, 0.3, 0.2};
+
+  // Draw the terrain
+  gfx_drawPrimitivesIndexed(
+    (float3 *) terrain->v, (float3 *) terrain->normals, terrain->indices,
+    terrain->indices, TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
+  );
+  // gfx_drawWireframeIndexed(
+  //   (float3 *) terrain->v, terrain->indices,
+  //   TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
+  // );
 }
 
 /*
@@ -608,6 +683,9 @@ int gg_startGame() {
     KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT
   };
 
+  // Setup game graphics
+  setupGameRender();
+
   /*
    * Game loop
    */
@@ -637,12 +715,18 @@ int gg_startGame() {
 
     // Draw game
     // vga_clear(0xFF00FF00);
-    drawTerrainDebug(&terrain);
-    drawEnviroment(&env);
-    drawObject(&p2);
-    drawObject(&p1);
-    drawObject(&ball);
-    drawHole(&winingHole);
+    // drawTerrainDebug(&terrain);
+    // drawEnviroment(&env);
+    // drawObject(&p2);
+    // drawObject(&p1);
+    // drawObject(&ball);
+    // drawHole(&winingHole);
+
+    gfx_clear(0);
+
+    renderTerrain(&terrain);
+
+    gfx_present();
     vga_present();
   }
 
