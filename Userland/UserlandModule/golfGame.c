@@ -76,7 +76,7 @@ typedef struct {
   float x;
   float y;
 
-  int size;
+  float size;
 } hole_t;
 
 typedef enum {
@@ -108,12 +108,23 @@ uint32_t ni_club[20 * 3];
 
 uint32_t pc_base, pc_face, pc_club;
 
+float3 v_hole[7];
+uint32_t vi_hole[15] = {1, 6, 0, 1, 3, 2, 6, 5, 4, 6, 4, 3, 1, 6, 3};
+
 uint64_t frametime = 0;
 uint64_t totalTicks = 0;
 
 static inline void updateTimer() {
   frametime = _syscall(SYS_TICKS) - totalTicks;
   totalTicks += frametime;
+}
+
+static inline void makeHoleMesh() {
+  for (int i = 0; i < 7; i++) {
+    float a = -M_PI + 2.0f * i / 7.0f * M_PI;
+    float3 v = {cos(a), 0.0f, sin(a)};
+    v_hole[i] = v;
+  }
 }
 
 void drawTerrainDebug(terrain_t *terrain) {
@@ -549,6 +560,21 @@ static void renderBall(physicsObject_t *ball, terrain_t *terrain) {
   );
 }
 
+static void renderHole(hole_t *hole, terrain_t *terrain) {
+  float height = getTerrainHeightAt(terrain, hole->x, hole->y);
+  float4x4 translation = mat_translation(
+    hole->x - FIELD_WIDTH * 0.5f, height, hole->y - FIELD_HEIGHT * 0.5f
+  );
+
+  float4x4 model = mmul(translation, mat_scale(hole->size, 1.0f, hole->size));
+  gfx_setMatrix(GFX_MAT_MODEL, &model);
+
+  float3 color_hole = {0.0f, 0.0f, 0.0f};
+  gfx_drawPrimitivesIndexed(v_hole, NULL, vi_hole, NULL, pc_base, color_hole);
+
+  // TODO flag
+}
+
 /*
  * Show the title screen/main menu and handle input.
  * Returns when the game should be started.
@@ -702,6 +728,9 @@ int gg_startGame() {
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
+  // Make vertices for the hole mesh
+  makeHoleMesh();
+
   // Init deltatime timer
   totalTicks = _syscall(SYS_TICKS);
 
@@ -737,10 +766,10 @@ int gg_startGame() {
   ball.size = 0.1f;
   ball.mass = 1.0f;
 
-  // hole_t winingHole = {0};
-  // winingHole.x = 100;
-  // winingHole.y = 100;
-  // winingHole.size = 50;
+  hole_t hole = {0};
+  hole.x = FIELD_WIDTH * 0.25f;
+  hole.y = FIELD_HEIGHT * 0.75f;
+  hole.size = 0.5f;
 
   keycode_t p1Keys[] = {KEY_W, KEY_S, KEY_D, KEY_A};
   keycode_t p2Keys[] = {
@@ -775,7 +804,7 @@ int gg_startGame() {
     doCollision(&p1, &p2);
 
     applyGravity(&terrain, &ball);
-    // if (checkHole(&ball, &winingHole)) { loop = 0; }
+    if (checkHole(&ball, &hole)) { loop = 0; }
 
     // Draw game
     gfx_clear(0);
@@ -797,6 +826,8 @@ int gg_startGame() {
     renderBall(&ball, &terrain);
 
     renderTerrain(&terrain);
+
+    renderHole(&hole, &terrain);
 
     gfx_present();
     vga_present();
