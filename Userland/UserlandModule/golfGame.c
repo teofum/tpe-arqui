@@ -106,6 +106,8 @@ float3 n_club[12];
 uint32_t vi_club[20 * 3];
 uint32_t ni_club[20 * 3];
 
+uint32_t pc_base, pc_face, pc_club;
+
 uint64_t frametime = 0;
 uint64_t totalTicks = 0;
 
@@ -469,10 +471,27 @@ static void renderTerrain(terrain_t *terrain) {
     (float3 *) terrain->v, (float3 *) terrain->normals, terrain->indices,
     terrain->indices, TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
   );
-  // gfx_drawWireframeIndexed(
-  //   (float3 *) terrain->v, terrain->indices,
-  //   TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
-  // );
+}
+
+static void renderPlayer(physicsObject_t *player) {
+  float4x4 model = mat_rotationY(player->angle);
+  model = mmul(model, mat_translation(player->x, 0.0f, player->y));
+  gfx_setMatrix(GFX_MAT_MODEL, &model);
+
+  float3 color_base = {0.232f, 0.115f, 0.087f};
+  float3 color_face = {0.082f, 0.021f, 0.001f};
+  float3 color_club = {0.706f, 0.706f, 0.706f};
+
+  // Draw the capybara
+  gfx_drawPrimitivesIndexed(
+    v_face, n_face, vi_face, ni_face, pc_face, color_face
+  );
+  gfx_drawPrimitivesIndexed(
+    v_base, n_base, vi_base, ni_base, pc_base, color_base
+  );
+  gfx_drawPrimitivesIndexed(
+    v_club, n_club, vi_club, ni_club, pc_club, color_club
+  );
 }
 
 /*
@@ -516,7 +535,6 @@ static void showTitleScreen() {
   gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
 
   // Load the capybara models
-  uint32_t pc_base, pc_face, pc_club;
   gfx_parseObj(obj_capybase, v_base, n_base, vi_base, ni_base, &pc_base);
   gfx_parseObj(obj_capyface, v_face, n_face, vi_face, ni_face, &pc_face);
   gfx_parseObj(obj_capyclub, v_club, n_club, vi_club, ni_club, &pc_club);
@@ -723,6 +741,9 @@ int gg_startGame() {
     // drawHole(&winingHole);
 
     gfx_clear(0);
+
+    renderPlayer(&p1);
+    renderPlayer(&p2);
 
     renderTerrain(&terrain);
 
