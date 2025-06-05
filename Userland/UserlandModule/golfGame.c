@@ -1059,7 +1059,7 @@ static int playGame(uint32_t nPlayers) {
       if (nPlayers == 1) {
         // Display score screen for singleplayer
         uint32_t score = min(hits[0], 7);
-        int textWidth;
+        uint32_t textWidth;
         if (score < 7) sprintf(buf, "%s", scoreNames[score]);
         else
           sprintf(buf, "%u %s", hits[0] - PAR, scoreNames[score]);
@@ -1072,14 +1072,30 @@ static int playGame(uint32_t nPlayers) {
         sprintf(buf, "%s", scoreTexts[score]);
         textWidth = strlen(buf) * 8;
         vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
+      } else if (nPlayers == 2) {
+        if (hits[0] == hits[1]) {
+          sprintf(buf, "     Draw     ");
+        } else {
+          sprintf(buf, "Player %u wins!", hits[0] < hits[1] ? 1 : 2);
+        }
 
-        oldfont = vga_font(VGA_FONT_ALT_BOLD);
-        vga_text(
-          (VGA_WIDTH - 160) >> 1, y1 - 32, "Press RETURN to exit", 0xffffff, 0,
-          0
-        );
+        oldfont = vga_font(VGA_FONT_LARGE);
+        vga_text((VGA_WIDTH - 168) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
         vga_font(oldfont);
+
+        uint32_t score = min(min(hits[0], hits[1]), 7);
+        if (score < 7) sprintf(buf, "%s", scoreNames[score]);
+        else
+          sprintf(buf, "%u %s", min(hits[0], hits[1]) - PAR, scoreNames[score]);
+        uint32_t textWidth = strlen(buf) * 8;
+        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
       }
+
+      oldfont = vga_font(VGA_FONT_ALT_BOLD);
+      vga_text(
+        (VGA_WIDTH - 160) >> 1, y1 - 32, "Press RETURN to exit", 0xffffff, 0, 0
+      );
+      vga_font(oldfont);
 
       // Process input
       ev = kbd_getKeyEvent();
