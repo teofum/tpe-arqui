@@ -68,14 +68,6 @@ typedef struct {
 } physicsObject_t;
 
 typedef struct {
-  float x;
-  float y;
-
-  int size;
-  float incline;
-} enviroment_t;
-
-typedef struct {
   float3 v[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
   float3 normals[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
   vector_t slopes[TERRAIN_SIZE_X][TERRAIN_SIZE_Y];
@@ -322,28 +314,8 @@ static int doCollision(physicsObject_t *a, physicsObject_t *b) {
   return 0;
 }
 
-/* //IDEM checkColition
-* asumiendo que son circulos 
-* retorna el vetor de 'env' a 'obj'
-*/
-static int
-checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
-  float difx = env->x - obj->x;
-  float dify = env->y - obj->y;
-  float distsqr = sqr(difx) + sqr(dify);
-
-  if (distsqr <= sqr(env->size + obj->size)) {
-    dir->x = sign(difx);
-    dir->y = sign(dify);
-    // en vez de signo habria que normalizarlo para q el modulo sea siempre 1 o algo asi
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
 /*
-* checks if obj is in a hole or mount and applyes a apropiate vel
+* checks if obj is in a hole or mount and applies a apropiate vel
 */
 static void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
   uint32_t x = obj->x / TERRAIN_SIZE_UNITS_X;
