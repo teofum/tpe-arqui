@@ -1,7 +1,8 @@
-#include "kbd.h"
 #include <fpmath.h>
 #include <golfGame.h>
 #include <graphics.h>
+#include <kbd.h>
+#include <print.h>
 #include <stddef.h>
 #include <syscall.h>
 #include <vga.h>
@@ -28,6 +29,8 @@
 #define ACCELERATION 0.01f
 #define GRAVITY 0.1f
 #define BRAKING 0.9
+
+#define HIT_DEBOUNCE_MS 100
 
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define sign(x) (((x) == 0) ? 0 : ((x) > 0 ? 1 : -1))
@@ -276,7 +279,8 @@ void updateObject(physicsObject_t *obj) {
 * asumiendo que son circulos 
 * retorna el vetor de 'a' a 'b'
 */ //notalolo: final menos inicial
-int checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
+static inline int
+checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float difx = b->x - a->x;
   float dify = b->y - a->y;
   float dist = sqrt(sqr(difx) + sqr(dify));
@@ -294,7 +298,7 @@ int checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
 /*
 * checks if a colition happens and applyes a repeling vel
 */
-void doCollision(physicsObject_t *a, physicsObject_t *b) {
+static int doCollision(physicsObject_t *a, physicsObject_t *b) {
   float va = abs(a->vx) + abs(a->vy);
   float vb = abs(b->vx) + abs(b->vy);
 
@@ -308,7 +312,11 @@ void doCollision(physicsObject_t *a, physicsObject_t *b) {
     dir.x *= -((a->mass * (va + vb)));
     dir.y *= -((a->mass * (va + vb)));
     accelerateObject(a, &dir);
+
+    return 1;
   }
+
+  return 0;
 }
 
 /* //IDEM checkColition
@@ -769,6 +777,7 @@ static int playGame(uint32_t nPlayers) {
   physicsObject_t balls[MAX_PLAYERS];
   int ballInPlay[MAX_PLAYERS];
   uint32_t hits[MAX_PLAYERS];
+  uint32_t iframes[MAX_PLAYERS];// Hit counter debounce timer
 
   for (int i = 0; i < nPlayers; i++) {
     players[i].x = FIELD_WIDTH * 0.5f + i;
@@ -785,6 +794,7 @@ static int playGame(uint32_t nPlayers) {
     balls[i].mass = 1.0f;
 
     hits[i] = 0;
+    iframes[i] = 0;
     ballInPlay[i] = 1;
   }
 
@@ -825,7 +835,15 @@ static int playGame(uint32_t nPlayers) {
       // Number of collisions scales with N^2, this is fine with just two players
       for (int j = 0; j < nPlayers; j++) {
         // Player-ball collisions
-        if (ballInPlay[j]) doCollision(&players[i], &balls[j]);
+        if (ballInPlay[j]) {
+          int hit = doCollision(&players[i], &balls[j]);
+
+          // Increase hit counter only when player hits their own ball
+          if (hit && i == j && iframes[i] == 0) {
+            hits[i]++;
+            iframes[i] = HIT_DEBOUNCE_MS;
+          }
+        }
 
         // Player-player and ball-ball collisions
         if (i != j) {
@@ -848,6 +866,9 @@ static int playGame(uint32_t nPlayers) {
         // TODO game end screen
         if (endGame) loop = 0;
       }
+
+      // Update hit timers
+      iframes[i] = iframes[i] <= frametime ? 0 : iframes[i] - frametime;
     }
 
     /*
@@ -881,7 +902,9 @@ static int playGame(uint32_t nPlayers) {
     /*
      * Draw UI
      */
-    // TODO
+    char buf[64];
+    sprintf(buf, "Hits: %u", hits[0]);
+    vga_text(10, 10, buf, 0xffffff, 0x000000, 0);
 
     vga_present();
   }
