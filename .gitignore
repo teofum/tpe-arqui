@@ -11,6 +11,12 @@
 #Object files
 *.o
 
+#macOS garbage
+.DS_Store
+
+# wavefont obj files
+*.obj
+
 build/
 out/
 

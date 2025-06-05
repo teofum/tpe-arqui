@@ -770,92 +770,97 @@ int gg_startGame() {
   // Init deltatime timer
   totalTicks = _syscall(SYS_TICKS);
 
-  // Display the title screen
-  uint32_t nPlayers = showTitleScreen();
-  if (!nPlayers) return 0;
+  // Main application loop
+  while (1) {
+    // Display the title screen
+    uint32_t nPlayers = showTitleScreen();
+    if (!nPlayers) break;
 
-  /*
-   * Set up game objects
-   */
-  terrain_t terrain;
-  generateTerrain(&terrain);
+    /*
+     * Set up game objects
+     */
+    terrain_t terrain;
+    generateTerrain(&terrain);
 
-  physicsObject_t players[MAX_PLAYERS];
-  for (int i = 0; i < nPlayers; i++) {
-    players[i].x = FIELD_WIDTH * 0.5f + i;
-    players[i].y = FIELD_HEIGHT * 0.5f;
-    players[i].drag = 0.02f;
-    players[i].size = 0.7f;
-    players[i].mass = 0.1f;
-    players[i].angle = 0.0f;
-  }
-
-  physicsObject_t ball = {0};
-  ball.x = FIELD_WIDTH * 0.5f;
-  ball.y = FIELD_HEIGHT * 0.25f;
-  ball.drag = 0.005f;
-  ball.size = 0.1f;
-  ball.mass = 1.0f;
-
-  hole_t hole = {0};
-  hole.x = FIELD_WIDTH * 0.25f;
-  hole.y = FIELD_HEIGHT * 0.75f;
-  hole.size = 0.5f;
-
-  // Setup game graphics
-  setupGameRender();
-
-  /*
-   * Game loop
-   */
-  int loop = 1;
-  while (loop) {
-    // Update the timer
-    updateTimer();
-
-    // Update keyboard input
-    kbd_pollEvents();
-
-    // Update physics
+    physicsObject_t players[MAX_PLAYERS];
     for (int i = 0; i < nPlayers; i++) {
-      updatePlayerTank(&players[i], keys[i]);
-      updateObject(&players[i]);
-      doCollision(&players[i], &ball);
-
-      for (int j = 0; j < nPlayers; j++) {
-        if (i != j) doCollision(&players[i], &players[j]);
-      }
+      players[i].x = FIELD_WIDTH * 0.5f + i;
+      players[i].y = FIELD_HEIGHT * 0.5f;
+      players[i].drag = 0.02f;
+      players[i].size = 0.7f;
+      players[i].mass = 0.1f;
+      players[i].angle = 0.0f;
     }
 
-    updateObject(&ball);
+    physicsObject_t ball = {0};
+    ball.x = FIELD_WIDTH * 0.5f;
+    ball.y = FIELD_HEIGHT * 0.25f;
+    ball.drag = 0.005f;
+    ball.size = 0.1f;
+    ball.mass = 1.0f;
 
-    applyGravity(&terrain, &ball);
-    if (checkHole(&ball, &hole)) { loop = 0; }
+    hole_t hole = {0};
+    hole.x = FIELD_WIDTH * 0.25f;
+    hole.y = FIELD_HEIGHT * 0.75f;
+    hole.size = 0.5f;
 
-    // Draw game
-    gfx_clear(0);
+    // Setup game graphics
+    setupGameRender();
 
-    vga_setFramebuffer(gfx_getFramebuffer());
-    vga_gradient(
-      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
-      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
-    );
-    vga_shade(
-      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
-      VGA_ALPHA_BLEND
-    );
-    vga_setFramebuffer(NULL);
+    /*
+     * Game loop
+     */
+    int loop = 1;
+    while (loop) {
+      // Update the timer
+      updateTimer();
 
-    renderTerrain(&terrain);
+      // Update keyboard input
+      kbd_pollEvents();
 
-    renderHole(&hole, &terrain);
+      // Update physics
+      for (int i = 0; i < nPlayers; i++) {
+        updatePlayerTank(&players[i], keys[i]);
+        updateObject(&players[i]);
+        doCollision(&players[i], &ball);
 
-    for (int i = 0; i < nPlayers; i++) { renderPlayer(&players[i], &terrain); }
+        for (int j = 0; j < nPlayers; j++) {
+          if (i != j) doCollision(&players[i], &players[j]);
+        }
+      }
 
-    renderBall(&ball, &terrain);
+      updateObject(&ball);
 
-    gfx_present();
-    vga_present();
+      applyGravity(&terrain, &ball);
+      if (checkHole(&ball, &hole)) { loop = 0; }
+
+      // Draw game
+      gfx_clear(0);
+
+      vga_setFramebuffer(gfx_getFramebuffer());
+      vga_gradient(
+        0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
+        colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
+      );
+      vga_shade(
+        0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
+        VGA_ALPHA_BLEND
+      );
+      vga_setFramebuffer(NULL);
+
+      renderTerrain(&terrain);
+
+      renderHole(&hole, &terrain);
+
+      for (int i = 0; i < nPlayers; i++) {
+        renderPlayer(&players[i], &terrain);
+      }
+
+      renderBall(&ball, &terrain);
+
+      gfx_present();
+      vga_present();
+    }
   }
 
   // Restore status bar enabled state
