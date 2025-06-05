@@ -30,10 +30,16 @@
 #define GRAVITY 0.1f
 #define BRAKING 0.9
 
+// Hit debounce so it doesn't register multiple times in a row
 #define HIT_DEBOUNCE_MS 100
 
 // Par is fixed for all levels
 #define PAR 4
+
+// UI colors and sizes
+#define UI_GREEN_DARK 0xff002800
+#define UI_GREEN_LIGHT 0xff005000
+#define UI_GREEN_HIGHLIGHT 0xff008000
 
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define sign(x) (((x) == 0) ? 0 : ((x) > 0 ? 1 : -1))
@@ -93,8 +99,14 @@ typedef enum {
   GG_MM_QUIT,
 } gg_mainmenuOption_t;
 
+/*
+ * Bitmap image data
+ */
 static uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
 
+/*
+ * OBJ strings for 3D models
+ */
 extern const char *obj_capybase;
 extern const char *obj_capyface;
 extern const char *obj_capyclub;
@@ -102,6 +114,9 @@ extern const char *obj_flag;
 extern const char *obj_flagpole;
 extern const char *obj_ball;
 
+/*
+ * 3D model data
+ */
 static float3 v_base[150];
 static float3 n_base[150];
 static uint32_t vi_base[280 * 3];
@@ -137,6 +152,9 @@ static uint32_t pc_base, pc_face, pc_club, pc_flag, pc_pole, pc_ball;
 static float3 v_hole[7];
 static uint32_t vi_hole[15] = {1, 6, 0, 1, 2, 3, 6, 4, 5, 6, 3, 4, 1, 3, 6};
 
+/*
+ * Frametime counter
+ */
 static uint64_t frametime = 0;
 static uint64_t totalTicks = 0;
 
@@ -684,13 +702,17 @@ static uint32_t showTitleScreen() {
 
     if (screen == GG_SCREEN_PLAYERSELECT) {
       vga_shade(384, 400, 639, 599, 0, 0);
-      vga_rect(384, 400, 639, 599, 0xa0005000, VGA_ALPHA_BLEND);
+      vga_rect(
+        384, 400, 639, 599, 0xa0ffffff & UI_GREEN_LIGHT, VGA_ALPHA_BLEND
+      );
       vga_frame(384, 400, 639, 599, 0xffffff, 0);
       vga_text(476, 416, "MAIN MENU", 0xffffff, 0, 0);
 
       for (int i = 0; i < menuItemCount; i++) {
         if (i == menuItem) {
-          vga_rect(428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, 0x008000, 0);
+          vga_rect(
+            428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
+          );
           vga_frame(428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, 0xffffff, 0);
         }
         vga_text(452, 456 + 24 * i, menuStrings[i], 0xffffff, 0, 0);
@@ -879,8 +901,37 @@ static int playGame(uint32_t nPlayers) {
      * Draw UI
      */
     char buf[64];
+
+    // HUD background
+    vga_gradient(
+      0, 0, VGA_WIDTH - 1, 63, colors(UI_GREEN_LIGHT, UI_GREEN_DARK), 0
+    );
+    vga_shade(0, 0, VGA_WIDTH - 1, 63, UI_GREEN_DARK, 0);
+    vga_line(0, 63, VGA_WIDTH - 1, 63, 0xffffff, 0);
+    vga_line(VGA_WIDTH >> 1, 0, VGA_WIDTH >> 1, 63, 0xffffff, 0);
+
+    vga_rect(
+      (VGA_WIDTH >> 1) - 32, 12, (VGA_WIDTH >> 1) + 31, 51, UI_GREEN_DARK, 0
+    );
+    vga_frame(
+      (VGA_WIDTH >> 1) - 32, 12, (VGA_WIDTH >> 1) + 31, 51, 0xffffff, 0
+    );
+
+    // Text
+    sprintf(buf, "Hole %u", 1);
+    vga_text((VGA_WIDTH >> 1) - 24, 16, buf, 0xffffff, 0x000000, 0);
+    sprintf(buf, "Par: %u", PAR);
+    vga_text((VGA_WIDTH >> 1) - 24, 32, buf, 0xffffff, 0x000000, 0);
+
+    vga_text(24, 16, "PLAYER 1", 0xffffff, 0x000000, 0);
     sprintf(buf, "Hits: %u", hits[0]);
-    vga_text(10, 10, buf, 0xffffff, 0x000000, 0);
+    vga_text(24, 32, buf, 0xffffff, 0x000000, 0);
+
+    if (nPlayers > 1) {
+      vga_text((VGA_WIDTH >> 1) + 56, 16, "PLAYER 2", 0xffffff, 0x000000, 0);
+      sprintf(buf, "Hits: %u", hits[1]);
+      vga_text((VGA_WIDTH >> 1) + 56, 32, buf, 0xffffff, 0x000000, 0);
+    }
 
     vga_present();
   }
@@ -889,8 +940,8 @@ static int playGame(uint32_t nPlayers) {
 }
 
 /*
-* Setup y main game loop
-*/
+ * Entry point for game
+ */
 int gg_startGame() {
   // Disable status bar drawing while application is active
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
