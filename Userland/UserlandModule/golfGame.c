@@ -32,6 +32,9 @@
 
 #define HIT_DEBOUNCE_MS 100
 
+// Par is fixed for all levels
+#define PAR 4
+
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define sign(x) (((x) == 0) ? 0 : ((x) > 0 ? 1 : -1))
 #define sqr(x) ((x) * (x))
@@ -107,43 +110,43 @@ extern const char *obj_flag;
 extern const char *obj_flagpole;
 extern const char *obj_ball;
 
-float3 v_base[150];
-float3 n_base[150];
-uint32_t vi_base[280 * 3];
-uint32_t ni_base[280 * 3];
+static float3 v_base[150];
+static float3 n_base[150];
+static uint32_t vi_base[280 * 3];
+static uint32_t ni_base[280 * 3];
 
-float3 v_face[23];
-float3 n_face[23];
-uint32_t vi_face[20 * 3];
-uint32_t ni_face[20 * 3];
+static float3 v_face[23];
+static float3 n_face[23];
+static uint32_t vi_face[20 * 3];
+static uint32_t ni_face[20 * 3];
 
-float3 v_club[12];
-float3 n_club[12];
-uint32_t vi_club[20 * 3];
-uint32_t ni_club[20 * 3];
+static float3 v_club[12];
+static float3 n_club[12];
+static uint32_t vi_club[20 * 3];
+static uint32_t ni_club[20 * 3];
 
-float3 v_flag[5];
-float3 n_flag[4];
-uint32_t vi_flag[4 * 3];
-uint32_t ni_flag[4 * 3];
+static float3 v_flag[5];
+static float3 n_flag[4];
+static uint32_t vi_flag[4 * 3];
+static uint32_t ni_flag[4 * 3];
 
-float3 v_pole[8];
-float3 n_pole[8];
-uint32_t vi_pole[9 * 3];
-uint32_t ni_pole[9 * 3];
+static float3 v_pole[8];
+static float3 n_pole[8];
+static uint32_t vi_pole[9 * 3];
+static uint32_t ni_pole[9 * 3];
 
-float3 v_ball[12];
-float3 n_ball[12];
-uint32_t vi_ball[20 * 3];
-uint32_t ni_ball[20 * 3];
+static float3 v_ball[12];
+static float3 n_ball[12];
+static uint32_t vi_ball[20 * 3];
+static uint32_t ni_ball[20 * 3];
 
-uint32_t pc_base, pc_face, pc_club, pc_flag, pc_pole, pc_ball;
+static uint32_t pc_base, pc_face, pc_club, pc_flag, pc_pole, pc_ball;
 
-float3 v_hole[7];
-uint32_t vi_hole[15] = {1, 6, 0, 1, 2, 3, 6, 4, 5, 6, 3, 4, 1, 3, 6};
+static float3 v_hole[7];
+static uint32_t vi_hole[15] = {1, 6, 0, 1, 2, 3, 6, 4, 5, 6, 3, 4, 1, 3, 6};
 
-uint64_t frametime = 0;
-uint64_t totalTicks = 0;
+static uint64_t frametime = 0;
+static uint64_t totalTicks = 0;
 
 /*
  * Constant colors
@@ -176,7 +179,7 @@ static inline void makeHoleMesh() {
   }
 }
 
-void drawTerrainDebug(terrain_t *terrain) {
+static void drawTerrainDebug(terrain_t *terrain) {
   uint32_t w = VGA_WIDTH / TERRAIN_SIZE_X;
   uint32_t h = VGA_HEIGHT / TERRAIN_SIZE_Y;
 
@@ -201,7 +204,7 @@ void drawTerrainDebug(terrain_t *terrain) {
 /*
 * Aplica "aceleracion" y actualiza el estado 
 */
-void accelerateObject(physicsObject_t *obj, vector_t *dir) {
+static void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   // Add velocity
   obj->vx += dir->x;
   obj->vy += dir->y;
@@ -219,7 +222,7 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
 /*
 * tank controls for player, accelerates it
 */
-void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
+static void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
   int up = kbd_keydown(keys[0]);
   int down = kbd_keydown(keys[1]);
   int right = kbd_keydown(keys[2]);
@@ -249,7 +252,7 @@ void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
 /*
 * Actualiza el estado sin aplicarle una aceleracion
 */
-void updateObject(physicsObject_t *obj) {
+static void updateObject(physicsObject_t *obj) {
   float oldvx = obj->vx;// es para que no oscile dont worry about it
   float oldvy = obj->vy;
 
@@ -323,7 +326,8 @@ static int doCollision(physicsObject_t *a, physicsObject_t *b) {
 * asumiendo que son circulos 
 * retorna el vetor de 'env' a 'obj'
 */
-int checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
+static int
+checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
   float difx = env->x - obj->x;
   float dify = env->y - obj->y;
   float distsqr = sqr(difx) + sqr(dify);
@@ -341,7 +345,7 @@ int checkEnviroment(enviroment_t *env, physicsObject_t *obj, vector_t *dir) {
 /*
 * checks if obj is in a hole or mount and applyes a apropiate vel
 */
-void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
+static void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
   uint32_t x = obj->x / TERRAIN_SIZE_UNITS_X;
   uint32_t y = obj->y / TERRAIN_SIZE_UNITS_Y;
 
@@ -357,7 +361,7 @@ void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
 /*
 *   valida si la pelota entra en el agujero y gana
 */
-int checkHole(physicsObject_t *obj, hole_t *hole) {
+static int checkHole(physicsObject_t *obj, hole_t *hole) {
   float difx = hole->x - obj->x;
   float dify = hole->y - obj->y;
   float distsqr = sqr(difx) + sqr(dify);
