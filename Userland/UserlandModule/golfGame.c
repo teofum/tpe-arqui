@@ -10,6 +10,7 @@
 #include <vga.h>
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
+// #define fitTopi(x) (while ((x) > M_PI) { (x) -= 2.0f * M_PI; })
 
 #define TITLE_TEXT_BLINK_MS 400
 
@@ -394,12 +395,17 @@ static int checkHole(physicsObject_t *obj, hole_t *hole) {
   }
 }
 
+float fitToPi(float x) {
+  while (x > M_PI) { x -= 2.0f * M_PI; }
+  while (x < -M_PI) { x += 2.0f * M_PI; }
+}
 
 static void generateTerrain(terrain_t *terrain) {
   // Generate terrain vertices
   pcg32_random_t rng = {0};
   pcg32_srand(&rng, _syscall(SYS_TICKS), 1);
 
+  // frequency
   float fy[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
     fy[i] = (pcg32_rand(&rng) % 100);
@@ -408,6 +414,8 @@ static void generateTerrain(terrain_t *terrain) {
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
     fx[i] = (pcg32_rand(&rng) % 100);
   }
+
+  // fase, offset
   float fasey[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
     fasey[i] = (pcg32_rand(&rng) % 100) / 100;
@@ -417,23 +425,21 @@ static void generateTerrain(terrain_t *terrain) {
     fasex[i] = (pcg32_rand(&rng) % 100) / 100;
   }
 
+  // loop
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
       // test terrain gen ///////////////////////////////////////lolo tocar//
       float height = 0;
       for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-        float u = (float) (y) / TERRAIN_SIZE_Y * M_PI * fy[i];
-        float v = (float) (x) / TERRAIN_SIZE_X * M_PI * fx[i];
-        while (u > M_PI && u > -(M_PI)) { u -= 2.0f * M_PI; }
-        while (v > M_PI && v > -(M_PI)) { v -= 2.0f * M_PI; }
-        height += ((sin(u + fasey[i]) * TERRAIN_NOISE_MAX) +
-                   (sin(v + fasex[i]) * TERRAIN_NOISE_MAX)) /
+        height += ((sin(fitToPi(x * fy[i]) + fasey[i]) * TERRAIN_NOISE_MAX) +
+                   (sin(fitToPi(y * fx[i]) + fasex[i]) * TERRAIN_NOISE_MAX)) /
                   TERRAIN_CANT_WAVES;
       }
 
       if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
         height += TERRAIN_NOISE_MAX / 8;
       }
+
       /////////////////////////
       // ideas:
       // hills y pozos
