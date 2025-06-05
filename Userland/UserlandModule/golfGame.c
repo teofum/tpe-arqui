@@ -752,6 +752,143 @@ static uint32_t showTitleScreen() {
   }
 }
 
+static int playGame(uint32_t nPlayers) {
+  // Keymaps per player
+  static keycode_t keys[2][4] = {
+    {KEY_W, KEY_S, KEY_D, KEY_A},
+    {KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT}
+  };
+
+  /*
+   * Set up game objects
+   */
+  terrain_t terrain;
+  generateTerrain(&terrain);
+
+  physicsObject_t players[MAX_PLAYERS];
+  physicsObject_t balls[MAX_PLAYERS];
+  int ballInPlay[MAX_PLAYERS];
+  uint32_t hits[MAX_PLAYERS];
+
+  for (int i = 0; i < nPlayers; i++) {
+    players[i].x = FIELD_WIDTH * 0.5f + i;
+    players[i].y = FIELD_HEIGHT * 0.5f;
+    players[i].drag = 0.02f;
+    players[i].size = 0.7f;
+    players[i].mass = 0.1f;
+    players[i].angle = 0.0f;
+
+    balls[i].x = FIELD_WIDTH * 0.5f + i;
+    balls[i].y = FIELD_HEIGHT * 0.25f;
+    balls[i].drag = 0.005f;
+    balls[i].size = 0.1f;
+    balls[i].mass = 1.0f;
+
+    hits[i] = 0;
+    ballInPlay[i] = 1;
+  }
+
+  hole_t hole = {0};
+  hole.x = FIELD_WIDTH * 0.25f;
+  hole.y = FIELD_HEIGHT * 0.75f;
+  hole.size = 0.5f;
+
+  // Setup game graphics
+  setupGameRender();
+
+  /*
+   * Game loop
+   */
+  int loop = 1;
+  while (loop) {
+    // Update the timer
+    updateTimer();
+
+    // Update keyboard input
+    kbd_pollEvents();
+
+    /*
+     * Physics and gameplay update
+     */
+    for (int i = 0; i < nPlayers; i++) {
+      // Apply inputs and update player physics
+      updatePlayerTank(&players[i], keys[i]);
+      updateObject(&players[i]);
+
+      // Apply gravity and update ball physics
+      if (ballInPlay[i]) {
+        applyGravity(&terrain, &balls[i]);
+        updateObject(&balls[i]);
+      }
+
+      // Collisions
+      // Number of collisions scales with N^2, this is fine with just two players
+      for (int j = 0; j < nPlayers; j++) {
+        // Player-ball collisions
+        if (ballInPlay[j]) doCollision(&players[i], &balls[j]);
+
+        // Player-player and ball-ball collisions
+        if (i != j) {
+          doCollision(&players[i], &players[j]);
+          if (ballInPlay[i] && ballInPlay[j]) doCollision(&balls[i], &balls[j]);
+        }
+      }
+
+      // Check win condition
+      if (ballInPlay[i] && checkHole(&balls[i], &hole)) {
+        // Remove the ball from the playfield
+        ballInPlay[i] = 0;
+
+        // If no balls are left, end the game
+        int endGame = 1;
+        for (int j = 0; j < nPlayers; j++) {
+          if (ballInPlay[j]) endGame = 0;
+        }
+
+        // TODO game end screen
+        if (endGame) loop = 0;
+      }
+    }
+
+    /*
+     * Render graphics
+     */
+    gfx_clear(0);
+
+    vga_setFramebuffer(gfx_getFramebuffer());
+    vga_gradient(
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
+      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
+    );
+    vga_shade(
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
+      VGA_ALPHA_BLEND
+    );
+    vga_setFramebuffer(NULL);
+
+    renderTerrain(&terrain);
+
+    renderHole(&hole, &terrain);
+
+    for (int i = 0; i < nPlayers; i++) {
+      renderPlayer(&players[i], i, &terrain);
+      if (ballInPlay[i])
+        renderBall(&balls[i], nPlayers == 1 ? 0 : i + 1, &terrain);
+    }
+
+    gfx_present();
+
+    /*
+     * Draw UI
+     */
+    // TODO
+
+    vga_present();
+  }
+
+  return 0;
+}
+
 /*
 * Setup y main game loop
 */
@@ -759,12 +896,6 @@ int gg_startGame() {
   // Disable status bar drawing while application is active
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
-
-  // Keymaps per player
-  static keycode_t keys[2][4] = {
-    {KEY_W, KEY_S, KEY_D, KEY_A},
-    {KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT}
-  };
 
   // Make vertices for the hole mesh
   makeHoleMesh();
@@ -786,101 +917,7 @@ int gg_startGame() {
     uint32_t nPlayers = showTitleScreen();
     if (!nPlayers) break;
 
-    /*
-     * Set up game objects
-     */
-    terrain_t terrain;
-    generateTerrain(&terrain);
-
-    physicsObject_t players[MAX_PLAYERS];
-    physicsObject_t balls[MAX_PLAYERS];
-    for (int i = 0; i < nPlayers; i++) {
-      players[i].x = FIELD_WIDTH * 0.5f + i;
-      players[i].y = FIELD_HEIGHT * 0.5f;
-      players[i].drag = 0.02f;
-      players[i].size = 0.7f;
-      players[i].mass = 0.1f;
-      players[i].angle = 0.0f;
-
-      balls[i].x = FIELD_WIDTH * 0.5f + i;
-      balls[i].y = FIELD_HEIGHT * 0.25f;
-      balls[i].drag = 0.005f;
-      balls[i].size = 0.1f;
-      balls[i].mass = 1.0f;
-    }
-
-    hole_t hole = {0};
-    hole.x = FIELD_WIDTH * 0.25f;
-    hole.y = FIELD_HEIGHT * 0.75f;
-    hole.size = 0.5f;
-
-    // Setup game graphics
-    setupGameRender();
-
-    /*
-     * Game loop
-     */
-    int loop = 1;
-    while (loop) {
-      // Update the timer
-      updateTimer();
-
-      // Update keyboard input
-      kbd_pollEvents();
-
-      for (int i = 0; i < nPlayers; i++) {
-        // Apply inputs and gravity
-        updatePlayerTank(&players[i], keys[i]);
-        applyGravity(&terrain, &balls[i]);
-
-        // Update physics
-        updateObject(&players[i]);
-        updateObject(&balls[i]);
-
-        // Collisions
-        // Number of collisions scales with N^2, this is fine with just two players
-        for (int j = 0; j < nPlayers; j++) {
-          // Player-ball collisions
-          doCollision(&players[i], &balls[j]);
-
-          // Player-player and ball-ball collisions
-          if (i != j) {
-            doCollision(&players[i], &players[j]);
-            doCollision(&balls[i], &balls[j]);
-          }
-        }
-
-        // Check win condition
-        if (checkHole(&balls[i], &hole)) { loop = 0; }
-      }
-
-      // Draw game
-      gfx_clear(0);
-
-      vga_setFramebuffer(gfx_getFramebuffer());
-      vga_gradient(
-        0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
-        colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
-      );
-      vga_shade(
-        0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
-        VGA_ALPHA_BLEND
-      );
-      vga_setFramebuffer(NULL);
-
-      renderTerrain(&terrain);
-
-      renderHole(&hole, &terrain);
-
-      for (int i = 0; i < nPlayers; i++) {
-        renderPlayer(&players[i], i, &terrain);
-        renderBall(&balls[i], nPlayers == 1 ? 0 : i + 1, &terrain);
-      }
-
-
-      gfx_present();
-      vga_present();
-    }
+    playGame(nPlayers);
   }
 
   // Restore status bar enabled state
