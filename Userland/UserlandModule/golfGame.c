@@ -90,6 +90,8 @@ uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
 extern const char *obj_capybase;
 extern const char *obj_capyface;
 extern const char *obj_capyclub;
+extern const char *obj_flag;
+extern const char *obj_flagpole;
 
 float3 v_base[150];
 float3 n_base[150];
@@ -106,7 +108,17 @@ float3 n_club[12];
 uint32_t vi_club[20 * 3];
 uint32_t ni_club[20 * 3];
 
-uint32_t pc_base, pc_face, pc_club;
+float3 v_flag[5];
+float3 n_flag[4];
+uint32_t vi_flag[4 * 3];
+uint32_t ni_flag[4 * 3];
+
+float3 v_pole[8];
+float3 n_pole[8];
+uint32_t vi_pole[6 * 3];
+uint32_t ni_pole[6 * 3];
+
+uint32_t pc_base, pc_face, pc_club, pc_flag, pc_pole;
 
 float3 v_hole[7];
 uint32_t vi_hole[15] = {1, 6, 0, 1, 2, 3, 6, 4, 5, 6, 3, 4, 1, 3, 6};
@@ -147,34 +159,6 @@ void drawTerrainDebug(terrain_t *terrain) {
       vga_line(w * x, h * y, w * x + n.x * 20, h * y + n.z * 20, 0x0, 0);
     }
   }
-}
-
-void drawObject(
-  physicsObject_t *obj
-) {// TODO, hace falta algo para dibujar un circulo
-  vga_rect(
-    (obj->x - obj->size), (obj->y - obj->size), (obj->x + obj->size),
-    (obj->y + obj->size), 0xff00ff, 0
-  );
-
-  vector_t p;
-  p.x = obj->x + 20.0f * cos(obj->angle);
-  p.y = obj->y + 20.0f * sin(obj->angle);
-  vga_line(obj->x, obj->y, p.x, p.y, 0xffffff, 0);
-}
-
-void drawEnviroment(enviroment_t *env) {
-  vga_rect(
-    (env->x - env->size), (env->y - env->size), (env->x + env->size),
-    (env->y + env->size), 0xff009000, 0
-  );
-}
-
-void drawHole(hole_t *hole) {
-  vga_rect(
-    (hole->x - hole->size), (hole->y - hole->size), (hole->x + hole->size),
-    (hole->y + hole->size), 0xff000000, 0
-  );
 }
 
 /*
@@ -479,17 +463,13 @@ static void renderTerrain(terrain_t *terrain) {
   float4x4 model = mat_scale(1, 1, 1);
   gfx_setMatrix(GFX_MAT_MODEL, &model);
 
-  float3 terrainColor = {0.1, 0.3, 0.2};
+  float3 terrainColor = {0.18, 0.37, 0.05};
 
   // Draw the terrain
   gfx_drawPrimitivesIndexed(
     (float3 *) terrain->v, (float3 *) terrain->normals, terrain->indices,
     terrain->indices, TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
   );
-  // gfx_drawWireframeIndexed(
-  //   (float3 *) terrain->v, terrain->indices,
-  //   TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
-  // );
 }
 
 static float getTerrainHeightAt(terrain_t *terrain, float fx, float fy) {
@@ -574,7 +554,14 @@ static void renderHole(hole_t *hole, terrain_t *terrain) {
   gfx_drawPrimitivesIndexed(v_hole, NULL, vi_hole, vi_hole, 5, color_hole);
   gfx_setFlag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 1);
 
-  // TODO flag
+  float3 color_pole = {0.80f, 0.80f, 0.80f};
+  float3 color_flag = {0.92f, 0.20f, 0.24f};
+  gfx_drawPrimitivesIndexed(
+    v_pole, n_pole, vi_pole, vi_pole, pc_pole, color_pole
+  );
+  gfx_drawPrimitivesIndexed(
+    v_flag, n_flag, vi_flag, vi_flag, pc_flag, color_flag
+  );
 }
 
 /*
@@ -621,6 +608,8 @@ static void showTitleScreen() {
   gfx_parseObj(obj_capybase, v_base, n_base, vi_base, ni_base, &pc_base);
   gfx_parseObj(obj_capyface, v_face, n_face, vi_face, ni_face, &pc_face);
   gfx_parseObj(obj_capyclub, v_club, n_club, vi_club, ni_club, &pc_club);
+  gfx_parseObj(obj_flag, v_flag, n_flag, vi_flag, ni_flag, &pc_flag);
+  gfx_parseObj(obj_flagpole, v_pole, n_pole, vi_pole, ni_pole, &pc_pole);
 
   float3 color_base = {0.232f, 0.115f, 0.087f};
   float3 color_face = {0.082f, 0.021f, 0.001f};
