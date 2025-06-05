@@ -95,7 +95,7 @@ typedef enum {
   GG_MM_QUIT,
 } gg_mainmenuOption_t;
 
-uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
+static uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
 
 extern const char *obj_capybase;
 extern const char *obj_capyface;
@@ -142,6 +142,24 @@ uint32_t vi_hole[15] = {1, 6, 0, 1, 2, 3, 6, 4, 5, 6, 3, 4, 1, 3, 6};
 uint64_t frametime = 0;
 uint64_t totalTicks = 0;
 
+/*
+ * Constant colors
+ */
+static float3 color_base[] = {
+  {0.232f, 0.115f, 0.087f},
+  {0.172f, 0.105f, 0.147f},
+};
+static float3 color_face = {0.082f, 0.021f, 0.001f};
+static float3 color_club = {0.706f, 0.706f, 0.706f};
+static float3 color_ball[] = {
+  {0.8f, 0.8f, 0.8f},
+  {0.8f, 0.4f, 0.25f},
+  {0.25f, 0.4f, 0.8f},
+};
+
+/*
+ * Helper functions
+ */
 static inline void updateTimer() {
   frametime = _syscall(SYS_TICKS) - totalTicks;
   totalTicks += frametime;
@@ -496,7 +514,8 @@ static float getTerrainHeightAt(terrain_t *terrain, float fx, float fy) {
   return lerp(h0, h1, fy - y);
 }
 
-static void renderPlayer(physicsObject_t *player, terrain_t *terrain) {
+static void
+renderPlayer(physicsObject_t *player, uint32_t i, terrain_t *terrain) {
   float angle = -player->angle - M_PI * 0.5f;
   if (angle < -M_PI) angle += M_PI * 2.0f;
 
@@ -512,23 +531,19 @@ static void renderPlayer(physicsObject_t *player, terrain_t *terrain) {
   );
   gfx_setMatrix(GFX_MAT_MODEL, &model);
 
-  float3 color_base = {0.232f, 0.115f, 0.087f};
-  float3 color_face = {0.082f, 0.021f, 0.001f};
-  float3 color_club = {0.706f, 0.706f, 0.706f};
-
   // Draw the capybara
   gfx_drawPrimitivesIndexed(
     v_face, n_face, vi_face, ni_face, pc_face, color_face
   );
   gfx_drawPrimitivesIndexed(
-    v_base, n_base, vi_base, ni_base, pc_base, color_base
+    v_base, n_base, vi_base, ni_base, pc_base, color_base[i]
   );
   gfx_drawPrimitivesIndexed(
     v_club, n_club, vi_club, ni_club, pc_club, color_club
   );
 }
 
-static void renderBall(physicsObject_t *ball, terrain_t *terrain) {
+static void renderBall(physicsObject_t *ball, uint32_t i, terrain_t *terrain) {
   float height = getTerrainHeightAt(terrain, ball->x, ball->y);
 
   float4x4 model = mat_translation(
@@ -536,9 +551,8 @@ static void renderBall(physicsObject_t *ball, terrain_t *terrain) {
   );
   gfx_setMatrix(GFX_MAT_MODEL, &model);
 
-  float3 color_ball = {0.8f, 0.8f, 0.8f};
   gfx_drawPrimitivesIndexed(
-    v_ball, n_ball, vi_ball, ni_ball, pc_ball, color_ball
+    v_ball, n_ball, vi_ball, ni_ball, pc_ball, color_ball[i]
   );
 }
 
@@ -616,10 +630,6 @@ static uint32_t showTitleScreen() {
   gfx_setLight(GFX_LIGHT_POSITION, &light);
   gfx_setLight(GFX_AMBIENT_LIGHT, &ambient);
   gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
-
-  float3 color_base[] = {{0.232f, 0.115f, 0.087f}, {0.172f, 0.105f, 0.147f}};
-  float3 color_face = {0.082f, 0.021f, 0.001f};
-  float3 color_club = {0.706f, 0.706f, 0.706f};
 
   /*
    * Draw loop
@@ -783,6 +793,7 @@ int gg_startGame() {
     generateTerrain(&terrain);
 
     physicsObject_t players[MAX_PLAYERS];
+    physicsObject_t balls[MAX_PLAYERS];
     for (int i = 0; i < nPlayers; i++) {
       players[i].x = FIELD_WIDTH * 0.5f + i;
       players[i].y = FIELD_HEIGHT * 0.5f;
@@ -790,14 +801,13 @@ int gg_startGame() {
       players[i].size = 0.7f;
       players[i].mass = 0.1f;
       players[i].angle = 0.0f;
-    }
 
-    physicsObject_t ball = {0};
-    ball.x = FIELD_WIDTH * 0.5f;
-    ball.y = FIELD_HEIGHT * 0.25f;
-    ball.drag = 0.005f;
-    ball.size = 0.1f;
-    ball.mass = 1.0f;
+      balls[i].x = FIELD_WIDTH * 0.5f + i;
+      balls[i].y = FIELD_HEIGHT * 0.25f;
+      balls[i].drag = 0.005f;
+      balls[i].size = 0.1f;
+      balls[i].mass = 1.0f;
+    }
 
     hole_t hole = {0};
     hole.x = FIELD_WIDTH * 0.25f;
@@ -818,21 +828,31 @@ int gg_startGame() {
       // Update keyboard input
       kbd_pollEvents();
 
-      // Update physics
       for (int i = 0; i < nPlayers; i++) {
+        // Apply inputs and gravity
         updatePlayerTank(&players[i], keys[i]);
+        applyGravity(&terrain, &balls[i]);
+
+        // Update physics
         updateObject(&players[i]);
-        doCollision(&players[i], &ball);
+        updateObject(&balls[i]);
 
+        // Collisions
+        // Number of collisions scales with N^2, this is fine with just two players
         for (int j = 0; j < nPlayers; j++) {
-          if (i != j) doCollision(&players[i], &players[j]);
+          // Player-ball collisions
+          doCollision(&players[i], &balls[j]);
+
+          // Player-player and ball-ball collisions
+          if (i != j) {
+            doCollision(&players[i], &players[j]);
+            doCollision(&balls[i], &balls[j]);
+          }
         }
+
+        // Check win condition
+        if (checkHole(&balls[i], &hole)) { loop = 0; }
       }
-
-      updateObject(&ball);
-
-      applyGravity(&terrain, &ball);
-      if (checkHole(&ball, &hole)) { loop = 0; }
 
       // Draw game
       gfx_clear(0);
@@ -853,10 +873,10 @@ int gg_startGame() {
       renderHole(&hole, &terrain);
 
       for (int i = 0; i < nPlayers; i++) {
-        renderPlayer(&players[i], &terrain);
+        renderPlayer(&players[i], i, &terrain);
+        renderBall(&balls[i], nPlayers == 1 ? 0 : i + 1, &terrain);
       }
 
-      renderBall(&ball, &terrain);
 
       gfx_present();
       vga_present();
