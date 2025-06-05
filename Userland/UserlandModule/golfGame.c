@@ -395,9 +395,11 @@ static int checkHole(physicsObject_t *obj, hole_t *hole) {
   }
 }
 
-float fitToPi(float x) {
+static float fitToPi(float x) {
   while (x > M_PI) { x -= 2.0f * M_PI; }
   while (x < -M_PI) { x += 2.0f * M_PI; }
+
+  return x;
 }
 
 static void generateTerrain(terrain_t *terrain) {
@@ -418,11 +420,11 @@ static void generateTerrain(terrain_t *terrain) {
   // fase, offset
   float fasey[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fasey[i] = (pcg32_rand(&rng) % 100) / 100;
+    fasey[i] = (pcg32_rand(&rng) % 100) / 100.0f;
   }
   float fasex[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fasex[i] = (pcg32_rand(&rng) % 100) / 100;
+    fasex[i] = (pcg32_rand(&rng) % 100) / 100.0f;
   }
 
   // loop
