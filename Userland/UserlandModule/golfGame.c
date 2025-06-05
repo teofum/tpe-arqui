@@ -186,25 +186,6 @@ void accelerateObject(physicsObject_t *obj, vector_t *dir) {
 }
 
 /*
-*   Reads player input and accelerates it
-*   /aka if you use this, the player doesnt need to be
-*   updated 
-*   Note: onely 8 directions
-*/
-void updatePlayerDirectional(physicsObject_t *obj) {
-  vector_t arrowKeys = {0};
-  int up = kbd_keydown(KEY_ARROW_UP);
-  int down = kbd_keydown(KEY_ARROW_DOWN);
-  int right = kbd_keydown(KEY_ARROW_RIGHT);
-  int left = kbd_keydown(KEY_ARROW_LEFT);
-
-  if (up || down) { arrowKeys.y = (down - up); }
-  if (left || right) { arrowKeys.x = (right - left); }
-
-  accelerateObject(obj, &arrowKeys);
-}
-
-/*
 * tank controls for player, accelerates it
 */
 void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
