@@ -8,7 +8,7 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
-#define TITLE_TEXT_BLINK_MS 500
+#define TITLE_TEXT_BLINK_MS 400
 
 #define FIELD_WIDTH 15.0f
 #define FIELD_HEIGHT 10.0f
@@ -17,6 +17,8 @@
 #define TERRAIN_SIZE_Y 10
 #define TERRAIN_SIZE_UNITS_X (FIELD_WIDTH / TERRAIN_SIZE_X)
 #define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
+
+#define MAX_PLAYERS 2
 
 // Multiplies all velocities
 #define VMUL 0.1f
@@ -85,8 +87,13 @@ typedef struct {
 typedef enum {
   GG_SCREEN_TITLE,
   GG_SCREEN_PLAYERSELECT,
-  GG_SCREEN_GAME,
 } gg_screen_t;
+
+typedef enum {
+  GG_MM_SINGLEPLAYER,
+  GG_MM_MULTIPLAYER,
+  GG_MM_QUIT,
+} gg_mainmenuOption_t;
 
 uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
 
@@ -563,10 +570,21 @@ static void renderHole(hole_t *hole, terrain_t *terrain) {
  * Show the title screen/main menu and handle input.
  * Returns when the game should be started.
  */
-static void showTitleScreen() {
+static uint32_t showTitleScreen() {
   gg_screen_t screen = GG_SCREEN_TITLE;
   float a = 0.0f, capyAngle = (M_PI * -0.75);
   uint32_t textBlinkTimer = 0;
+
+  /*
+   * Menu state
+   */
+  int menuItem = 0;
+  static const char *menuStrings[] = {
+    "Play (1 player)",
+    "Play (2 player)",
+    " Quit to Shell ",
+  };
+  uint32_t menuItemCount = sizeof(menuStrings) / sizeof(menuStrings[0]);
 
   /*
    * Graphics setup
@@ -599,7 +617,7 @@ static void showTitleScreen() {
   gfx_setLight(GFX_AMBIENT_LIGHT, &ambient);
   gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
 
-  float3 color_base = {0.232f, 0.115f, 0.087f};
+  float3 color_base[] = {{0.232f, 0.115f, 0.087f}, {0.172f, 0.105f, 0.147f}};
   float3 color_face = {0.082f, 0.021f, 0.001f};
   float3 color_club = {0.706f, 0.706f, 0.706f};
 
@@ -607,7 +625,7 @@ static void showTitleScreen() {
    * Draw loop
    */
   kbd_event_t ev = {0};
-  while (screen != GG_SCREEN_GAME) {
+  while (1) {
     // Update the timer
     updateTimer();
 
@@ -636,20 +654,24 @@ static void showTitleScreen() {
 
     // 3D graphics
     // Create a model matrix and set it
-    float4x4 model = mat_rotationY(capyAngle);
-    model = mmul(model, mat_translation(0, -1.3, 0));
-    gfx_setMatrix(GFX_MAT_MODEL, &model);
+    uint32_t nCapybaras = menuItem == GG_MM_MULTIPLAYER ? 2 : 1;
+    for (int i = 0; i < nCapybaras; i++) {
+      float x = nCapybaras == 1 ? 0.0f : -1.5f + i * 3.0f;
+      float4x4 model = mat_rotationY(capyAngle);
+      model = mmul(mat_translation(x, -1.3f, 0), model);
+      gfx_setMatrix(GFX_MAT_MODEL, &model);
 
-    // Draw the capybara
-    gfx_drawPrimitivesIndexed(
-      v_face, n_face, vi_face, ni_face, pc_face, color_face
-    );
-    gfx_drawPrimitivesIndexed(
-      v_base, n_base, vi_base, ni_base, pc_base, color_base
-    );
-    gfx_drawPrimitivesIndexed(
-      v_club, n_club, vi_club, ni_club, pc_club, color_club
-    );
+      // Draw the capybara
+      gfx_drawPrimitivesIndexed(
+        v_face, n_face, vi_face, ni_face, pc_face, color_face
+      );
+      gfx_drawPrimitivesIndexed(
+        v_base, n_base, vi_base, ni_base, pc_base, color_base[i]
+      );
+      gfx_drawPrimitivesIndexed(
+        v_club, n_club, vi_club, ni_club, pc_club, color_club
+      );
+    }
 
     // Present gfx buffer to VGA main framebuffer
     gfx_present();
@@ -667,11 +689,18 @@ static void showTitleScreen() {
     }
 
     if (screen == GG_SCREEN_PLAYERSELECT) {
-      vga_rect(300, 400, 700, 600, 0, 0);
-      vga_text(320, 420, "TODO player select", 0xffffff, 0, 0);
-      vga_text(320, 440, "Press RETURN to play", 0xffffff, 0, 0);
+      vga_shade(384, 400, 639, 599, 0, 0);
+      vga_rect(384, 400, 639, 599, 0xa0005000, VGA_ALPHA_BLEND);
+      vga_frame(384, 400, 639, 599, 0xffffff, 0);
+      vga_text(476, 416, "MAIN MENU", 0xffffff, 0, 0);
 
-      // TODO: player select screen (1P - 2P)
+      for (int i = 0; i < menuItemCount; i++) {
+        if (i == menuItem) {
+          vga_rect(428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, 0x008000, 0);
+          vga_frame(428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, 0xffffff, 0);
+        }
+        vga_text(452, 456 + 24 * i, menuStrings[i], 0xffffff, 0, 0);
+      }
     }
 
     vga_text(824, 736, "(c) 1998 TONKATSU GAMES", 0xffffff, 0, 0);
@@ -692,8 +721,22 @@ static void showTitleScreen() {
     if (ev.key) {
       if (screen == GG_SCREEN_TITLE) {
         screen = GG_SCREEN_PLAYERSELECT;
-      } else if (screen == GG_SCREEN_PLAYERSELECT && ev.key == KEY_RETURN) {
-        screen = GG_SCREEN_GAME;
+      } else if (screen == GG_SCREEN_PLAYERSELECT) {
+        switch (ev.key) {
+          case KEY_ARROW_UP:
+            menuItem = menuItem == 0 ? menuItemCount - 1 : menuItem - 1;
+            break;
+          case KEY_ARROW_DOWN:
+            menuItem = (menuItem + 1) % menuItemCount;
+            break;
+          case KEY_RETURN: {
+            if (menuItem != GG_MM_QUIT) {
+              return menuItem + 1;
+            } else {
+              return 0;
+            }
+          }
+        }
       }
     }
   }
@@ -706,6 +749,12 @@ int gg_startGame() {
   // Disable status bar drawing while application is active
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
+
+  // Keymaps per player
+  static keycode_t keys[2][4] = {
+    {KEY_W, KEY_S, KEY_D, KEY_A},
+    {KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT}
+  };
 
   // Make vertices for the hole mesh
   makeHoleMesh();
@@ -722,7 +771,8 @@ int gg_startGame() {
   totalTicks = _syscall(SYS_TICKS);
 
   // Display the title screen
-  showTitleScreen();
+  uint32_t nPlayers = showTitleScreen();
+  if (!nPlayers) return 0;
 
   /*
    * Set up game objects
@@ -730,21 +780,15 @@ int gg_startGame() {
   terrain_t terrain;
   generateTerrain(&terrain);
 
-  physicsObject_t p1 = {0};
-  p1.x = FIELD_WIDTH * 0.5f;
-  p1.y = FIELD_HEIGHT * 0.5f;
-  p1.drag = 0.02f;
-  p1.size = 0.7f;
-  p1.mass = 0.1f;
-  p1.angle = 0.0f;
-
-  physicsObject_t p2 = {0};
-  p2.x = FIELD_WIDTH * 0.5f;
-  p2.y = FIELD_HEIGHT * 0.5f;
-  p2.drag = 0.02f;
-  p2.size = 0.7f;
-  p2.mass = 0.1f;
-  p2.angle = 0.0f;
+  physicsObject_t players[MAX_PLAYERS];
+  for (int i = 0; i < nPlayers; i++) {
+    players[i].x = FIELD_WIDTH * 0.5f + i;
+    players[i].y = FIELD_HEIGHT * 0.5f;
+    players[i].drag = 0.02f;
+    players[i].size = 0.7f;
+    players[i].mass = 0.1f;
+    players[i].angle = 0.0f;
+  }
 
   physicsObject_t ball = {0};
   ball.x = FIELD_WIDTH * 0.5f;
@@ -757,11 +801,6 @@ int gg_startGame() {
   hole.x = FIELD_WIDTH * 0.25f;
   hole.y = FIELD_HEIGHT * 0.75f;
   hole.size = 0.5f;
-
-  keycode_t p1Keys[] = {KEY_W, KEY_S, KEY_D, KEY_A};
-  keycode_t p2Keys[] = {
-    KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT
-  };
 
   // Setup game graphics
   setupGameRender();
@@ -778,17 +817,17 @@ int gg_startGame() {
     kbd_pollEvents();
 
     // Update physics
-    updatePlayerTank(&p1, p1Keys);
-    updateObject(&p1);
-    doCollision(&p1, &ball);
+    for (int i = 0; i < nPlayers; i++) {
+      updatePlayerTank(&players[i], keys[i]);
+      updateObject(&players[i]);
+      doCollision(&players[i], &ball);
 
-    updatePlayerTank(&p2, p2Keys);
-    updateObject(&p2);
-    doCollision(&p2, &ball);
+      for (int j = 0; j < nPlayers; j++) {
+        if (i != j) doCollision(&players[i], &players[j]);
+      }
+    }
 
     updateObject(&ball);
-
-    doCollision(&p1, &p2);
 
     applyGravity(&terrain, &ball);
     if (checkHole(&ball, &hole)) { loop = 0; }
@@ -811,8 +850,7 @@ int gg_startGame() {
 
     renderHole(&hole, &terrain);
 
-    renderPlayer(&p1, &terrain);
-    renderPlayer(&p2, &terrain);
+    for (int i = 0; i < nPlayers; i++) { renderPlayer(&players[i], &terrain); }
 
     renderBall(&ball, &terrain);
 

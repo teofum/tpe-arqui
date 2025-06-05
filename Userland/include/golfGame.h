@@ -1,5 +1,5 @@
 #ifndef GOLF_GAME
-#define GOLF_GAME 0
+#define GOLF_GAME
 
 #include <fpmath.h>
 #include <kbd.h>
