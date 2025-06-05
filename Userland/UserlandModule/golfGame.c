@@ -18,8 +18,11 @@
 #define TERRAIN_SIZE_UNITS_X (FIELD_WIDTH / TERRAIN_SIZE_X)
 #define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
 
+// Multiplies all velocities
+#define VMUL 0.1f
+
 #define VMAX 1.0f
-#define TURNS_SPEED 0.01f
+#define TURNS_SPEED 0.02f
 #define ACCELERATION 0.01f
 #define GRAVITY 0.1f
 #define BRAKING 0.9
@@ -230,8 +233,8 @@ void updateObject(physicsObject_t *obj) {
   obj->vy *= 1.0f - obj->drag * frametime;
 
   //update pos
-  obj->x += obj->vx;
-  obj->y += obj->vy;
+  obj->x += obj->vx * VMUL * frametime;
+  obj->y += obj->vy * VMUL * frametime;
 
   // //che maxBounds
   if ((obj->x - obj->size) < 0.0f || (obj->x + obj->size) > FIELD_WIDTH) {
