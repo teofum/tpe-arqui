@@ -350,14 +350,19 @@ static void generateTerrain(terrain_t *terrain) {
   // Generate terrain vertices
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
-      // test terrain gen
+      // test terrain gen ///////////////////////////////////////lolo tocar//
       float u = (float) y / TERRAIN_SIZE_Y * 15.0f;
       float v = (float) x / TERRAIN_SIZE_X * 10.0f;
       while (u > M_PI) { u -= 2.0f * M_PI; }
       while (v > M_PI) { v -= 2.0f * M_PI; }
 
       float height = sin(u) * 0.2f - cos(v) * 0.2f;
-
+      /////////////////////////
+      // ideas:
+      // hills y pozos
+      // algun ruido con trigs
+      //
+      ///////////////////////////////////////////////////////////////////////
       float3 vertex = {
         (float) x * TERRAIN_SIZE_UNITS_X - 0.5f * FIELD_WIDTH, height,
         (float) y * TERRAIN_SIZE_UNITS_Y - 0.5f * FIELD_HEIGHT
