@@ -4,6 +4,7 @@
 #include <kbd.h>
 #include <print.h>
 #include <stddef.h>
+#include <strings.h>
 #include <syscall.h>
 #include <vga.h>
 
@@ -35,6 +36,9 @@
 
 // Par is fixed for all levels
 #define PAR 4
+
+// Win/lose animation speed
+#define ANIM_SPEED 0.1f
 
 // UI colors and sizes
 #define UI_GREEN_DARK 0xff002800
@@ -98,6 +102,17 @@ typedef enum {
   GG_MM_MULTIPLAYER,
   GG_MM_QUIT,
 } gg_mainmenuOption_t;
+
+typedef enum {
+  GG_GAME_RUNNING,
+  GG_GAME_END,
+} gg_gameState_t;
+
+typedef enum {
+  GG_ANIM_NONE,
+  GG_ANIM_WIN,
+  GG_ANIM_LOSE,
+} gg_playerAnim_t;
 
 /*
  * Bitmap image data
@@ -172,6 +187,19 @@ static float3 color_ball[] = {
   {0.8f, 0.4f, 0.25f},
   {0.25f, 0.4f, 0.8f},
 };
+
+/*
+ * Score strings
+ */
+static const char *scoreNames[] = {"Hole in ZERO!", "Hole in One!", "Eagle",
+                                   "Birdie",        "Par",          "Bogey",
+                                   "Double Bogey",  "over Par"};
+static const char *scoreTexts[] = {
+  "How??",        "YOU'RE WINNER",      "Great!",
+  "Nicely done!", "Not bad, not great", "Almost there...",
+  "git gud",      "Major Skill Issue",
+};
+
 
 /*
  * Helper functions
@@ -451,17 +479,12 @@ static void generateTerrain(terrain_t *terrain) {
   }
 }
 
-static void setupGameRender() {
+static void setupGameRender(float4x4 *view) {
   // Set half render resolution for the game for increased framerate
   gfx_setFlag(GFX_HALFRES, 1);
 
   // Set up view and projection matrices
-  float3 pos = {0, 10.0f, 3.5f};
-  float3 target = {0, 0, 0};
-  float3 up = {0, 1, 0};
-
-  float4x4 view = mat_lookat(pos, target, up);
-  gfx_setMatrix(GFX_MAT_VIEW, &view);
+  gfx_setMatrix(GFX_MAT_VIEW, view);
 
   float fovDegrees = 75.0f;
   float4x4 projection =
@@ -516,14 +539,29 @@ static float getTerrainHeightAt(terrain_t *terrain, float fx, float fy) {
   return lerp(h0, h1, fy - y);
 }
 
-static void
-renderPlayer(physicsObject_t *player, uint32_t i, terrain_t *terrain) {
+static void renderPlayer(
+  physicsObject_t *player, uint32_t i, gg_playerAnim_t anim, float t,
+  terrain_t *terrain
+) {
   float angle = -player->angle - M_PI * 0.5f;
   if (angle < -M_PI) angle += M_PI * 2.0f;
 
   float height = getTerrainHeightAt(terrain, player->x, player->y);
 
   float4x4 model = mat_rotationY(angle);
+
+  if (anim == GG_ANIM_WIN) {
+    t *= 0.1f;
+    t = -M_PI + 2.0f * M_PI * (t - (uint32_t) t);
+    model = mmul(model, mat_rotationY(t));
+  } else if (anim == GG_ANIM_LOSE) {
+    t *= 0.01f;
+    t = max(min(t, 10.0f), 0.001f);
+    t = sqrt(t);
+    model =
+      mmul(model, mat_scale(1.0f + t, 1.0f / (1.0f + t), 1.0f + 0.5f * t));
+  }
+
   model = mmul(model, mat_scale(0.8f, 0.8f, 0.8f));
   model = mmul(
     mat_translation(
@@ -571,6 +609,9 @@ static void renderHole(hole_t *hole, terrain_t *terrain) {
   gfx_setFlag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 0);
   gfx_drawPrimitivesIndexed(v_hole, NULL, vi_hole, vi_hole, 5, color_hole);
   gfx_setFlag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 1);
+
+  model = mmul(translation, mat_rotationY(M_PI * 0.75f));
+  gfx_setMatrix(GFX_MAT_MODEL, &model);
 
   float3 color_pole = {0.80f, 0.80f, 0.80f};
   float3 color_flag = {0.92f, 0.20f, 0.24f};
@@ -765,6 +806,8 @@ static int playGame(uint32_t nPlayers) {
     {KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT}
   };
 
+  gg_gameState_t gameState = GG_GAME_RUNNING;
+
   /*
    * Set up game objects
    */
@@ -776,6 +819,7 @@ static int playGame(uint32_t nPlayers) {
   int ballInPlay[MAX_PLAYERS];
   uint32_t hits[MAX_PLAYERS];
   uint32_t iframes[MAX_PLAYERS];// Hit counter debounce timer
+  gg_playerAnim_t anim[MAX_PLAYERS];
 
   for (int i = 0; i < nPlayers; i++) {
     players[i].x = FIELD_WIDTH * 0.5f + i;
@@ -794,6 +838,7 @@ static int playGame(uint32_t nPlayers) {
     hits[i] = 0;
     iframes[i] = 0;
     ballInPlay[i] = 1;
+    anim[i] = GG_ANIM_NONE;
   }
 
   hole_t hole = {0};
@@ -802,71 +847,91 @@ static int playGame(uint32_t nPlayers) {
   hole.size = 0.5f;
 
   // Setup game graphics
-  setupGameRender();
+  float3 viewPos = {0, 10.0f, 3.5f};
+  float3 viewTarget = {0, 0, 0};
+  float3 viewUp = {0, 1, 0};
+
+  float4x4 view = mat_lookat(viewPos, viewTarget, viewUp);
+  setupGameRender(&view);
 
   /*
    * Game loop
    */
   int loop = 1;
+  kbd_event_t ev = {0};
+  float t = 0;// Timer for win/lose animation
   while (loop) {
     // Update the timer
     updateTimer();
 
-    // Update keyboard input
-    kbd_pollEvents();
+    // Process input and physics only when the game is running
+    if (gameState == GG_GAME_RUNNING) {
+      // Update keyboard input
+      kbd_pollEvents();
 
-    /*
-     * Physics and gameplay update
-     */
-    for (int i = 0; i < nPlayers; i++) {
-      // Apply inputs and update player physics
-      updatePlayerTank(&players[i], keys[i]);
-      updateObject(&players[i]);
+      /*
+       * Physics and gameplay update
+       */
+      for (int i = 0; i < nPlayers; i++) {
+        // Apply inputs and update player physics
+        updatePlayerTank(&players[i], keys[i]);
+        updateObject(&players[i]);
 
-      // Apply gravity and update ball physics
-      if (ballInPlay[i]) {
-        applyGravity(&terrain, &balls[i]);
-        updateObject(&balls[i]);
-      }
+        // Apply gravity and update ball physics
+        if (ballInPlay[i]) {
+          applyGravity(&terrain, &balls[i]);
+          updateObject(&balls[i]);
+        }
 
-      // Collisions
-      // Number of collisions scales with N^2, this is fine with just two players
-      for (int j = 0; j < nPlayers; j++) {
-        // Player-ball collisions
-        if (ballInPlay[j]) {
-          int hit = doCollision(&players[i], &balls[j]);
+        // Collisions
+        // Number of collisions scales with N^2, this is fine with just two players
+        for (int j = 0; j < nPlayers; j++) {
+          // Player-ball collisions
+          if (ballInPlay[j]) {
+            int hit = doCollision(&players[i], &balls[j]);
 
-          // Increase hit counter only when player hits their own ball
-          if (hit && i == j && iframes[i] == 0) {
-            hits[i]++;
-            iframes[i] = HIT_DEBOUNCE_MS;
+            // Increase hit counter only when player hits their own ball
+            if (hit && i == j && iframes[i] == 0) {
+              hits[i]++;
+              iframes[i] = HIT_DEBOUNCE_MS;
+            }
+          }
+
+          // Player-player and ball-ball collisions
+          if (i != j) {
+            doCollision(&players[i], &players[j]);
+            if (ballInPlay[i] && ballInPlay[j])
+              doCollision(&balls[i], &balls[j]);
           }
         }
 
-        // Player-player and ball-ball collisions
-        if (i != j) {
-          doCollision(&players[i], &players[j]);
-          if (ballInPlay[i] && ballInPlay[j]) doCollision(&balls[i], &balls[j]);
+        // Check win condition
+        if (ballInPlay[i] && checkHole(&balls[i], &hole)) {
+          // Remove the ball from the playfield
+          ballInPlay[i] = 0;
+
+          // If no balls are left, end the game
+          int endGame = 1;
+          for (int j = 0; j < nPlayers; j++) {
+            if (ballInPlay[j]) endGame = 0;
+          }
+
+          if (endGame) {
+            gameState = GG_GAME_END;
+
+            // Set game end player animations
+            if (nPlayers == 1) {
+              anim[0] = hits[0] > PAR ? GG_ANIM_LOSE : GG_ANIM_WIN;
+            } else if (nPlayers == 2) {
+              anim[0] = hits[0] > hits[1] ? GG_ANIM_LOSE : GG_ANIM_WIN;
+              anim[1] = hits[1] > hits[0] ? GG_ANIM_LOSE : GG_ANIM_WIN;
+            }
+          }
         }
+
+        // Update hit timers
+        iframes[i] = iframes[i] <= frametime ? 0 : iframes[i] - frametime;
       }
-
-      // Check win condition
-      if (ballInPlay[i] && checkHole(&balls[i], &hole)) {
-        // Remove the ball from the playfield
-        ballInPlay[i] = 0;
-
-        // If no balls are left, end the game
-        int endGame = 1;
-        for (int j = 0; j < nPlayers; j++) {
-          if (ballInPlay[j]) endGame = 0;
-        }
-
-        // TODO game end screen
-        if (endGame) loop = 0;
-      }
-
-      // Update hit timers
-      iframes[i] = iframes[i] <= frametime ? 0 : iframes[i] - frametime;
     }
 
     /*
@@ -890,7 +955,7 @@ static int playGame(uint32_t nPlayers) {
     renderHole(&hole, &terrain);
 
     for (int i = 0; i < nPlayers; i++) {
-      renderPlayer(&players[i], i, &terrain);
+      renderPlayer(&players[i], i, anim[i], t, &terrain);
       if (ballInPlay[i])
         renderBall(&balls[i], nPlayers == 1 ? 0 : i + 1, &terrain);
     }
@@ -931,6 +996,61 @@ static int playGame(uint32_t nPlayers) {
       vga_text((VGA_WIDTH >> 1) + 56, 16, "PLAYER 2", 0xffffff, 0x000000, 0);
       sprintf(buf, "Hits: %u", hits[1]);
       vga_text((VGA_WIDTH >> 1) + 56, 32, buf, 0xffffff, 0x000000, 0);
+    }
+
+    /*
+     * Display game end screen
+     */
+    if (gameState == GG_GAME_END) {
+      uint16_t x0 = (VGA_WIDTH >> 1) - 128, x1 = x0 + 255;
+      uint16_t y0 = (VGA_HEIGHT >> 1) - 96, y1 = y0 + 191;
+
+      vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_DARK, VGA_ALPHA_BLEND);
+      vga_shade(x0, y0, x1, y1, UI_GREEN_DARK, 0);
+      vga_frame(x0, y0, x1, y1, 0xffffff, 0);
+
+      if (nPlayers == 1) {
+        // Display score screen for singleplayer
+        uint32_t score = min(hits[0], 7);
+        int textWidth;
+        if (score < 7) sprintf(buf, "%s", scoreNames[score]);
+        else
+          sprintf(buf, "%u %s", hits[0] - PAR, scoreNames[score]);
+        textWidth = strlen(buf) * 8;
+        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
+
+        sprintf(buf, "%s", scoreTexts[score]);
+        textWidth = strlen(buf) * 8;
+        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 48, buf, 0xffffff, 0, 0);
+
+        vga_text(
+          (VGA_WIDTH - 160) >> 1, y1 - 32, "Press RETURN to exit", 0xffffff, 0,
+          0
+        );
+      }
+
+      // Process input
+      ev = kbd_getKeyEvent();
+      switch (ev.key) {
+        case KEY_RETURN:
+          loop = 0;
+          break;
+      }
+
+      // Increment endgame animation timer
+      t += ANIM_SPEED * frametime;
+
+      // Move camera after endgame
+      float tView = min(t * 0.004f, 1.0f);
+      float angle = t * 0.003;
+      while (angle > M_PI) angle -= 2.0f * M_PI;
+      viewPos.y = lerp(10.0f, 6.0f, tView);
+      viewPos.z = lerp(3.5f, 8.0f, tView);
+
+      float4x4 view = mat_lookat(viewPos, viewTarget, viewUp);
+      view = mmul(view, mat_rotationY(angle));
+
+      setupGameRender(&view);
     }
 
     vga_present();
