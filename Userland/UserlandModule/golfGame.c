@@ -30,9 +30,9 @@
 // Multiplies all velocities
 #define VMUL 0.1f
 
-#define VMAX 1.0f
-#define TURNS_SPEED 0.02f
-#define ACCELERATION 0.01f
+#define VMAX 0.5f
+#define TURNS_SPEED 0.008f
+#define ACCELERATION 0.005f
 #define GRAVITY 0.1f
 #define BRAKING 0.9
 
@@ -43,7 +43,7 @@
 #define PAR 4
 
 // Win/lose animation speed
-#define ANIM_SPEED 0.1f
+#define ANIM_SPEED 0.02f
 
 // UI colors and sizes
 #define UI_GREEN_DARK 0xff002800
@@ -634,7 +634,7 @@ static void renderPlayer(
     t = -M_PI + 2.0f * M_PI * (t - (uint32_t) t);
     model = mmul(model, mat_rotationY(t));
   } else if (anim == GG_ANIM_LOSE) {
-    t *= 0.01f;
+    t *= 0.02f;
     t = max(min(t, 10.0f), 0.001f);
     t = sqrt(t);
     model =
@@ -853,7 +853,7 @@ static uint32_t showTitleScreen() {
     // TODO deltatime
     a += 0.005f * frametime;
     if (a > M_PI) a -= 2.0f * M_PI;
-    capyAngle -= 0.01f * frametime;
+    capyAngle -= 0.5f * ANIM_SPEED * frametime;
     if (capyAngle < -M_PI) capyAngle += 2.0f * M_PI;
     textBlinkTimer = (textBlinkTimer + frametime) % TITLE_TEXT_BLINK_MS;
 
