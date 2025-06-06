@@ -39,18 +39,8 @@ void *getStackBase() {
 }
 
 void *initializeKernelBinary() {
-  // Initialize video driver
-  // vga_init();
-
-  // Initialize stdout
-  // io_init();
-
-  // printf("[x64BareBones]\n");
-
-  // printf("[Loading modules]\n");
   void *moduleAddresses[] = {sampleCodeModuleAddress, sampleDataModuleAddress};
   loadModules(&endOfKernelBinary, moduleAddresses);
-  // printf("[Done]\n\n");
 
   clearBSS(&bss, &endOfKernel - &bss);
 
@@ -68,9 +58,6 @@ int main() {
 
   // Initialize video driver
   vga_init();
-
-  // Initialize stdout
-  io_init();
 
   // Enable status bar
   status_setEnabled(1);

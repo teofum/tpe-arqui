@@ -39,19 +39,19 @@ static int clear() {
 
 typedef struct {
   const char *name;
-  io_font_t id;
+  vga_font_t id;
 } font_entry_t;
 
 font_entry_t fonts[] = {
-  {"default", IO_FONT_DEFAULT},
-  {"tiny", IO_FONT_TINY},
-  {"tiny bold", IO_FONT_TINY_BOLD},
-  {"small", IO_FONT_SMALL},
-  {"large", IO_FONT_LARGE},
-  {"alt", IO_FONT_ALT},
-  {"alt bold", IO_FONT_ALT_BOLD},
-  {"future", IO_FONT_FUTURE},
-  {"old", IO_FONT_OLD},
+  {"default", VGA_FONT_DEFAULT},
+  {"tiny", VGA_FONT_TINY},
+  {"tiny bold", VGA_FONT_TINY_BOLD},
+  {"small", VGA_FONT_SMALL},
+  {"large", VGA_FONT_LARGE},
+  {"alt", VGA_FONT_ALT},
+  {"alt bold", VGA_FONT_ALT_BOLD},
+  {"future", VGA_FONT_FUTURE},
+  {"old", VGA_FONT_OLD},
 };
 size_t nFonts = sizeof(fonts) / sizeof(font_entry_t);
 

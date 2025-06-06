@@ -37,15 +37,16 @@ void status_drawStatusBar() {
   );
 
   // Draw system clock text
-  const vga_font_t *oldfont = vga_font(vga_fontAlt);
+  vga_font_t oldfont = vga_font(VGA_FONT_ALT);
+  uint8_t charWidth = vga_getfont(VGA_FONT_ALT)->charWidth;
 
   len = sprintf(
     buf, "%s, %s %02u 20%02u %02u:%02u:%02u", weekdays[t.dayOfWeek],
     months[t.month], t.day, t.year, t.hours, t.minutes, t.seconds
   );
   vga_text(
-    VGA_WIDTH - len * vga_fontAlt->charWidth - STATUS_PADDING_X - 1,
-    STATUS_PADDING_Y, buf, 0xffffff, 0, 0
+    VGA_WIDTH - len * charWidth - STATUS_PADDING_X - 1, STATUS_PADDING_Y, buf,
+    0xffffff, 0, 0
   );
 
   vga_font(oldfont);

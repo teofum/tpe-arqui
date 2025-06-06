@@ -395,9 +395,11 @@ static int checkHole(physicsObject_t *obj, hole_t *hole) {
   }
 }
 
-float fitToPi(float x) {
+static float fitToPi(float x) {
   while (x > M_PI) { x -= 2.0f * M_PI; }
   while (x < -M_PI) { x += 2.0f * M_PI; }
+
+  return x;
 }
 
 static void generateTerrain(terrain_t *terrain) {
@@ -788,7 +790,9 @@ static uint32_t showTitleScreen() {
     // Draw UI text
     if (screen == GG_SCREEN_TITLE &&
         textBlinkTimer > (TITLE_TEXT_BLINK_MS >> 1)) {
+      vga_font_t oldfont = vga_font(VGA_FONT_ALT_BOLD);
       vga_text(424, 500, "Press any key to start", 0xffffff, 0, VGA_TEXT_BG);
+      vga_font(oldfont);
     }
 
     if (screen == GG_SCREEN_PLAYERSELECT) {
@@ -797,7 +801,10 @@ static uint32_t showTitleScreen() {
         384, 400, 639, 599, 0xa0ffffff & UI_GREEN_LIGHT, VGA_ALPHA_BLEND
       );
       vga_frame(384, 400, 639, 599, 0xffffff, 0);
+
+      vga_font_t oldfont = vga_font(VGA_FONT_LARGE);
       vga_text(476, 416, "MAIN MENU", 0xffffff, 0, 0);
+      vga_font(oldfont);
 
       for (int i = 0; i < menuItemCount; i++) {
         if (i == menuItem) {
@@ -1036,8 +1043,10 @@ static int playGame(uint32_t nPlayers) {
     );
 
     // Text
+    vga_font_t oldfont = vga_font(VGA_FONT_ALT_BOLD);
     sprintf(buf, "Hole %u", 1);
     vga_text((VGA_WIDTH >> 1) - 24, 16, buf, 0xffffff, 0x000000, 0);
+    vga_font(oldfont);
     sprintf(buf, "Par: %u", PAR);
     vga_text((VGA_WIDTH >> 1) - 24, 32, buf, 0xffffff, 0x000000, 0);
 
@@ -1069,17 +1078,22 @@ static int playGame(uint32_t nPlayers) {
         if (score < 7) sprintf(buf, "%s", scoreNames[score]);
         else
           sprintf(buf, "%u %s", hits[0] - PAR, scoreNames[score]);
-        textWidth = strlen(buf) * 8;
+        textWidth = strlen(buf) * 12;
+
+        oldfont = vga_font(VGA_FONT_LARGE);
         vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
+        vga_font(oldfont);
 
         sprintf(buf, "%s", scoreTexts[score]);
         textWidth = strlen(buf) * 8;
-        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 48, buf, 0xffffff, 0, 0);
+        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
 
+        oldfont = vga_font(VGA_FONT_ALT_BOLD);
         vga_text(
           (VGA_WIDTH - 160) >> 1, y1 - 32, "Press RETURN to exit", 0xffffff, 0,
           0
         );
+        vga_font(oldfont);
       }
 
       // Process input
@@ -1134,6 +1148,9 @@ int gg_startGame() {
   // Init deltatime timer
   totalTicks = _syscall(SYS_TICKS);
 
+  // Set "alt" as the default font for the application
+  vga_font_t oldfont = vga_font(VGA_FONT_ALT);
+
   // Main application loop
   while (1) {
     // Display the title screen
@@ -1142,6 +1159,9 @@ int gg_startGame() {
 
     playGame(nPlayers);
   }
+
+  // Restore font
+  vga_font(oldfont);
 
   // Restore status bar enabled state
   _syscall(SYS_STATUS_SET_ENABLED, statusEnabled);
