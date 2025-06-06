@@ -22,7 +22,7 @@
 #define TERRAIN_SIZE_UNITS_X (FIELD_WIDTH / TERRAIN_SIZE_X)
 #define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
 #define TERRAIN_NOISE_MAX 0.5
-#define TERRAIN_CANT_WAVES 10
+#define TERRAIN_CANT_WAVES 6
 
 #define MAX_PLAYERS 2
 
@@ -443,8 +443,13 @@ static void generateTerrain(terrain_t *terrain) {
           TERRAIN_CANT_WAVES;
       }
 
-      if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
-        height += TERRAIN_NOISE_MAX / 8;
+      // todos los bordes levantados // todo hacerlo mas smooth
+      // if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
+      //   height += TERRAIN_NOISE_MAX/2;
+      // }
+
+      if ((x == FIELD_WIDTH || x == 0) && (y == FIELD_HEIGHT || y == 0)) {
+        height += TERRAIN_NOISE_MAX / 3;
       }
 
       /////////////////////////
@@ -950,9 +955,11 @@ static int playGame(uint32_t nPlayers) {
           }
         }
 
+        //lolo testing remove/ escape will end the game///////////////////////////todo
 
         // Check win condition
-        if (ballInPlay[i] && checkHole(&balls[i], &hole)) {
+        if (kbd_keypressed(KEY_ESCAPE) ||
+            ballInPlay[i] && checkHole(&balls[i], &hole)) {
           // Remove the ball from the playfield
           ballInPlay[i] = 0;
 
