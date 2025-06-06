@@ -22,6 +22,8 @@
 #define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
 #define TERRAIN_NOISE_MAX 0.5
 #define TERRAIN_CANT_WAVES 6
+#define TERRAIN_HILL_HEIGHT 1
+#define TERRAIN_HILL_WIDTH 3
 
 #define MAX_PLAYERS 2
 
@@ -57,6 +59,13 @@
 #define height(t, xx, yy) (t->v[(xx)][(yy)].y)
 
 #define lerp(a, b, t) ((a) * (1.0f - (t)) + (b) * (t))
+
+static float fitToPi(float x) {
+  while (x > M_PI) { x -= 2.0f * M_PI; }
+  while (x < -M_PI) { x += 2.0f * M_PI; }
+
+  return x;
+}
 
 typedef struct {
   float x;
@@ -394,12 +403,19 @@ static int checkHole(physicsObject_t *obj, hole_t *hole) {
   }
 }
 
-static float fitToPi(float x) {
-  while (x > M_PI) { x -= 2.0f * M_PI; }
-  while (x < -M_PI) { x += 2.0f * M_PI; }
 
-  return x;
+float doHill(int curx, int cury, int x, int y, float size) {
+  float difx = x - curx;
+  float dify = y - cury;
+  float dist = sqrt(sqr(difx) + sqr(dify));
+
+  if (dist <= size) {
+    return (1 - dist / size) * TERRAIN_HILL_HEIGHT;
+  } else {
+    return 0;
+  }
 }
+
 
 static void generateTerrain(terrain_t *terrain) {
   // Generate terrain vertices
@@ -416,7 +432,6 @@ static void generateTerrain(terrain_t *terrain) {
     fx[i] = ((float) (pcg32_rand(&rng) % 10)) / 10;
   }
 
-
   // fase, offset
   float offsety[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
@@ -427,6 +442,14 @@ static void generateTerrain(terrain_t *terrain) {
     offsetx[i] = ((float) (pcg32_rand(&rng) % 5) / 5) * 2 * M_PI;
   }
 
+  // hill position
+  int hillx = (pcg32_rand(&rng) % TERRAIN_SIZE_X);
+  int hilly = (pcg32_rand(&rng) % TERRAIN_SIZE_Y);
+
+  // pit position
+  int pitx = (pcg32_rand(&rng) % TERRAIN_SIZE_X);
+  int pity = (pcg32_rand(&rng) % TERRAIN_SIZE_Y);
+
   // loop
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
@@ -435,10 +458,7 @@ static void generateTerrain(terrain_t *terrain) {
       for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
         height +=
           ((sin(fitToPi((x * TERRAIN_SIZE_UNITS_X) * fy[i] + offsety[i])) *
-            TERRAIN_NOISE_MAX)
-
-           +
-
+            TERRAIN_NOISE_MAX) +
            (sin(fitToPi((y * TERRAIN_SIZE_UNITS_X) * fx[i] + offsetx[i])) *
             TERRAIN_NOISE_MAX)) /
           TERRAIN_CANT_WAVES;
@@ -453,6 +473,13 @@ static void generateTerrain(terrain_t *terrain) {
       if ((x == FIELD_WIDTH || x == 0) && (y == FIELD_HEIGHT || y == 0)) {
         height += TERRAIN_NOISE_MAX / 4;
       }
+
+
+      // hill
+      height += doHill(x, y, hillx, hilly, TERRAIN_HILL_WIDTH);
+
+      // pit
+      height -= doHill(x, y, pitx, pity, TERRAIN_HILL_WIDTH);
 
       /////////////////////////
       // ideas:
