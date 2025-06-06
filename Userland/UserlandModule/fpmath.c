@@ -1,5 +1,12 @@
 #include <fpmath.h>
 
+float fitToPi(float x) {
+  while (x > M_PI) { x -= 2.0f * M_PI; }
+  while (x < -M_PI) { x += 2.0f * M_PI; }
+
+  return x;
+}
+
 float sin(float x) {
   const float b = 4.0f * M_INVPI;
   const float c = -4.0f * M_INVPI * M_INVPI;

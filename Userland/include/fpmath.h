@@ -37,6 +37,11 @@ typedef struct {
 extern float sqrt(float x);
 
 /*
+ * Fits an angle to [-pi;+pi]
+ */
+float fitToPi(float x);
+
+/*
  * Fast sine approximation, input in radians.
  * Input must be between -PI and +PI.
  */

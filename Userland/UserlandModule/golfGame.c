@@ -60,13 +60,6 @@
 
 #define lerp(a, b, t) ((a) * (1.0f - (t)) + (b) * (t))
 
-static float fitToPi(float x) {
-  while (x > M_PI) { x -= 2.0f * M_PI; }
-  while (x < -M_PI) { x += 2.0f * M_PI; }
-
-  return x;
-}
-
 typedef struct {
   float x;
   float y;
