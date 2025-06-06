@@ -584,7 +584,7 @@ static void setupGameRender(float4x4 *view) {
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Set up lighting
-  float3 light = {-1, 3, -1};
+  float3 light = {-2, 3, -2};
   float3 lightcolor = {1.80f, 1.75f, 1.60f};
   float3 ambient = vmuls(lightcolor, 0.5f);
 
