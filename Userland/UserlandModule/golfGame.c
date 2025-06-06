@@ -20,10 +20,12 @@
 #define TERRAIN_SIZE_Y 10
 #define TERRAIN_SIZE_UNITS_X (FIELD_WIDTH / TERRAIN_SIZE_X)
 #define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
-#define TERRAIN_NOISE_MAX 0.5
-#define TERRAIN_CANT_WAVES 6
-#define TERRAIN_HILL_HEIGHT 1
-#define TERRAIN_HILL_WIDTH 3
+
+// Terarin gen parameters
+#define TERRAIN_NOISE_MAX 0.5f
+#define TERRAIN_N_WAVES 6
+#define TERRAIN_HILL_HEIGHT 0.75f
+#define TERRAIN_HILL_WIDTH 2.0f
 
 #define MAX_PLAYERS 2
 
@@ -422,22 +424,22 @@ static void generateTerrain(terrain_t *terrain) {
   pcg32_srand(&rng, _syscall(SYS_TICKS), 1);
 
   // frequency/ numero de armonico
-  float fy[TERRAIN_CANT_WAVES];
-  for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
+  float fy[TERRAIN_N_WAVES];
+  for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
     fy[i] = ((float) (pcg32_rand(&rng) % 10)) / 10;
   }
-  float fx[TERRAIN_CANT_WAVES];
-  for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
+  float fx[TERRAIN_N_WAVES];
+  for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
     fx[i] = ((float) (pcg32_rand(&rng) % 10)) / 10;
   }
 
   // fase, offset
-  float offsety[TERRAIN_CANT_WAVES];
-  for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
+  float offsety[TERRAIN_N_WAVES];
+  for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
     offsety[i] = ((float) (pcg32_rand(&rng) % 5) / 5) * 2 * M_PI;
   }
-  float offsetx[TERRAIN_CANT_WAVES];
-  for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
+  float offsetx[TERRAIN_N_WAVES];
+  for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
     offsetx[i] = ((float) (pcg32_rand(&rng) % 5) / 5) * 2 * M_PI;
   }
 
@@ -454,31 +456,30 @@ static void generateTerrain(terrain_t *terrain) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
       // test terrain gen ///////////////////////////////////////lolo tocar//
       float height = 0;
-      for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
+      for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
         height +=
           ((sin(fitToPi((x * TERRAIN_SIZE_UNITS_X) * fy[i] + offsety[i])) *
             TERRAIN_NOISE_MAX) +
            (sin(fitToPi((y * TERRAIN_SIZE_UNITS_X) * fx[i] + offsetx[i])) *
             TERRAIN_NOISE_MAX)) /
-          TERRAIN_CANT_WAVES;
+          TERRAIN_N_WAVES;
       }
-
-      /// todos los bordes levantados // todo hacerlo mas smooth
-      // if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
-      //   height += TERRAIN_NOISE_MAX/2;
-      // }
-
-      // / solo las esquinas levantadas
-      if ((x == FIELD_WIDTH || x == 0) && (y == FIELD_HEIGHT || y == 0)) {
-        height += TERRAIN_NOISE_MAX / 4;
-      }
-
 
       // hill
       height += doHill(x, y, hillx, hilly, TERRAIN_HILL_WIDTH);
 
       // pit
       height -= doHill(x, y, pitx, pity, TERRAIN_HILL_WIDTH);
+
+      // todos los bordes levantados
+      if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
+        height = max(height, 0.0f) + TERRAIN_NOISE_MAX / 2;
+      }
+
+      // // solo las esquinas levantadas
+      // if ((x == FIELD_WIDTH || x == 0) && (y == FIELD_HEIGHT || y == 0)) {
+      //   height += TERRAIN_NOISE_MAX / 4;
+      // }
 
       /////////////////////////
       // ideas:
