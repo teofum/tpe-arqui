@@ -22,7 +22,7 @@
 #define TERRAIN_SIZE_UNITS_X (FIELD_WIDTH / TERRAIN_SIZE_X)
 #define TERRAIN_SIZE_UNITS_Y (FIELD_HEIGHT / TERRAIN_SIZE_Y)
 #define TERRAIN_NOISE_MAX 0.5
-#define TERRAIN_CANT_WAVES 3
+#define TERRAIN_CANT_WAVES 6
 
 #define MAX_PLAYERS 2
 
@@ -407,24 +407,25 @@ static void generateTerrain(terrain_t *terrain) {
   pcg32_random_t rng = {0};
   pcg32_srand(&rng, _syscall(SYS_TICKS), 1);
 
-  // frequency
+  // frequency/ numero de armonico
   float fy[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fy[i] = (pcg32_rand(&rng) % 100);
+    fy[i] = ((float) (pcg32_rand(&rng) % 10)) / 10;
   }
   float fx[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fx[i] = (pcg32_rand(&rng) % 100);
+    fx[i] = ((float) (pcg32_rand(&rng) % 10)) / 10;
   }
+
 
   // fase, offset
   float fasey[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fasey[i] = (pcg32_rand(&rng) % 100) / 100.0f;
+    fasey[i] = ((pcg32_rand(&rng) % 100) / 100) * 2 * M_PI;
   }
   float fasex[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fasex[i] = (pcg32_rand(&rng) % 100) / 100.0f;
+    fasex[i] = ((pcg32_rand(&rng) % 100) / 100) * 2 * M_PI;
   }
 
   // loop
@@ -433,13 +434,24 @@ static void generateTerrain(terrain_t *terrain) {
       // test terrain gen ///////////////////////////////////////lolo tocar//
       float height = 0;
       for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-        height += ((sin(fitToPi(x * fy[i]) + fasey[i]) * TERRAIN_NOISE_MAX) +
-                   (sin(fitToPi(y * fx[i]) + fasex[i]) * TERRAIN_NOISE_MAX)) /
-                  TERRAIN_CANT_WAVES;
+        height +=
+          ((sin(fitToPi((x * TERRAIN_SIZE_UNITS_X) * fy[i]) + fasey[i]) *
+            TERRAIN_NOISE_MAX)
+
+           +
+
+           (sin(fitToPi((y * TERRAIN_SIZE_UNITS_X) * fx[i]) + fasex[i]) *
+            TERRAIN_NOISE_MAX)) /
+          TERRAIN_CANT_WAVES;
       }
 
-      if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
-        height += TERRAIN_NOISE_MAX / 8;
+      // todos los bordes levantados // todo hacerlo mas smooth
+      // if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
+      //   height += TERRAIN_NOISE_MAX/2;
+      // }
+
+      if ((x == FIELD_WIDTH || x == 0) && (y == FIELD_HEIGHT || y == 0)) {
+        height += TERRAIN_NOISE_MAX / 3;
       }
 
       /////////////////////////
@@ -950,8 +962,11 @@ static int playGame(uint32_t nPlayers) {
           }
         }
 
+        //lolo testing remove/ escape will end the game///////////////////////////todo
+
         // Check win condition
-        if (ballInPlay[i] && checkHole(&balls[i], &hole)) {
+        if (kbd_keypressed(KEY_ESCAPE) ||
+            ballInPlay[i] && checkHole(&balls[i], &hole)) {
           // Remove the ball from the playfield
           ballInPlay[i] = 0;
 
