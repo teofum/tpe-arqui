@@ -10,7 +10,6 @@
 #include <vga.h>
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
-// #define fitTopi(x) (while ((x) > M_PI) { (x) -= 2.0f * M_PI; })
 
 #define TITLE_TEXT_BLINK_MS 400
 
@@ -419,13 +418,13 @@ static void generateTerrain(terrain_t *terrain) {
 
 
   // fase, offset
-  float fasey[TERRAIN_CANT_WAVES];
+  float offsety[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fasey[i] = ((pcg32_rand(&rng) % 100) / 100) * 2 * M_PI;
+    offsety[i] = ((float) (pcg32_rand(&rng) % 5) / 5) * 2 * M_PI;
   }
-  float fasex[TERRAIN_CANT_WAVES];
+  float offsetx[TERRAIN_CANT_WAVES];
   for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
-    fasex[i] = ((pcg32_rand(&rng) % 100) / 100) * 2 * M_PI;
+    offsetx[i] = ((float) (pcg32_rand(&rng) % 5) / 5) * 2 * M_PI;
   }
 
   // loop
@@ -435,23 +434,24 @@ static void generateTerrain(terrain_t *terrain) {
       float height = 0;
       for (int i = 0; i < TERRAIN_CANT_WAVES; ++i) {
         height +=
-          ((sin(fitToPi((x * TERRAIN_SIZE_UNITS_X) * fy[i]) + fasey[i]) *
+          ((sin(fitToPi((x * TERRAIN_SIZE_UNITS_X) * fy[i] + offsety[i])) *
             TERRAIN_NOISE_MAX)
 
            +
 
-           (sin(fitToPi((y * TERRAIN_SIZE_UNITS_X) * fx[i]) + fasex[i]) *
+           (sin(fitToPi((y * TERRAIN_SIZE_UNITS_X) * fx[i] + offsetx[i])) *
             TERRAIN_NOISE_MAX)) /
           TERRAIN_CANT_WAVES;
       }
 
-      // todos los bordes levantados // todo hacerlo mas smooth
+      /// todos los bordes levantados // todo hacerlo mas smooth
       // if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
       //   height += TERRAIN_NOISE_MAX/2;
       // }
 
+      // / solo las esquinas levantadas
       if ((x == FIELD_WIDTH || x == 0) && (y == FIELD_HEIGHT || y == 0)) {
-        height += TERRAIN_NOISE_MAX / 3;
+        height += TERRAIN_NOISE_MAX / 4;
       }
 
       /////////////////////////
