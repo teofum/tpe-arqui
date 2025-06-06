@@ -909,7 +909,7 @@ static int playGame(uint32_t nPlayers) {
     players[i].y = FIELD_HEIGHT * 0.5f;
     players[i].vx = 0.0f;
     players[i].vy = 0.0f;
-    players[i].drag = 0.3f;
+    players[i].drag = 0.4f;
     players[i].size = 0.7f;
     players[i].mass = 0.1f;
     players[i].angle = 0.0f;
@@ -918,7 +918,7 @@ static int playGame(uint32_t nPlayers) {
     balls[i].y = FIELD_HEIGHT * 0.25f;
     balls[i].vx = 0.0f;
     balls[i].vy = 0.0f;
-    balls[i].drag = 0.08f;
+    balls[i].drag = 0.1f;
     balls[i].size = 0.1f;
     balls[i].mass = 1.0f;
 
