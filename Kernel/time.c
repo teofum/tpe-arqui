@@ -19,7 +19,7 @@ void timer_init() {
   // Set mode 3, channel 0, high/low byte
   outb(0x43, 0x36);
 
-  uint16_t div = 1193 / 2;// 1193182 Hz / 1000 Hz = 1193
+  uint16_t div = 1193;// 1193182 Hz / 1000 Hz = 1193
   outb(0x40, div & 0xff);
   outb(0x40, div >> 8);
 }

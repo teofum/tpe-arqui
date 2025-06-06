@@ -30,7 +30,7 @@
 // Multiplies all velocities
 #define VMUL 0.1f
 
-#define VMAX 0.5f
+#define VMAX 9.0f
 #define TURNS_SPEED 0.008f
 #define ACCELERATION 0.005f
 #define GRAVITY 0.1f
@@ -255,8 +255,9 @@ static void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   // Cap velocity
   // TODO this should be a parameter for different objects
   float v = sqrt(sqr(obj->vx) + sqr(obj->vy));
-  if (v > VMAX) {
-    float factor = VMAX / v;
+  float vmax = VMAX / frametime;
+  if (v > vmax) {
+    float factor = vmax / v;
     obj->vx *= factor;
     obj->vy *= factor;
   }
@@ -303,14 +304,16 @@ static void updateObject(physicsObject_t *obj) {
   float oldy = obj->y;
 
   //add drag
-  obj->vx *= 1.0f - obj->drag * frametime;
-  obj->vy *= 1.0f - obj->drag * frametime;
+  float dragMlt = 1.0f - obj->drag;
+  dragMlt = max(0.0f, dragMlt);
+  obj->vx *= dragMlt;
+  obj->vy *= dragMlt;
 
   //update pos
   obj->x += obj->vx * VMUL * frametime;
   obj->y += obj->vy * VMUL * frametime;
 
-  // //che maxBounds
+  // check maxBounds
   if ((obj->x - obj->size) < 0.0f || (obj->x + obj->size) > FIELD_WIDTH) {
     obj->x = oldx;
     obj->vx = -(obj->vx);
@@ -377,8 +380,11 @@ static void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
 
   vector_t s = terrain->slopes[x][y];
 
-  obj->vx -= GRAVITY * s.x * abs(s.x);
-  obj->vy -= GRAVITY * s.y * abs(s.y);
+  vector_t a = {
+    -GRAVITY * s.x * abs(s.x),
+    -GRAVITY * s.y * abs(s.y),
+  };
+  accelerateObject(obj, &a);
 }
 
 /*
@@ -903,7 +909,7 @@ static int playGame(uint32_t nPlayers) {
     players[i].y = FIELD_HEIGHT * 0.5f;
     players[i].vx = 0.0f;
     players[i].vy = 0.0f;
-    players[i].drag = 0.02f;
+    players[i].drag = 0.3f;
     players[i].size = 0.7f;
     players[i].mass = 0.1f;
     players[i].angle = 0.0f;
@@ -912,7 +918,7 @@ static int playGame(uint32_t nPlayers) {
     balls[i].y = FIELD_HEIGHT * 0.25f;
     balls[i].vx = 0.0f;
     balls[i].vy = 0.0f;
-    balls[i].drag = 0.005f;
+    balls[i].drag = 0.08f;
     balls[i].size = 0.1f;
     balls[i].mass = 1.0f;
 
