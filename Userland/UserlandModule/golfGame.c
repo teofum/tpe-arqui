@@ -1160,6 +1160,16 @@ static int playGame(uint32_t nPlayers) {
       setupGameRender(&view);
     }
 
+    // Draw the frametime counter
+    uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
+    uint64_t fps = fpsTimes100 / 100;
+    fpsTimes100 %= 100;
+
+    sprintf(
+      buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
+    );
+    vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
+
     vga_present();
   }
 
