@@ -5,6 +5,7 @@
 #include <print.h>
 #include <rng.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <strings.h>
 #include <syscall.h>
 #include <vga.h>
@@ -174,6 +175,24 @@ static uint32_t pc_base, pc_face, pc_club, pc_flag, pc_pole, pc_ball;
 
 static float3 v_hole[7];
 static uint32_t vi_hole[15] = {1, 6, 0, 1, 2, 3, 6, 4, 5, 6, 3, 4, 1, 3, 6};
+
+static float3 v_walls[] = {
+  {-1, -1, -1}, {-1, -1, 1}, {-1, 1, -1}, {-1, 1, 1},
+  {1, -1, -1},  {1, -1, 1},  {1, 1, -1},  {1, 1, 1},
+};
+static uint32_t vi_walls[] = {
+  0, 1, 2, 2, 1, 3, 4, 6, 5, 6, 7, 5, 0, 2, 4, 2, 6, 4, 1, 5, 3, 3, 5, 7,
+};
+static float3 n_walls[] = {
+  {1, 0, 0},
+  {-1, 0, 0},
+  {0, 0, 1},
+  {0, 0, -1},
+};
+static uint32_t ni_walls[] = {
+  0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+};
+static uint32_t pc_walls = sizeof(vi_walls) / sizeof(uint32_t);
 
 /*
  * Frametime counter
@@ -606,6 +625,17 @@ static void renderTerrain(terrain_t *terrain) {
   gfx_drawPrimitivesIndexed(
     (float3 *) terrain->v, (float3 *) terrain->normals, terrain->indices,
     terrain->indices, TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
+  );
+
+  // Draw terrain bound walls
+  float hmax = (TERRAIN_HILL_HEIGHT + TERRAIN_NOISE_MAX + 0.5f);
+  model = mat_scale(FIELD_WIDTH * 0.5f, hmax * 0.5f, FIELD_HEIGHT * 0.5f);
+  model = mmul(mat_translation(0.0f, hmax * 0.25f, 0.0f), model);
+  gfx_setMatrix(GFX_MAT_MODEL, &model);
+
+  float3 wallColor = {0.37, 0.18, 0.05};
+  gfx_drawPrimitivesIndexed(
+    v_walls, n_walls, vi_walls, ni_walls, pc_walls, wallColor
   );
 }
 
