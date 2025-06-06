@@ -61,6 +61,7 @@
 #define height(t, xx, yy) (t->v[(xx)][(yy)].y)
 
 #define lerp(a, b, t) ((a) * (1.0f - (t)) + (b) * (t))
+#define vlerp(a, b, t) vadd(vmuls((a), 1.0f - (t)), vmuls((b), (t)))
 
 typedef struct {
   float x;
@@ -374,13 +375,25 @@ static int doCollision(physicsObject_t *a, physicsObject_t *b) {
 * checks if obj is in a hole or mount and applies a apropiate vel
 */
 static void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
-  uint32_t x = obj->x / TERRAIN_SIZE_UNITS_X;
-  uint32_t y = obj->y / TERRAIN_SIZE_UNITS_Y;
+  float fx = obj->x / TERRAIN_SIZE_UNITS_X;
+  float fy = obj->y / TERRAIN_SIZE_UNITS_Y;
 
+  uint32_t x = fx, y = fy;
   x = max(0, min(TERRAIN_SIZE_X - 1, x));
   y = max(0, min(TERRAIN_SIZE_Y - 1, y));
 
-  vector_t s = terrain->slopes[x][y];
+  float3 normals[] = {
+    terrain->normals[x][y],
+    terrain->normals[x + 1][y],
+    terrain->normals[x][y + 1],
+    terrain->normals[x + 1][y + 1],
+  };
+
+  float3 normal = vlerp(
+    vlerp(normals[0], normals[1], fx - x),
+    vlerp(normals[2], normals[3], fx - x), fy - y
+  );
+  vector_t s = {normal.x, normal.z};
 
   vector_t a = {
     -GRAVITY * s.x * abs(s.x),
