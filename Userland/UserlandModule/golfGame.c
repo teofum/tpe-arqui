@@ -108,6 +108,8 @@ typedef struct {
 typedef struct {
   uint32_t nPlayers;
   uint32_t nHoles;
+
+  uint32_t scores[MAX_PLAYERS][MAX_HOLES];
 } gameSettings_t;
 
 typedef enum {
@@ -1125,6 +1127,12 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
           if (endGame) {
             gameState = GG_GAME_END;
 
+            // Calculate scores
+            for (int j = 0; j < settings->nPlayers; j++) {
+              settings->scores[j][nHole] =
+                (hits[j] > PAR + 2) ? 0 : (PAR + 3 - hits[j]);
+            }
+
             // Set game end player animations
             if (settings->nPlayers == 1) {
               anim[0] = hits[0] > PAR ? GG_ANIM_LOSE : GG_ANIM_WIN;
@@ -1132,6 +1140,8 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
               anim[0] = hits[0] > hits[1] ? GG_ANIM_LOSE : GG_ANIM_WIN;
               anim[1] = hits[1] > hits[0] ? GG_ANIM_LOSE : GG_ANIM_WIN;
             }
+
+            break;
           }
         }
 
@@ -1200,10 +1210,35 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     sprintf(buf, "Hits: %u", hits[0]);
     vga_text(24, 32, buf, 0xffffff, 0x000000, 0);
 
+    vga_text(104, 16, " Hole", 0xffffff, 0x000000, 0);
+    vga_text(104, 32, "Score", 0xffffff, 0x000000, 0);
+
+    for (uint32_t h = 0; h < settings->nHoles; h++) {
+      sprintf(buf, "%u", h + 1);
+      vga_text(152 + h * 16, 16, buf, 0xffffff, 0x000000, 0);
+      sprintf(buf, "%u", settings->scores[0][h]);
+      vga_text(152 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff, 0x000000, 0);
+    }
+
     if (settings->nPlayers > 1) {
       vga_text((VGA_WIDTH >> 1) + 56, 16, "PLAYER 2", 0xffffff, 0x000000, 0);
       sprintf(buf, "Hits: %u", hits[1]);
       vga_text((VGA_WIDTH >> 1) + 56, 32, buf, 0xffffff, 0x000000, 0);
+
+      vga_text((VGA_WIDTH >> 1) + 136, 16, " Hole", 0xffffff, 0x000000, 0);
+      vga_text((VGA_WIDTH >> 1) + 136, 32, "Score", 0xffffff, 0x000000, 0);
+
+      for (uint32_t h = 0; h < settings->nHoles; h++) {
+        sprintf(buf, "%u", h + 1);
+        vga_text(
+          (VGA_WIDTH >> 1) + 194 + h * 16, 16, buf, 0xffffff, 0x000000, 0
+        );
+        sprintf(buf, "%u", settings->scores[1][h]);
+        vga_text(
+          (VGA_WIDTH >> 1) + 194 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff,
+          0x000000, 0
+        );
+      }
     }
 
     /*
