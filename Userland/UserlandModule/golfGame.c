@@ -244,6 +244,11 @@ static inline void makeHoleMesh() {
   }
 }
 
+static inline float randomFloat(pcg32_random_t *rng) {
+  // Convert a random integer to a float in the 0-1 range
+  return (pcg32_rand(rng) >> 8) * 0x1p-24f;// funky hex float notation
+}
+
 static void drawTerrainDebug(terrain_t *terrain) {
   uint32_t w = VGA_WIDTH / TERRAIN_SIZE_X;
   uint32_t h = VGA_HEIGHT / TERRAIN_SIZE_Y;
@@ -449,39 +454,36 @@ float doHill(int curx, int cury, int x, int y, float size) {
   }
 }
 
-
-static void generateTerrain(terrain_t *terrain) {
+static void generateTerrain(terrain_t *terrain, pcg32_random_t *rng) {
   // Generate terrain vertices
-  pcg32_random_t rng = {0};
-  pcg32_srand(&rng, _syscall(SYS_TICKS), 1);
 
   // frequency/ numero de armonico
   float fy[TERRAIN_N_WAVES];
   for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
-    fy[i] = ((float) (pcg32_rand(&rng) % 10)) / 10;
+    fy[i] = ((float) (pcg32_rand(rng) % 10)) / 10;
   }
   float fx[TERRAIN_N_WAVES];
   for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
-    fx[i] = ((float) (pcg32_rand(&rng) % 10)) / 10;
+    fx[i] = ((float) (pcg32_rand(rng) % 10)) / 10;
   }
 
   // fase, offset
   float offsety[TERRAIN_N_WAVES];
   for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
-    offsety[i] = ((float) (pcg32_rand(&rng) % 5) / 5) * 2 * M_PI;
+    offsety[i] = ((float) (pcg32_rand(rng) % 5) / 5) * 2 * M_PI;
   }
   float offsetx[TERRAIN_N_WAVES];
   for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
-    offsetx[i] = ((float) (pcg32_rand(&rng) % 5) / 5) * 2 * M_PI;
+    offsetx[i] = ((float) (pcg32_rand(rng) % 5) / 5) * 2 * M_PI;
   }
 
   // hill position
-  int hillx = (pcg32_rand(&rng) % TERRAIN_SIZE_X);
-  int hilly = (pcg32_rand(&rng) % TERRAIN_SIZE_Y);
+  int hillx = (pcg32_rand(rng) % TERRAIN_SIZE_X);
+  int hilly = (pcg32_rand(rng) % TERRAIN_SIZE_Y);
 
   // pit position
-  int pitx = (pcg32_rand(&rng) % TERRAIN_SIZE_X);
-  int pity = (pcg32_rand(&rng) % TERRAIN_SIZE_Y);
+  int pitx = (pcg32_rand(rng) % TERRAIN_SIZE_X);
+  int pity = (pcg32_rand(rng) % TERRAIN_SIZE_Y);
 
   // loop
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
@@ -926,7 +928,7 @@ static uint32_t showTitleScreen() {
   }
 }
 
-static int playGame(uint32_t nPlayers) {
+static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
   // Keymaps per player
   static keycode_t keys[2][4] = {
     {KEY_W, KEY_S, KEY_D, KEY_A},
@@ -939,7 +941,7 @@ static int playGame(uint32_t nPlayers) {
    * Set up game objects
    */
   terrain_t terrain;
-  generateTerrain(&terrain);
+  generateTerrain(&terrain, rng);
 
   physicsObject_t players[MAX_PLAYERS];
   physicsObject_t balls[MAX_PLAYERS];
@@ -949,8 +951,8 @@ static int playGame(uint32_t nPlayers) {
   gg_playerAnim_t anim[MAX_PLAYERS];
 
   for (int i = 0; i < nPlayers; i++) {
-    players[i].x = FIELD_WIDTH * 0.5f + i;
-    players[i].y = FIELD_HEIGHT * 0.5f;
+    players[i].x = FIELD_WIDTH * (randomFloat(rng) * 0.8f + 0.1f);
+    players[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     players[i].vx = 0.0f;
     players[i].vy = 0.0f;
     players[i].drag = 0.4f;
@@ -958,8 +960,8 @@ static int playGame(uint32_t nPlayers) {
     players[i].mass = 0.1f;
     players[i].angle = 0.0f;
 
-    balls[i].x = FIELD_WIDTH * 0.5f + i;
-    balls[i].y = FIELD_HEIGHT * 0.25f;
+    balls[i].x = FIELD_WIDTH * (randomFloat(rng) * 0.8f + 0.1f);
+    balls[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     balls[i].vx = 0.0f;
     balls[i].vy = 0.0f;
     balls[i].drag = 0.1f;
@@ -973,8 +975,8 @@ static int playGame(uint32_t nPlayers) {
   }
 
   hole_t hole = {0};
-  hole.x = FIELD_WIDTH * 0.25f;
-  hole.y = FIELD_HEIGHT * 0.75f;
+  hole.x = FIELD_WIDTH * (randomFloat(rng) * 0.8f + 0.1f);
+  hole.y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
   hole.size = 0.5f;
 
   // Setup game graphics
@@ -1234,6 +1236,10 @@ int gg_startGame() {
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
+  // Initialize RNG
+  pcg32_random_t rng;
+  pcg32_srand(&rng, _syscall(SYS_TICKS), 1);
+
   // Make vertices for the hole mesh
   makeHoleMesh();
 
@@ -1257,7 +1263,7 @@ int gg_startGame() {
     uint32_t nPlayers = showTitleScreen();
     if (!nPlayers) break;
 
-    playGame(nPlayers);
+    playGame(nPlayers, &rng);
   }
 
   // Restore font
