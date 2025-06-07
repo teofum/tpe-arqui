@@ -2,6 +2,7 @@
 #include <status.h>
 #include <time.h>
 #include <vga.h>
+#include <audio.h>
 
 #define bcd_decode(x) ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 
@@ -9,9 +10,19 @@ extern uint8_t _rtc_getTime(uint64_t descriptor);// de rtc.asm
 
 uint64_t ticks = 0;
 
+extern unsigned int audio_countdown;
+
 void timer_handler() {
   ticks++;
   if (!(ticks % (TICKS_PER_SECOND))) { status_drawStatusBar(); }
+
+  // Countdown del audio
+  if (audio_countdown > 0) {
+    audio_countdown--;
+    if (audio_countdown == 0) {
+      audio_stop();
+    }
+  }
 }
 
 unsigned int ticks_elapsed() { return ticks; }
@@ -92,3 +103,4 @@ dateTime_t rtc_getLocalTime(void) {
 
   return dt;
 }
+

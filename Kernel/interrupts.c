@@ -167,7 +167,6 @@ void initSyscalls() {
 
   /* Audio */
   registerSyscall(0x30, audio_beep);
-  registerSyscall(0x31, audio_stop);
 
   /* Status bar */
   registerSyscall(0x40, status_enabled);

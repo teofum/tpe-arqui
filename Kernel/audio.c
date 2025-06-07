@@ -56,21 +56,14 @@ void audio_stop(void) {
   outb(PC_SPEAKER_PORT, tmp);
 }
 
-void audio_delay(uint16_t ms) {
-  unsigned int start = ticks_elapsed();
-  unsigned int target_ticks = (ms * TICKS_PER_SECOND) / 1000;
-  unsigned int elapsed;
-
-  do {
-    elapsed = ticks_elapsed() - start;
-  } while (elapsed < target_ticks);
-}
+unsigned int audio_countdown = 0;
 
 void audio_beep(uint16_t frequency, uint16_t duration) {
   _sti();
-  if (frequency != 0) audio_play(frequency);
-  audio_delay(duration);
-  audio_stop();
-  _cli();
+  if (frequency != 0) {
+    audio_play(frequency);
+    // Convertir ms a ticks y setear countdown
+    audio_countdown = (duration * TICKS_PER_SECOND) / 1000;
+  }
 }
 

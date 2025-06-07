@@ -131,7 +131,7 @@ int throw06() {
 }
 
 static int beep(){
-  sound_ball_hit();
+  sound_shell_beep();
   return 0;
 }
 

@@ -61,8 +61,6 @@ void sound_play_melody(const melody_note_t* melody, uint32_t length);
 
 void sound_play_tetris(void);
 
-void sound_stop(void);
-
 void sound_shell_beep(void);
 
 void sound_ball_hit(void);

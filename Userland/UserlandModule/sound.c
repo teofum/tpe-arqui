@@ -77,8 +77,6 @@ void sound_play_melody(const melody_note_t *melody, uint32_t length) {
   }
 }
 
-void sound_stop(void) { _syscall(SYS_AUDIO_STOP, 0, 0); }
-
 /**
  * Play the Tetris theme melody
  */
