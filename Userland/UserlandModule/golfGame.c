@@ -127,6 +127,12 @@ typedef enum {
 } gg_menuOption_t;
 
 typedef enum {
+  GG_PAUSE_RESUME,
+  GG_PAUSE_SKIP,
+  GG_PAUSE_QUIT,
+} gg_pauseOption_t;
+
+typedef enum {
   GG_GAME_RUNNING,
   GG_GAME_END,
   GG_GAME_SCOREBOARD,
@@ -957,6 +963,74 @@ static int showTitleScreen(gameSettings_t *settings) {
   }
 }
 
+static gg_pauseOption_t showPauseMenu() {
+  int exit = 0;
+  gg_pauseOption_t selected = 0;
+  kbd_event_t ev;
+
+  static const char *optionStrings[] = {
+    "   Resume game   ",
+    "    Skip hole    ",
+    "Quit to main menu",
+  };
+  uint32_t optionCount = sizeof(optionStrings) / sizeof(optionStrings[0]);
+
+  while (!exit) {
+    updateTimer();
+
+    uint16_t x0 = (VGA_WIDTH >> 1) - 128, x1 = x0 + 255;
+    uint16_t y0 = (VGA_HEIGHT >> 1) - 96, y1 = y0 + 191;
+
+    // Use current game graphics as background
+    gfx_present();
+
+    // Background
+    vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_DARK, VGA_ALPHA_BLEND);
+    vga_shade(x0, y0, x1, y1, UI_GREEN_DARK, 0);
+    vga_frame(x0, y0, x1, y1, 0xffffff, 0);
+
+    // Title
+    vga_font_t oldfont = vga_font(VGA_FONT_LARGE);
+    vga_text((VGA_WIDTH - 72) >> 1, y0 + 16, "PAUSED", 0xffffff, 0, 0);
+    vga_font(oldfont);
+
+    // Options
+    for (int i = 0; i < optionCount; i++) {
+      if (i == selected) {
+        vga_rect(
+          428, y0 + 48 + 24 * i - 4, 595, y0 + 48 + 24 * i + 19,
+          UI_GREEN_HIGHLIGHT, 0
+        );
+        vga_frame(
+          428, y0 + 48 + 24 * i - 4, 595, y0 + 48 + 24 * i + 19, 0xffffff, 0
+        );
+      }
+      vga_text(
+        (VGA_WIDTH - 136) >> 1, y0 + 48 + 24 * i, optionStrings[i], 0xffffff, 0,
+        0
+      );
+    }
+
+    vga_present();
+
+    // Keyboard input
+    ev = kbd_getKeyEvent();
+    switch (ev.key) {
+      case KEY_ARROW_UP:
+        selected = selected == 0 ? optionCount - 1 : selected - 1;
+        break;
+      case KEY_ARROW_DOWN:
+        selected = (selected + 1) % optionCount;
+        break;
+      case KEY_RETURN: {
+        exit = 1;
+      }
+    }
+  }
+
+  return selected;
+}
+
 static int
 playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
   // Keymaps per player
@@ -1068,11 +1142,8 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
           }
         }
 
-        //lolo testing remove/ escape will end the game///////////////////////////todo
-
         // Check win condition
-        if (kbd_keypressed(KEY_ESCAPE) ||
-            ballInPlay[i] && checkHole(&balls[i], &hole)) {
+        if (ballInPlay[i] && checkHole(&balls[i], &hole)) {
           // Remove the ball from the playfield
           ballInPlay[i] = 0;
 
@@ -1106,6 +1177,21 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
 
         // Update hit timers
         iframes[i] = iframes[i] <= frametime ? 0 : iframes[i] - frametime;
+      }
+
+      if (kbd_keypressed(KEY_ESCAPE)) {
+        gg_pauseOption_t option = showPauseMenu();
+        if (option == GG_PAUSE_SKIP) {
+          gameState = GG_GAME_END;
+
+          // Set scores to zero for this hole
+          for (int j = 0; j < settings->nPlayers; j++) {
+            settings->scores[j][nHole] = 0;
+          }
+          break;
+        } else if (option == GG_PAUSE_QUIT) {
+          return 1;
+        }
       }
     }
 
@@ -1459,7 +1545,8 @@ int gg_startGame() {
     if (!play) break;
 
     for (uint32_t hole = 0; hole < settings.nHoles; hole++) {
-      playGame(&settings, hole, &rng);
+      int quit = playGame(&settings, hole, &rng);
+      if (quit) break;
     }
   }
 
