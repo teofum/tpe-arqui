@@ -36,4 +36,4 @@ _regdumpTest:
   
   ; Call an illegal instruction to immediately trigger a register dump
   ud2
-  ret
+  ret; probably not needed
