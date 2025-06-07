@@ -110,7 +110,7 @@ static int status(const char *param) {
   }
 
   printf(
-    COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on/off>\n",
+    COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on|off>\n",
     param
   );
 
@@ -118,12 +118,26 @@ static int status(const char *param) {
 }
 
 extern void _throw_00();
-int throw00() {
-  _throw_00();
+extern void _throw_06();
+extern void _regdumpTest();
+int exceptionTest(const char *param) {
+  if (!strcmp(param, "0")) {
+    _throw_00();
+  } else if (!strcmp(param, "6")) {
+    _throw_06();
+  } else if (!strcmp(param, "test_regdump")) {
+    _regdumpTest();
+  } else {
+    printf(
+      COL_RED "Invalid exception type '%s'\n" COL_RESET
+              "Usage: except <0|6|test_regdump>\n",
+      param
+    );
+  }
+
   return 0;
 }
 
-extern void _throw_06();
 int throw06() {
   _throw_06();
   return 0;
@@ -140,8 +154,7 @@ command_t commands[] = {
   {"demo3d", "3d Graphics demo", demo3d},
   {"history", "Print command history", history},
   {"status", "Turn the system status bar on or off", status},
-  {"exc00", "Tests Division by Zero Exception", throw00},
-  {"exc06", "Test OpCode Exception", throw06},
+  {"except", "Test exceptions", exceptionTest},
   {"golf", "Play Golf", gg_startGame},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
