@@ -108,7 +108,7 @@ typedef struct {
   uint32_t nPlayers;
   uint32_t nHoles;
 
-  uint32_t scores[MAX_PLAYERS][MAX_HOLES];
+  uint32_t scores[MAX_PLAYERS][MAX_HOLES + 1];
 } gameSettings_t;
 
 typedef enum {
@@ -129,6 +129,7 @@ typedef enum {
 typedef enum {
   GG_GAME_RUNNING,
   GG_GAME_END,
+  GG_GAME_SCOREBOARD,
 } gg_gameState_t;
 
 typedef enum {
@@ -1088,6 +1089,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
             for (int j = 0; j < settings->nPlayers; j++) {
               settings->scores[j][nHole] =
                 (hits[j] > PAR + 2) ? 0 : (PAR + 3 - hits[j]);
+              settings->scores[j][MAX_HOLES] += settings->scores[j][nHole];
             }
 
             // Set game end player animations
@@ -1172,9 +1174,9 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
 
     for (uint32_t h = 0; h < settings->nHoles; h++) {
       sprintf(buf, "%u", h + 1);
-      vga_text(152 + h * 16, 16, buf, 0xffffff, 0x000000, 0);
+      vga_text(152 + h * 16, 16, buf, 0xffffff, 0, 0);
       sprintf(buf, "%u", settings->scores[0][h]);
-      vga_text(152 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff, 0x000000, 0);
+      vga_text(152 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff, 0, 0);
     }
 
     if (settings->nPlayers > 1) {
@@ -1187,13 +1189,11 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
 
       for (uint32_t h = 0; h < settings->nHoles; h++) {
         sprintf(buf, "%u", h + 1);
-        vga_text(
-          (VGA_WIDTH >> 1) + 194 + h * 16, 16, buf, 0xffffff, 0x000000, 0
-        );
+        vga_text((VGA_WIDTH >> 1) + 194 + h * 16, 16, buf, 0xffffff, 0, 0);
         sprintf(buf, "%u", settings->scores[1][h]);
         vga_text(
           (VGA_WIDTH >> 1) + 194 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff,
-          0x000000, 0
+          0, 0
         );
       }
     }
@@ -1205,18 +1205,33 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       uint16_t x0 = (VGA_WIDTH >> 1) - 128, x1 = x0 + 255;
       uint16_t y0 = (VGA_HEIGHT >> 1) - 96, y1 = y0 + 191;
 
+      // Background
       vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_DARK, VGA_ALPHA_BLEND);
       vga_shade(x0, y0, x1, y1, UI_GREEN_DARK, 0);
       vga_frame(x0, y0, x1, y1, 0xffffff, 0);
 
+      // Score counter (common to 1P-2P)
+      uint16_t scoreX = (VGA_WIDTH - 184) >> 1;
+      uint16_t scoreY = y0 + 96;
+      vga_text(scoreX, scoreY, " Hole", 0xffffff, 0x000000, 0);
+
+      for (uint32_t h = 0; h < settings->nHoles; h++) {
+        sprintf(buf, "%u", h + 1);
+        vga_text(scoreX + 48 + h * 16, scoreY, buf, 0xffffff, 0, 0);
+        sprintf(buf, "%u", settings->scores[0][h]);
+        vga_text(
+          scoreX + 48 + h * 16, scoreY + 16, h > nHole ? "-" : buf, 0xffffff, 0,
+          0
+        );
+      }
+
       if (settings->nPlayers == 1) {
         // Display score screen for singleplayer
         uint32_t score = min(hits[0], 7);
-        uint32_t textWidth;
         if (score < 7) sprintf(buf, "%s", scoreNames[score]);
         else
           sprintf(buf, "%u %s", hits[0] - PAR, scoreNames[score]);
-        textWidth = strlen(buf) * 12;
+        uint32_t textWidth = strlen(buf) * 12;
 
         oldfont = vga_font(VGA_FONT_LARGE);
         vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
@@ -1225,7 +1240,11 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
         sprintf(buf, "%s", scoreTexts[score]);
         textWidth = strlen(buf) * 8;
         vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
+
+        // Single player score
+        vga_text(scoreX, scoreY + 16, "Score", 0xffffff, 0x000000, 0);
       } else if (settings->nPlayers == 2) {
+        // Display score screen for multiplayer
         if (hits[0] == hits[1]) {
           sprintf(buf, "     Draw     ");
         } else {
@@ -1242,11 +1261,116 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
           sprintf(buf, "%u %s", min(hits[0], hits[1]) - PAR, scoreNames[score]);
         uint32_t textWidth = strlen(buf) * 8;
         vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
+
+        // Multiplayer scores
+        vga_text(scoreX, scoreY + 16, "   P1", 0xffffff, 0x000000, 0);
+        vga_text(scoreX, scoreY + 32, "   P2", 0xffffff, 0x000000, 0);
+
+        for (uint32_t h = 0; h < settings->nHoles; h++) {
+          sprintf(buf, "%u", settings->scores[1][h]);
+          vga_text(
+            scoreX + 48 + h * 16, scoreY + 32, h > nHole ? "-" : buf, 0xffffff,
+            0, 0
+          );
+        }
       }
 
+      // Prompt
       oldfont = vga_font(VGA_FONT_ALT_BOLD);
       vga_text(
-        (VGA_WIDTH - 160) >> 1, y1 - 32, "Press RETURN to exit", 0xffffff, 0, 0
+        (VGA_WIDTH - 200) >> 1, y1 - 32, "Press RETURN to continue", 0xffffff,
+        0, 0
+      );
+      vga_font(oldfont);
+
+      // Process input
+      ev = kbd_getKeyEvent();
+      switch (ev.key) {
+        case KEY_RETURN:
+          // Show scoreboard for last hole
+          if (nHole == settings->nHoles - 1) {
+            gameState = GG_GAME_SCOREBOARD;
+          } else {
+            loop = 0;
+          }
+          break;
+      }
+    } else if (gameState == GG_GAME_SCOREBOARD) {
+      uint16_t x0 = (VGA_WIDTH >> 1) - 192, x1 = x0 + 383;
+      uint16_t y0 = (VGA_HEIGHT >> 1) - 96, y1 = y0 + 191;
+
+      // Background
+      vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_DARK, VGA_ALPHA_BLEND);
+      vga_shade(x0, y0, x1, y1, UI_GREEN_DARK, 0);
+      vga_frame(x0, y0, x1, y1, 0xffffff, 0);
+
+      // Score counter (common to 1P-2P)
+      uint16_t scoreX = (VGA_WIDTH - 232) >> 1;
+      uint16_t scoreY = y0 + 96;
+      vga_text(scoreX, scoreY, " Hole", 0xffffff, 0x000000, 0);
+      vga_text(scoreX + 192, scoreY, "Total", 0xffffff, 0x000000, 0);
+
+      for (uint32_t h = 0; h < settings->nHoles; h++) {
+        sprintf(buf, "%u", h + 1);
+        vga_text(scoreX + 48 + h * 16, scoreY, buf, 0xffffff, 0, 0);
+        sprintf(buf, "%u", settings->scores[0][h]);
+        vga_text(
+          scoreX + 48 + h * 16, scoreY + 16, h > nHole ? "-" : buf, 0xffffff, 0,
+          0
+        );
+      }
+
+      sprintf(buf, "%u", settings->scores[0][MAX_HOLES]);
+      vga_text(scoreX + 192, scoreY + 16, buf, 0xffffff, 0, 0);
+
+      if (settings->nPlayers == 1) {
+        // Title
+        sprintf(buf, "Your score: %u", settings->scores[0][MAX_HOLES]);
+        uint32_t textWidth = strlen(buf) * 12;
+
+        oldfont = vga_font(VGA_FONT_LARGE);
+        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
+        vga_font(oldfont);
+
+        // Single player score
+        vga_text(scoreX, scoreY + 16, "Score", 0xffffff, 0x000000, 0);
+      } else if (settings->nPlayers == 2) {
+        uint32_t winner =
+          settings->scores[0][MAX_HOLES] > settings->scores[1][MAX_HOLES] ? 1
+                                                                          : 2;
+
+        // Title
+        if (settings->scores[0][MAX_HOLES] != settings->scores[1][MAX_HOLES]) {
+          sprintf(buf, "Player %u wins the game!", winner);
+        } else {
+          sprintf(buf, "Game draw!");
+        }
+        uint32_t textWidth = strlen(buf) * 12;
+
+        oldfont = vga_font(VGA_FONT_LARGE);
+        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
+        vga_font(oldfont);
+
+        // Multiplayer scores
+        vga_text(scoreX, scoreY + 16, "   P1", 0xffffff, 0x000000, 0);
+        vga_text(scoreX, scoreY + 32, "   P2", 0xffffff, 0x000000, 0);
+
+        for (uint32_t h = 0; h < settings->nHoles; h++) {
+          sprintf(buf, "%u", settings->scores[1][h]);
+          vga_text(
+            scoreX + 48 + h * 16, scoreY + 32, h > nHole ? "-" : buf, 0xffffff,
+            0, 0
+          );
+        }
+
+        sprintf(buf, "%u", settings->scores[1][MAX_HOLES]);
+        vga_text(scoreX + 192, scoreY + 32, buf, 0xffffff, 0, 0);
+      }
+
+      // Prompt
+      oldfont = vga_font(VGA_FONT_ALT_BOLD);
+      vga_text(
+        (VGA_WIDTH - 160) >> 1, y1 - 32, "Press RETURN to end", 0xffffff, 0, 0
       );
       vga_font(oldfont);
 
@@ -1257,7 +1381,9 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
           loop = 0;
           break;
       }
+    }
 
+    if (gameState != GG_GAME_RUNNING) {
       // Increment endgame animation timer
       t += ANIM_SPEED * frametime;
 
@@ -1271,7 +1397,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       float4x4 view = mat_lookat(viewPos, viewTarget, viewUp);
       view = mmul(view, mat_rotationY(angle));
 
-      setupGameRender(&view);
+      gfx_setMatrix(GFX_MAT_VIEW, &view);
     }
 
     // Draw the frametime counter
@@ -1325,6 +1451,9 @@ int gg_startGame() {
     gameSettings_t settings;
     settings.nPlayers = 1;
     settings.nHoles = DEFAULT_HOLES;
+    for (int i = 0; i < settings.nPlayers; i++) {
+      settings.scores[i][MAX_HOLES] = 0;
+    }
 
     int play = showTitleScreen(&settings);
     if (!play) break;
