@@ -93,7 +93,6 @@ typedef struct {
 typedef struct {
   float3 v[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
   float3 normals[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
-  vector_t slopes[TERRAIN_SIZE_X][TERRAIN_SIZE_Y];
 
   uint32_t indices[TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 6];
 } terrain_t;
@@ -261,28 +260,6 @@ static inline void makeHoleMesh() {
 static inline float randomFloat(pcg32_random_t *rng) {
   // Convert a random integer to a float in the 0-1 range
   return (pcg32_rand(rng) >> 8) * 0x1p-24f;// funky hex float notation
-}
-
-static void drawTerrainDebug(terrain_t *terrain) {
-  uint32_t w = VGA_WIDTH / TERRAIN_SIZE_X;
-  uint32_t h = VGA_HEIGHT / TERRAIN_SIZE_Y;
-
-  for (uint32_t y = 0; y < TERRAIN_SIZE_Y; y++) {
-    for (uint32_t x = 0; x < TERRAIN_SIZE_X; x++) {
-      vector_t s = terrain->slopes[x][y];
-
-      color_t color = rgba(
-        (uint32_t) (s.x * 127 + 127), (uint32_t) (s.y * 127 + 127), 127, 0
-      );
-      vga_rect(x * w, y * h, (x + 1) * w - 1, (y + 1) * h - 1, color, 0);
-    }
-  }
-  for (uint32_t y = 0; y <= TERRAIN_SIZE_Y; y++) {
-    for (uint32_t x = 0; x <= TERRAIN_SIZE_X; x++) {
-      float3 n = terrain->normals[x][y];
-      vga_line(w * x, h * y, w * x + n.x * 20, h * y + n.z * 20, 0x0, 0);
-    }
-  }
 }
 
 /*
@@ -567,26 +544,6 @@ static void generateTerrain(terrain_t *terrain, pcg32_random_t *rng) {
 
       float3 normal = {sx, 1.0f, sy};
       terrain->normals[x][y] = vnorm(normal);
-    }
-  }
-
-  // Generate terrain slopes for physics
-  for (uint32_t y = 0; y < TERRAIN_SIZE_Y; y++) {
-    for (uint32_t x = 0; x < TERRAIN_SIZE_X; x++) {
-      float h[] = {
-        height(terrain, x, y),
-        height(terrain, x + 1, y),
-        height(terrain, x, y + 1),
-        height(terrain, x + 1, y + 1),
-      };
-      float dx = ((h[1] + h[2]) - (h[0] + h[2]));
-      float dy = ((h[2] + h[3]) - (h[0] + h[1]));
-
-      float sx = dx / TERRAIN_SIZE_UNITS_X;
-      float sy = dy / TERRAIN_SIZE_UNITS_Y;
-
-      terrain->slopes[x][y].x = sx;
-      terrain->slopes[x][y].y = sy;
     }
   }
 
