@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <strings.h>
 #include <syscall.h>
+#include <sound.h>
 
 #include <gfxdemo.h>
 
@@ -129,16 +130,14 @@ int throw06() {
   return 0;
 }
 
-static int beep() {
-  _syscall(0x30, 1200, 30);
+static int beep(){
+  sound_ball_hit();
   return 0;
 }
 
 static int music(){
-  uint16_t frequencies[] = {};
-  uint16_t durations[] = {};
-  uint16_t count;
-  _syscall(0x31, frequencies, durations);
+  sound_play_tetris();
+  return 0;
 }
 
 static int help();
@@ -155,6 +154,7 @@ command_t commands[] = {
   {"exc00", "Tests Division by Zero Exception", throw00},
   {"exc06", "Test OpCode Exception", throw06},
   {"beep", "Plays a short beep", beep},
+  {"music", "Plays Tetris music", music},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 

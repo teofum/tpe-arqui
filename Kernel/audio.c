@@ -58,11 +58,12 @@ void audio_stop(void) {
 
 void audio_delay(uint16_t ms) {
   unsigned int start = ticks_elapsed();
+  unsigned int target_ticks = (ms * TICKS_PER_SECOND) / 1000;
   unsigned int elapsed;
 
   do {
     elapsed = ticks_elapsed() - start;
-  } while (elapsed < ms);
+  } while (elapsed < target_ticks);
 }
 
 void audio_beep(uint16_t frequency, uint16_t duration) {
@@ -72,21 +73,4 @@ void audio_beep(uint16_t frequency, uint16_t duration) {
   audio_stop();
   _cli();
 }
-
-void audio_tone_sequence(const uint16_t* frequencies, const uint16_t* durations, uint8_t count) {
-  _sti();
-  if (!frequencies || !durations) return;
-  for (uint8_t i = 0; i < count; i++) {
-    if (frequencies[i] == 0) {
-      audio_stop();
-    } else {
-      audio_play(frequencies[i]);
-    }
-    audio_delay(durations[i]);
-  }
-  audio_stop();
-  _cli();
-}
-
-void audio_shutdown(void) { audio_stop(); }
 
