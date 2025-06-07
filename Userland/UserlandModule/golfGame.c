@@ -42,6 +42,10 @@
 // Hit debounce so it doesn't register multiple times in a row
 #define HIT_DEBOUNCE_MS 100
 
+// Number of holes per game
+#define DEFAULT_HOLES 3
+#define MAX_HOLES 9
+
 // Par is fixed for all levels
 #define PAR 4
 
@@ -101,16 +105,25 @@ typedef struct {
   float size;
 } hole_t;
 
+typedef struct {
+  uint32_t nPlayers;
+  uint32_t nHoles;
+} gameSettings_t;
+
 typedef enum {
   GG_SCREEN_TITLE,
   GG_SCREEN_PLAYERSELECT,
+  GG_SCREEN_SETUP,
 } gg_screen_t;
 
 typedef enum {
-  GG_MM_SINGLEPLAYER,
+  GG_MM_SINGLEPLAYER = 0,
   GG_MM_MULTIPLAYER,
   GG_MM_QUIT,
-} gg_mainmenuOption_t;
+  GG_SM_HOLESELECT = 0,
+  GG_SM_START,
+  GG_SM_BACK,
+} gg_menuOption_t;
 
 typedef enum {
   GG_GAME_RUNNING,
@@ -226,7 +239,6 @@ static const char *scoreTexts[] = {
   "Nicely done!", "Not bad, not great", "Almost there...",
   "git gud",      "Major Skill Issue",
 };
-
 
 /*
  * Helper functions
@@ -751,7 +763,7 @@ static void renderHole(hole_t *hole, terrain_t *terrain) {
  * Show the title screen/main menu and handle input.
  * Returns when the game should be started.
  */
-static uint32_t showTitleScreen() {
+static int showTitleScreen(gameSettings_t *settings) {
   gg_screen_t screen = GG_SCREEN_TITLE;
   float a = 0.0f, capyAngle = (M_PI * -0.75);
   uint32_t textBlinkTimer = 0;
@@ -765,7 +777,13 @@ static uint32_t showTitleScreen() {
     "Play (2 player)",
     " Quit to Shell ",
   };
+  static const char *setupStrings[] = {
+    " Holes: X ",
+    "Start Game",
+    "   Back   ",
+  };
   uint32_t menuItemCount = sizeof(menuStrings) / sizeof(menuStrings[0]);
+  uint32_t setupItemCount = sizeof(setupStrings) / sizeof(setupStrings[0]);
 
   /*
    * Graphics setup
@@ -832,6 +850,7 @@ static uint32_t showTitleScreen() {
     // 3D graphics
     // Create a model matrix and set it
     uint32_t nCapybaras = menuItem == GG_MM_MULTIPLAYER ? 2 : 1;
+    if (screen == GG_SCREEN_SETUP) nCapybaras = settings->nPlayers;
     for (int i = 0; i < nCapybaras; i++) {
       float x = nCapybaras == 1 ? 0.0f : -1.5f + i * 3.0f;
       float4x4 model = mat_rotationY(capyAngle);
@@ -875,7 +894,7 @@ static uint32_t showTitleScreen() {
       vga_frame(384, 400, 639, 599, 0xffffff, 0);
 
       vga_font_t oldfont = vga_font(VGA_FONT_LARGE);
-      vga_text(476, 416, "MAIN MENU", 0xffffff, 0, 0);
+      vga_text(458, 416, "MAIN MENU", 0xffffff, 0, 0);
       vga_font(oldfont);
 
       for (int i = 0; i < menuItemCount; i++) {
@@ -889,13 +908,40 @@ static uint32_t showTitleScreen() {
       }
     }
 
+    if (screen == GG_SCREEN_SETUP) {
+      vga_shade(384, 400, 639, 599, 0, 0);
+      vga_rect(
+        384, 400, 639, 599, 0xa0ffffff & UI_GREEN_LIGHT, VGA_ALPHA_BLEND
+      );
+      vga_frame(384, 400, 639, 599, 0xffffff, 0);
+
+      vga_font_t oldfont = vga_font(VGA_FONT_LARGE);
+      vga_text(452, 416, "GAME SETUP", 0xffffff, 0, 0);
+      vga_font(oldfont);
+
+      for (int i = 0; i < setupItemCount; i++) {
+        if (i == menuItem) {
+          vga_rect(
+            428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
+          );
+          vga_frame(428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, 0xffffff, 0);
+        }
+        if (i == 0) {
+          char buf[20];
+          sprintf(buf, " Holes: %u ", settings->nHoles);
+          vga_text(472, 456, buf, 0xffffff, 0, 0);
+        } else {
+          vga_text(472, 456 + 24 * i, setupStrings[i], 0xffffff, 0, 0);
+        }
+      }
+    }
+
     vga_text(824, 736, "(c) 1998 TONKATSU GAMES", 0xffffff, 0, 0);
 
     // Draw everything to screen
     vga_present();
 
     // Update vars
-    // TODO deltatime
     a += 0.005f * frametime;
     if (a > M_PI) a -= 2.0f * M_PI;
     capyAngle -= 0.5f * ANIM_SPEED * frametime;
@@ -916,10 +962,33 @@ static uint32_t showTitleScreen() {
             menuItem = (menuItem + 1) % menuItemCount;
             break;
           case KEY_RETURN: {
-            if (menuItem != GG_MM_QUIT) {
-              return menuItem + 1;
-            } else {
-              return 0;
+            if (menuItem == GG_MM_QUIT) return 0;
+
+            settings->nPlayers = menuItem + 1;
+            menuItem = 0;
+            screen = GG_SCREEN_SETUP;
+          }
+        }
+      } else if (screen == GG_SCREEN_SETUP) {
+        switch (ev.key) {
+          case KEY_ARROW_UP:
+            menuItem = menuItem == 0 ? setupItemCount - 1 : menuItem - 1;
+            break;
+          case KEY_ARROW_DOWN:
+            menuItem = (menuItem + 1) % setupItemCount;
+            break;
+          case KEY_ARROW_LEFT:
+            settings->nHoles = max(1, settings->nHoles - 1);
+            break;
+          case KEY_ARROW_RIGHT:
+            settings->nHoles = min(MAX_HOLES, settings->nHoles + 1);
+            break;
+          case KEY_RETURN: {
+            if (menuItem == GG_SM_BACK) {
+              menuItem = 0;
+              screen = GG_SCREEN_PLAYERSELECT;
+            } else if (menuItem == GG_SM_START) {
+              return 1;
             }
           }
         }
@@ -928,7 +997,8 @@ static uint32_t showTitleScreen() {
   }
 }
 
-static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
+static int
+playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
   // Keymaps per player
   static keycode_t keys[2][4] = {
     {KEY_W, KEY_S, KEY_D, KEY_A},
@@ -950,7 +1020,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
   uint32_t iframes[MAX_PLAYERS];// Hit counter debounce timer
   gg_playerAnim_t anim[MAX_PLAYERS];
 
-  for (int i = 0; i < nPlayers; i++) {
+  for (int i = 0; i < settings->nPlayers; i++) {
     players[i].x = FIELD_WIDTH * (randomFloat(rng) * 0.8f + 0.1f);
     players[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     players[i].vx = 0.0f;
@@ -1005,7 +1075,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
       /*
        * Physics and gameplay update
        */
-      for (int i = 0; i < nPlayers; i++) {
+      for (int i = 0; i < settings->nPlayers; i++) {
         // Apply inputs and update player physics
         updatePlayerTank(&players[i], keys[i]);
         updateObject(&players[i]);
@@ -1018,7 +1088,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
 
         // Collisions
         // Number of collisions scales with N^2, this is fine with just two players
-        for (int j = 0; j < nPlayers; j++) {
+        for (int j = 0; j < settings->nPlayers; j++) {
           // Player-ball collisions
           if (ballInPlay[j]) {
             int hit = doCollision(&players[i], &balls[j]);
@@ -1048,7 +1118,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
 
           // If no balls are left, end the game
           int endGame = 1;
-          for (int j = 0; j < nPlayers; j++) {
+          for (int j = 0; j < settings->nPlayers; j++) {
             if (ballInPlay[j]) endGame = 0;
           }
 
@@ -1056,9 +1126,9 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
             gameState = GG_GAME_END;
 
             // Set game end player animations
-            if (nPlayers == 1) {
+            if (settings->nPlayers == 1) {
               anim[0] = hits[0] > PAR ? GG_ANIM_LOSE : GG_ANIM_WIN;
-            } else if (nPlayers == 2) {
+            } else if (settings->nPlayers == 2) {
               anim[0] = hits[0] > hits[1] ? GG_ANIM_LOSE : GG_ANIM_WIN;
               anim[1] = hits[1] > hits[0] ? GG_ANIM_LOSE : GG_ANIM_WIN;
             }
@@ -1090,10 +1160,10 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
 
     renderHole(&hole, &terrain);
 
-    for (int i = 0; i < nPlayers; i++) {
+    for (int i = 0; i < settings->nPlayers; i++) {
       renderPlayer(&players[i], i, anim[i], t, &terrain);
       if (ballInPlay[i])
-        renderBall(&balls[i], nPlayers == 1 ? 0 : i + 1, &terrain);
+        renderBall(&balls[i], settings->nPlayers == 1 ? 0 : i + 1, &terrain);
     }
 
     gfx_present();
@@ -1120,7 +1190,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
 
     // Text
     vga_font_t oldfont = vga_font(VGA_FONT_ALT_BOLD);
-    sprintf(buf, "Hole %u", 1);
+    sprintf(buf, "Hole %u", nHole + 1);
     vga_text((VGA_WIDTH >> 1) - 24, 16, buf, 0xffffff, 0x000000, 0);
     vga_font(oldfont);
     sprintf(buf, "Par: %u", PAR);
@@ -1130,7 +1200,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
     sprintf(buf, "Hits: %u", hits[0]);
     vga_text(24, 32, buf, 0xffffff, 0x000000, 0);
 
-    if (nPlayers > 1) {
+    if (settings->nPlayers > 1) {
       vga_text((VGA_WIDTH >> 1) + 56, 16, "PLAYER 2", 0xffffff, 0x000000, 0);
       sprintf(buf, "Hits: %u", hits[1]);
       vga_text((VGA_WIDTH >> 1) + 56, 32, buf, 0xffffff, 0x000000, 0);
@@ -1147,7 +1217,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
       vga_shade(x0, y0, x1, y1, UI_GREEN_DARK, 0);
       vga_frame(x0, y0, x1, y1, 0xffffff, 0);
 
-      if (nPlayers == 1) {
+      if (settings->nPlayers == 1) {
         // Display score screen for singleplayer
         uint32_t score = min(hits[0], 7);
         uint32_t textWidth;
@@ -1163,7 +1233,7 @@ static int playGame(uint32_t nPlayers, pcg32_random_t *rng) {
         sprintf(buf, "%s", scoreTexts[score]);
         textWidth = strlen(buf) * 8;
         vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
-      } else if (nPlayers == 2) {
+      } else if (settings->nPlayers == 2) {
         if (hits[0] == hits[1]) {
           sprintf(buf, "     Draw     ");
         } else {
@@ -1260,10 +1330,16 @@ int gg_startGame() {
   // Main application loop
   while (1) {
     // Display the title screen
-    uint32_t nPlayers = showTitleScreen();
-    if (!nPlayers) break;
+    gameSettings_t settings;
+    settings.nPlayers = 1;
+    settings.nHoles = DEFAULT_HOLES;
 
-    playGame(nPlayers, &rng);
+    int play = showTitleScreen(&settings);
+    if (!play) break;
+
+    for (uint32_t hole = 0; hole < settings.nHoles; hole++) {
+      playGame(&settings, hole, &rng);
+    }
   }
 
   // Restore font
