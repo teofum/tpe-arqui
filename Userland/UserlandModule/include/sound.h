@@ -27,8 +27,6 @@ typedef enum {
 
     // Octave 6
     C6, CS6, D6, DS6, E6, F6, FS6, G6,
-
-    NOTE_COUNT  // Total number of notes
 } note_t;
 
 /**

@@ -54,17 +54,11 @@ void sound_beep(uint16_t frequency, uint16_t duration_ms) {
  * Play a single note with specified duration
  */
 static void play_single_note(note_t note, uint16_t duration_ms) {
-  if (note >= NOTE_COUNT)
-    return;
-
   uint16_t frequency = NOTE_FREQUENCIES[note];
   _syscall(SYS_AUDIO_BEEP, frequency, duration_ms);
 }
 
 void sound_play_note(note_t note, note_duration_t duration) {
-  if (note >= NOTE_COUNT)
-    return;
-
   uint16_t duration_ms = calculate_duration(duration);
   play_single_note(note, duration_ms);
 }
