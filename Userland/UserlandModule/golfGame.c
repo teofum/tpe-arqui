@@ -145,6 +145,12 @@ typedef enum {
 } gg_playerAnim_t;
 
 /*
+ * Background framebuffers for optimized pre-rendering
+ */
+static uint8_t bgFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+static float bgDepthbuffer[VGA_WIDTH * VGA_HEIGHT];
+
+/*
  * Bitmap image data
  */
 static uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
@@ -595,6 +601,18 @@ static void setupGameRender(float4x4 *view) {
 }
 
 static void renderTerrain(terrain_t *terrain) {
+  // Draw background
+  vga_setFramebuffer(gfx_getFramebuffer());
+  vga_gradient(
+    0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
+    colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
+  );
+  vga_shade(
+    0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
+    VGA_ALPHA_BLEND
+  );
+  vga_setFramebuffer(NULL);
+
   // Set transform to identity
   float4x4 model = mat_scale(1, 1, 1);
   gfx_setMatrix(GFX_MAT_MODEL, &model);
@@ -1092,6 +1110,17 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
   setupGameRender(&view);
 
   /*
+   * Pre-render the terrain to a separate frame and depth buffer
+   * Terrain rendering is by far the most expensive, and the camera doesn't
+   * move during gameplay, so we can gain a huge perf boost by pre-rendering
+   * terrain and reusing the frame and depth buffers.
+   */
+  gfx_setBuffers(bgFramebuffer, bgDepthbuffer);
+  gfx_clear(0);
+  renderTerrain(&terrain);
+  gfx_setBuffers(NULL, NULL);
+
+  /*
    * Game loop
    */
   int loop = 1;
@@ -1198,20 +1227,15 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     /*
      * Render graphics
      */
-    gfx_clear(0);
-
-    vga_setFramebuffer(gfx_getFramebuffer());
-    vga_gradient(
-      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
-      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
-    );
-    vga_shade(
-      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
-      VGA_ALPHA_BLEND
-    );
-    vga_setFramebuffer(NULL);
-
-    renderTerrain(&terrain);
+    if (gameState == GG_GAME_END) {
+      // On endgame the camera *does* move, so we need to actually render the terrain
+      gfx_clear(0);
+      renderTerrain(&terrain);
+    } else {
+      // While playing, we can reuse the background we pre-rendered at the start
+      gfx_copy(NULL, bgFramebuffer);
+      gfx_depthcopy(NULL, bgDepthbuffer);
+    }
 
     renderHole(&hole, &terrain);
 

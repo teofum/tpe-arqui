@@ -177,6 +177,9 @@ void initSyscalls() {
   registerSyscall(0xA2, gfx_drawPrimitivesIndexed);
   registerSyscall(0xA3, gfx_drawWireframe);
   registerSyscall(0xA4, gfx_drawWireframeIndexed);
+  registerSyscall(0xA5, gfx_setBuffers);
+  registerSyscall(0xA6, gfx_copy);
+  registerSyscall(0xA7, gfx_depthcopy);
   registerSyscall(0xA9, gfx_parseObj);
   registerSyscall(0xAA, gfx_setLight);
   registerSyscall(0xAB, gfx_setLightType);

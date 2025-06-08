@@ -574,7 +574,7 @@ void gfx_depthcopy(float *dst, float *src) {
   if (src == NULL) src = gfx_defaultDepthbuffer;
 
   memcpy64(
-    (uint64_t *) dst, (uint64_t *) src, (VGA_WIDTH >> 3) * gfx_renderHeight
+    (uint64_t *) dst, (uint64_t *) src, (VGA_WIDTH >> 1) * gfx_renderHeight
   );
 }
 
