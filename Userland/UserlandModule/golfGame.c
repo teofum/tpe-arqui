@@ -36,7 +36,7 @@
 #define VMAX 9.0f
 #define TURNS_SPEED 0.008f
 #define ACCELERATION 0.005f
-#define GRAVITY 0.1f
+#define GRAVITY 0.03f
 #define BRAKING 0.9
 
 // Hit debounce so it doesn't register multiple times in a row

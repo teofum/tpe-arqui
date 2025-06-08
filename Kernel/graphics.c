@@ -547,8 +547,6 @@ void gfx_parseObj(
     }
     data = nextLine(data);
   }
-
-  printf("Parsed obj file: %u vertices, %u normals, %u faces\n", vc, nc, *fc);
 }
 
 void gfx_setBuffers(uint8_t *framebuffer, float *depthbuffer) {
