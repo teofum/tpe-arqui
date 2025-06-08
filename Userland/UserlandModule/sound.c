@@ -1,5 +1,6 @@
-#include <syscall.h>
 #include <sound.h>
+#include <stdint.h>
+#include <syscall.h>
 
 #define TEMPO 120 // BPM
 
@@ -50,31 +51,16 @@ void sound_beep(uint16_t frequency, uint16_t duration_ms) {
   _syscall(SYS_AUDIO_BEEP, frequency, duration_ms);
 }
 
-/**
- * Play a single note with specified duration
- */
-static void play_single_note(note_t note, uint16_t duration_ms) {
-  uint16_t frequency = NOTE_FREQUENCIES[note];
-  _syscall(SYS_AUDIO_BEEP, frequency, duration_ms);
-}
+void sound_play_melody(const melody_note_t *melody, uint32_t count) {
+  uint16_t freqs[count];
+  uint16_t durs[count];
 
-void sound_play_note(note_t note, note_duration_t duration) {
-  uint16_t duration_ms = calculate_duration(duration);
-  play_single_note(note, duration_ms);
-}
-
-void sound_play_melody(const melody_note_t *melody, uint32_t length) {
-  if (!melody || length == 0)
-    return;
-
-  for (uint32_t i = 0; i < length; i++) {
-    sound_play_note(melody[i].note, melody[i].duration);
-
-    // Small gap between notes for clarity
-    if (i < length - 1 && melody[i].note != REST) {
-      _syscall(SYS_AUDIO_BEEP, 0, 30);
-    }
+  for (uint32_t i = 0; i < count; i++) {
+    freqs[i] = NOTE_FREQUENCIES[melody[i].note];
+    durs[i] = calculate_duration(melody[i].duration);
   }
+
+  _syscall(SYS_AUDIO_MELODY, freqs, durs, count);
 }
 
 /**
@@ -82,35 +68,28 @@ void sound_play_melody(const melody_note_t *melody, uint32_t length) {
  */
 void sound_play_tetris(void) {
   static const melody_note_t tetris[] = {
-      {E5, DURATION_QUARTER}, {B4, DURATION_EIGHTH},
-      {C5, DURATION_EIGHTH},  {D5, DURATION_QUARTER},
-      {C5, DURATION_EIGHTH},  {B4, DURATION_EIGHTH},
+      {E5, DURATION_QUARTER},  {B4, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
+      {D5, DURATION_QUARTER},  {C5, DURATION_EIGHTH},  {B4, DURATION_EIGHTH},
 
-      {A4, DURATION_QUARTER}, {A4, DURATION_EIGHTH},
-      {C5, DURATION_EIGHTH},  {E5, DURATION_QUARTER},
-      {D5, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
+      {A4, DURATION_QUARTER},  {A4, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
+      {E5, DURATION_QUARTER},  {D5, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
 
-      {B4, DURATION_QUARTER}, {B4, DURATION_EIGHTH},
-      {C5, DURATION_EIGHTH},  {D5, DURATION_QUARTER},
-      {E5, DURATION_QUARTER},
+      {B4, DURATION_QUARTER},  {B4, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
+      {D5, DURATION_QUARTER},  {E5, DURATION_QUARTER},
 
-      {C5, DURATION_QUARTER}, {A4, DURATION_QUARTER},
-      {A4, DURATION_HALF},    {REST, DURATION_EIGHTH},
+      {C5, DURATION_QUARTER},  {A4, DURATION_QUARTER}, {A4, DURATION_HALF},
+      {REST, DURATION_EIGHTH},
 
-      {D5, DURATION_QUARTER}, {F5, DURATION_EIGHTH},
-      {A5, DURATION_QUARTER}, {G5, DURATION_EIGHTH},
-      {F5, DURATION_EIGHTH},
+      {D5, DURATION_QUARTER},  {F5, DURATION_EIGHTH},  {A5, DURATION_QUARTER},
+      {G5, DURATION_EIGHTH},   {F5, DURATION_EIGHTH},
 
-      {E5, DURATION_QUARTER}, {E5, DURATION_EIGHTH},
-      {C5, DURATION_EIGHTH},  {E5, DURATION_QUARTER},
-      {D5, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
+      {E5, DURATION_QUARTER},  {E5, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
+      {E5, DURATION_QUARTER},  {D5, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
 
-      {B4, DURATION_QUARTER}, {B4, DURATION_EIGHTH},
-      {C5, DURATION_EIGHTH},  {D5, DURATION_QUARTER},
-      {E5, DURATION_QUARTER},
+      {B4, DURATION_QUARTER},  {B4, DURATION_EIGHTH},  {C5, DURATION_EIGHTH},
+      {D5, DURATION_QUARTER},  {E5, DURATION_QUARTER},
 
-      {C5, DURATION_QUARTER}, {A4, DURATION_QUARTER},
-      {A4, DURATION_HALF}};
+      {C5, DURATION_QUARTER},  {A4, DURATION_QUARTER}, {A4, DURATION_HALF}};
 
   sound_play_melody(tetris, sizeof(tetris) / sizeof(tetris[0]));
 }

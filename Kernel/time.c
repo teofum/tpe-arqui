@@ -7,22 +7,15 @@
 #define bcd_decode(x) ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 
 extern uint8_t _rtc_getTime(uint64_t descriptor);// de rtc.asm
+extern void audio_timer_tick(void);
 
 uint64_t ticks = 0;
-
-extern unsigned int audio_countdown;
 
 void timer_handler() {
   ticks++;
   if (!(ticks % (TICKS_PER_SECOND))) { status_drawStatusBar(); }
 
-  // Countdown del audio
-  if (audio_countdown > 0) {
-    audio_countdown--;
-    if (audio_countdown == 0) {
-      audio_stop();
-    }
-  }
+  audio_timer_tick();
 }
 
 unsigned int ticks_elapsed() { return ticks; }

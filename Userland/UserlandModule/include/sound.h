@@ -1,3 +1,4 @@
+
 #ifndef SOUND_H
 #define SOUND_H
 
@@ -54,8 +55,6 @@ typedef struct {
 // ============================================================================
 
 void sound_beep(uint16_t frequency, uint16_t duration_ms);
-
-void sound_play_note(note_t note, note_duration_t duration);
 
 void sound_play_melody(const melody_note_t* melody, uint32_t length);
 

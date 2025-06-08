@@ -210,3 +210,9 @@ audio_beep:
   mov rax, 0x30
   int 0x80
   ret
+
+global audio_play_melody
+audio_play_melody:
+  mov rax, 0x31
+  int 0x80
+  ret

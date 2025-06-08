@@ -38,6 +38,7 @@ typedef enum {
 
   /* Audio syscalls */
   SYS_AUDIO_BEEP = 0x30,
+  SYS_AUDIO_MELODY = 0x31,
 
   /* Status bar syscalls */
   SYS_STATUS_GET_ENABLED = 0x40,
