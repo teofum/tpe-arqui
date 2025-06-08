@@ -169,6 +169,24 @@ gfx_drawWireframeIndexed:
     int 0x80
     ret
 
+global gfx_setBuffers
+gfx_setBuffers:
+    mov rax, 0xA5
+    int 0x80
+    ret
+
+global gfx_copy
+gfx_copy:
+    mov rax, 0xA6
+    int 0x80
+    ret
+
+global gfx_depthcopy
+gfx_depthcopy:
+    mov rax, 0xA7
+    int 0x80
+    ret
+
 global gfx_parseObj
 gfx_parseObj:
     mov rax, 0xA9

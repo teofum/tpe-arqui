@@ -18,21 +18,27 @@
   fb[offset] = b(color), fb[offset + 1] = g(color), fb[offset + 2] = r(color)
 
 /*
+ * Default buffers
+ */
+static uint8_t gfx_defaultFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+static float gfx_defaultDepthbuffer[VGA_WIDTH * VGA_HEIGHT];
+
+/*
  * Framebuffer for the graphics subsystem
  */
-uint8_t _gfxFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+static uint8_t *_gfxFramebuffer = gfx_defaultFramebuffer;
 
 /*
  * Depth buffer for 3d graphics functions.
  */
-float _depthbuffer[VGA_WIDTH * VGA_HEIGHT];
+static float *_depthbuffer = gfx_defaultDepthbuffer;
 
 /*
  * Render resolution settings.
  * Rendering at half resolution is supported for faster rendering.
  */
-uint32_t gfx_renderWidth = VGA_WIDTH;
-uint32_t gfx_renderHeight = VGA_HEIGHT;
+static uint32_t gfx_renderWidth = VGA_WIDTH;
+static uint32_t gfx_renderHeight = VGA_HEIGHT;
 
 /*
  * Graphics system state.
@@ -45,18 +51,18 @@ uint32_t gfx_renderHeight = VGA_HEIGHT;
  *   - Call drawPrimitives to request a draw (potentially multiple times)
  */
 
-float4x4 gfx_model;
-float4x4 gfx_normalModel;
-float4x4 gfx_view;
-float4x4 gfx_projection;
-float4x4 gfx_viewProjection;
+static float4x4 gfx_model;
+static float4x4 gfx_normalModel;
+static float4x4 gfx_view;
+static float4x4 gfx_projection;
+static float4x4 gfx_viewProjection;
 
-float3 gfx_lightPos;
-float3 gfx_lightColor;
-float3 gfx_ambientLight;
-gfx_light_t gfx_lightType = GFX_LIGHT_DIRECTIONAL;
+static float3 gfx_lightPos;
+static float3 gfx_lightColor;
+static float3 gfx_ambientLight;
+static gfx_light_t gfx_lightType = GFX_LIGHT_DIRECTIONAL;
 
-gfx_flags_t gfx_flags = GFX_DEPTH_TEST | GFX_DEPTH_WRITE;
+static gfx_flags_t gfx_flags = GFX_DEPTH_TEST | GFX_DEPTH_WRITE;
 
 /*
  * End of state.
@@ -541,8 +547,34 @@ void gfx_parseObj(
     }
     data = nextLine(data);
   }
-
-  printf("Parsed obj file: %u vertices, %u normals, %u faces\n", vc, nc, *fc);
 }
+
+void gfx_setBuffers(uint8_t *framebuffer, float *depthbuffer) {
+  _gfxFramebuffer = framebuffer == NULL ? gfx_defaultFramebuffer : framebuffer;
+  _depthbuffer = depthbuffer == NULL ? gfx_defaultDepthbuffer : depthbuffer;
+}
+
+static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
+  for (uint64_t i = 0; i < len; i++) { *dst++ = *src++; }
+}
+
+void gfx_copy(uint8_t *dst, uint8_t *src) {
+  if (dst == NULL) dst = gfx_defaultFramebuffer;
+  if (src == NULL) src = gfx_defaultFramebuffer;
+
+  memcpy64(
+    (uint64_t *) dst, (uint64_t *) src, (OFFSET_Y >> 3) * gfx_renderHeight
+  );
+}
+
+void gfx_depthcopy(float *dst, float *src) {
+  if (dst == NULL) dst = gfx_defaultDepthbuffer;
+  if (src == NULL) src = gfx_defaultDepthbuffer;
+
+  memcpy64(
+    (uint64_t *) dst, (uint64_t *) src, (VGA_WIDTH >> 1) * gfx_renderHeight
+  );
+}
+
 
 uint8_t *gfx_getFramebuffer() { return _gfxFramebuffer; }

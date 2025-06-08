@@ -36,7 +36,7 @@
 #define VMAX 9.0f
 #define TURNS_SPEED 0.008f
 #define ACCELERATION 0.005f
-#define GRAVITY 0.1f
+#define GRAVITY 0.03f
 #define BRAKING 0.9
 
 // Hit debounce so it doesn't register multiple times in a row
@@ -145,6 +145,12 @@ typedef enum {
 } gg_playerAnim_t;
 
 /*
+ * Background framebuffers for optimized pre-rendering
+ */
+static uint8_t bgFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+static float bgDepthbuffer[VGA_WIDTH * VGA_HEIGHT];
+
+/*
  * Bitmap image data
  */
 static uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
@@ -220,6 +226,7 @@ static uint32_t pc_walls = sizeof(vi_walls) / sizeof(uint32_t);
  */
 static uint64_t frametime = 0;
 static uint64_t totalTicks = 0;
+static int showFps = 0;
 
 /*
  * Constant colors
@@ -329,10 +336,14 @@ static void updateObject(physicsObject_t *obj) {
   float oldy = obj->y;
 
   //add drag
-  float dragMlt = 1.0f - obj->drag;
+  float dragMlt = 1.0f - obj->drag * 0.001f;
   dragMlt = max(0.0f, dragMlt);
-  obj->vx *= dragMlt;
-  obj->vy *= dragMlt;
+
+  // ok this is stupid BUT
+  for (uint32_t i = 0; i < frametime; i++) {
+    obj->vx *= dragMlt;
+    obj->vy *= dragMlt;
+  }
 
   //update pos
   obj->x += obj->vx * VMUL * frametime;
@@ -595,6 +606,18 @@ static void setupGameRender(float4x4 *view) {
 }
 
 static void renderTerrain(terrain_t *terrain) {
+  // Draw background
+  vga_setFramebuffer(gfx_getFramebuffer());
+  vga_gradient(
+    0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
+    colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
+  );
+  vga_shade(
+    0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
+    VGA_ALPHA_BLEND
+  );
+  vga_setFramebuffer(NULL);
+
   // Set transform to identity
   float4x4 model = mat_scale(1, 1, 1);
   gfx_setMatrix(GFX_MAT_MODEL, &model);
@@ -756,7 +779,7 @@ static int showTitleScreen(gameSettings_t *settings) {
    */
 
   // Set full render resolution for the main menu, we're not rendering much
-  gfx_setFlag(GFX_HALFRES, 0);
+  gfx_setFlag(GFX_HALFRES, 1);
 
   // Set up view and projection matrices
   float3 pos = {0, 1, 3.5f};
@@ -800,16 +823,17 @@ static int showTitleScreen(gameSettings_t *settings) {
     // Draw a nice background
     // Sky
     vga_gradient(
-      0, 0, VGA_WIDTH - 1, (VGA_HEIGHT >> 1) - 1, colors(0x1a32e6, 0x07d0f8),
-      VGA_GRAD_V
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1,
+      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
     );
     vga_shade(
-      0, 0, VGA_WIDTH - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080, VGA_ALPHA_BLEND
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1, 0x50000080,
+      VGA_ALPHA_BLEND
     );
 
     // Grass
     vga_gradient(
-      0, VGA_HEIGHT >> 1, VGA_WIDTH - 1, VGA_HEIGHT - 1,
+      0, VGA_HEIGHT >> 2, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
       colors(0x83fa00, 0x008f00), VGA_GRAD_V
     );
 
@@ -1059,7 +1083,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     players[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     players[i].vx = 0.0f;
     players[i].vy = 0.0f;
-    players[i].drag = 0.4f;
+    players[i].drag = 22.0f;
     players[i].size = 0.7f;
     players[i].mass = 0.1f;
     players[i].angle = 0.0f;
@@ -1068,7 +1092,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     balls[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     balls[i].vx = 0.0f;
     balls[i].vy = 0.0f;
-    balls[i].drag = 0.1f;
+    balls[i].drag = 12.0f;
     balls[i].size = 0.1f;
     balls[i].mass = 1.0f;
 
@@ -1092,6 +1116,18 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
   setupGameRender(&view);
 
   /*
+   * Pre-render the terrain to a separate frame and depth buffer
+   * Terrain rendering is by far the most expensive, and the camera doesn't
+   * move during gameplay, so we can gain a huge perf boost by pre-rendering
+   * terrain and reusing the frame and depth buffers.
+   * This literally multiplies framerate five times!
+   */
+  gfx_setBuffers(bgFramebuffer, bgDepthbuffer);
+  gfx_clear(0);
+  renderTerrain(&terrain);
+  gfx_setBuffers(NULL, NULL);
+
+  /*
    * Game loop
    */
   int loop = 1;
@@ -1105,6 +1141,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     if (gameState == GG_GAME_RUNNING) {
       // Update keyboard input
       kbd_pollEvents();
+      if (kbd_keypressed(KEY_F12)) showFps = !showFps;
 
       /*
        * Physics and gameplay update
@@ -1198,20 +1235,15 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     /*
      * Render graphics
      */
-    gfx_clear(0);
-
-    vga_setFramebuffer(gfx_getFramebuffer());
-    vga_gradient(
-      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
-      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
-    );
-    vga_shade(
-      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
-      VGA_ALPHA_BLEND
-    );
-    vga_setFramebuffer(NULL);
-
-    renderTerrain(&terrain);
+    if (gameState != GG_GAME_RUNNING) {
+      // On endgame the camera *does* move, so we need to actually render the terrain
+      gfx_clear(0);
+      renderTerrain(&terrain);
+    } else {
+      // While playing, we can reuse the background we pre-rendered at the start
+      gfx_copy(NULL, bgFramebuffer);
+      gfx_depthcopy(NULL, bgDepthbuffer);
+    }
 
     renderHole(&hole, &terrain);
 
@@ -1487,14 +1519,16 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     }
 
     // Draw the frametime counter
-    uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
-    uint64_t fps = fpsTimes100 / 100;
-    fpsTimes100 %= 100;
+    if (showFps) {
+      uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
+      uint64_t fps = fpsTimes100 / 100;
+      fpsTimes100 %= 100;
 
-    sprintf(
-      buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
-    );
-    vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
+      sprintf(
+        buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
+      );
+      vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
+    }
 
     vga_present();
   }

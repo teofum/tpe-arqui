@@ -122,6 +122,24 @@ void gfx_parseObj(
 );
 
 /*
+ * Set the frame and depthbuffers used for drawing.
+ * Simlar to vga_setFramebuffer, this function lets the user draw to an auxiliary
+ * framebuffer for advanced composition effects.
+ */
+void gfx_setBuffers(uint8_t *framebuffer, float *depthbuffer);
+
+/*
+ * Copy the contents of one framebuffer to another. Similar to vga_copy, but
+ * accounting for half-res mode.
+ */
+void gfx_copy(uint8_t *dst, uint8_t *src);
+
+/*
+ * Copy the contents of one depthbuffer to another.
+ */
+void gfx_depthcopy(float *dst, float *src);
+
+/*
  * Get a pointer to the internal framebuffer. Useful if we want to draw on the
  * framebuffer directly, for example to combine 2D and 3D graphics.
  */
