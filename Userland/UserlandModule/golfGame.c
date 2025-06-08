@@ -335,10 +335,14 @@ static void updateObject(physicsObject_t *obj) {
   float oldy = obj->y;
 
   //add drag
-  float dragMlt = 1.0f - obj->drag * 0.001f * frametime;
+  float dragMlt = 1.0f - obj->drag * 0.001f;
   dragMlt = max(0.0f, dragMlt);
-  obj->vx *= dragMlt;
-  obj->vy *= dragMlt;
+
+  // ok this is stupid BUT
+  for (uint32_t i = 0; i < frametime; i++) {
+    obj->vx *= dragMlt;
+    obj->vy *= dragMlt;
+  }
 
   //update pos
   obj->x += obj->vx * VMUL * frametime;
@@ -1077,7 +1081,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     players[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     players[i].vx = 0.0f;
     players[i].vy = 0.0f;
-    players[i].drag = 20.0f;
+    players[i].drag = 30.0f;
     players[i].size = 0.7f;
     players[i].mass = 0.1f;
     players[i].angle = 0.0f;
@@ -1086,7 +1090,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     balls[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     balls[i].vx = 0.0f;
     balls[i].vy = 0.0f;
-    balls[i].drag = 10.0f;
+    balls[i].drag = 12.0f;
     balls[i].size = 0.1f;
     balls[i].mass = 1.0f;
 
