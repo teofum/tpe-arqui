@@ -226,6 +226,7 @@ static uint32_t pc_walls = sizeof(vi_walls) / sizeof(uint32_t);
  */
 static uint64_t frametime = 0;
 static uint64_t totalTicks = 0;
+static int showFps = 0;
 
 /*
  * Constant colors
@@ -1082,7 +1083,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     players[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
     players[i].vx = 0.0f;
     players[i].vy = 0.0f;
-    players[i].drag = 30.0f;
+    players[i].drag = 22.0f;
     players[i].size = 0.7f;
     players[i].mass = 0.1f;
     players[i].angle = 0.0f;
@@ -1140,6 +1141,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     if (gameState == GG_GAME_RUNNING) {
       // Update keyboard input
       kbd_pollEvents();
+      if (kbd_keypressed(KEY_F12)) showFps = !showFps;
 
       /*
        * Physics and gameplay update
@@ -1517,14 +1519,16 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     }
 
     // Draw the frametime counter
-    uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
-    uint64_t fps = fpsTimes100 / 100;
-    fpsTimes100 %= 100;
+    if (showFps) {
+      uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
+      uint64_t fps = fpsTimes100 / 100;
+      fpsTimes100 %= 100;
 
-    sprintf(
-      buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
-    );
-    vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
+      sprintf(
+        buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
+      );
+      vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
+    }
 
     vga_present();
   }
