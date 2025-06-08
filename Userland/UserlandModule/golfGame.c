@@ -778,7 +778,7 @@ static int showTitleScreen(gameSettings_t *settings) {
    */
 
   // Set full render resolution for the main menu, we're not rendering much
-  gfx_setFlag(GFX_HALFRES, 0);
+  gfx_setFlag(GFX_HALFRES, 1);
 
   // Set up view and projection matrices
   float3 pos = {0, 1, 3.5f};
@@ -822,16 +822,17 @@ static int showTitleScreen(gameSettings_t *settings) {
     // Draw a nice background
     // Sky
     vga_gradient(
-      0, 0, VGA_WIDTH - 1, (VGA_HEIGHT >> 1) - 1, colors(0x1a32e6, 0x07d0f8),
-      VGA_GRAD_V
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1,
+      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
     );
     vga_shade(
-      0, 0, VGA_WIDTH - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080, VGA_ALPHA_BLEND
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1, 0x50000080,
+      VGA_ALPHA_BLEND
     );
 
     // Grass
     vga_gradient(
-      0, VGA_HEIGHT >> 1, VGA_WIDTH - 1, VGA_HEIGHT - 1,
+      0, VGA_HEIGHT >> 2, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
       colors(0x83fa00, 0x008f00), VGA_GRAD_V
     );
 
