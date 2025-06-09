@@ -1,3 +1,4 @@
+#include "golfGame.h"
 #include <print.h>
 #include <shell.h>
 #include <stdint.h>
@@ -40,19 +41,19 @@ static int clear() {
 
 typedef struct {
   const char *name;
-  io_font_t id;
+  vga_font_t id;
 } font_entry_t;
 
 font_entry_t fonts[] = {
-  {"default", IO_FONT_DEFAULT},
-  {"tiny", IO_FONT_TINY},
-  {"tiny bold", IO_FONT_TINY_BOLD},
-  {"small", IO_FONT_SMALL},
-  {"large", IO_FONT_LARGE},
-  {"alt", IO_FONT_ALT},
-  {"alt bold", IO_FONT_ALT_BOLD},
-  {"future", IO_FONT_FUTURE},
-  {"old", IO_FONT_OLD},
+  {"default", VGA_FONT_DEFAULT},
+  {"tiny", VGA_FONT_TINY},
+  {"tiny bold", VGA_FONT_TINY_BOLD},
+  {"small", VGA_FONT_SMALL},
+  {"large", VGA_FONT_LARGE},
+  {"alt", VGA_FONT_ALT},
+  {"alt bold", VGA_FONT_ALT_BOLD},
+  {"future", VGA_FONT_FUTURE},
+  {"old", VGA_FONT_OLD},
 };
 size_t nFonts = sizeof(fonts) / sizeof(font_entry_t);
 
@@ -111,7 +112,7 @@ static int status(const char *param) {
   }
 
   printf(
-    COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on/off>\n",
+    COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on|off>\n",
     param
   );
 
@@ -119,12 +120,26 @@ static int status(const char *param) {
 }
 
 extern void _throw_00();
-int throw00() {
-  _throw_00();
+extern void _throw_06();
+extern void _regdumpTest();
+int exceptionTest(const char *param) {
+  if (!strcmp(param, "0")) {
+    _throw_00();
+  } else if (!strcmp(param, "6")) {
+    _throw_06();
+  } else if (!strcmp(param, "test_regdump")) {
+    _regdumpTest();
+  } else {
+    printf(
+      COL_RED "Invalid exception type '%s'\n" COL_RESET
+              "Usage: except <0|6|test_regdump>\n",
+      param
+    );
+  }
+
   return 0;
 }
 
-extern void _throw_06();
 int throw06() {
   _throw_06();
   return 0;
@@ -151,10 +166,10 @@ command_t commands[] = {
   {"demo3d", "3d Graphics demo", demo3d},
   {"history", "Print command history", history},
   {"status", "Turn the system status bar on or off", status},
-  {"exc00", "Tests Division by Zero Exception", throw00},
-  {"exc06", "Test OpCode Exception", throw06},
   {"beep", "Plays a short beep", beep},
   {"music", "Plays Tetris music", music},
+  {"except", "Test exceptions", exceptionTest},
+  {"golf", "Play Golf", gg_startGame},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 

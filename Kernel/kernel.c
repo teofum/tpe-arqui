@@ -1,4 +1,5 @@
 #include "status.h"
+#include "time.h"
 #include <audio.h>
 #include <interrupts.h>
 #include <io.h>
@@ -38,18 +39,8 @@ void *getStackBase() {
 }
 
 void *initializeKernelBinary() {
-  // Initialize video driver
-  // vga_init();
-
-  // Initialize stdout
-  // io_init();
-
-  // printf("[x64BareBones]\n");
-
-  // printf("[Loading modules]\n");
   void *moduleAddresses[] = {sampleCodeModuleAddress, sampleDataModuleAddress};
   loadModules(&endOfKernelBinary, moduleAddresses);
-  // printf("[Done]\n\n");
 
   clearBSS(&bss, &endOfKernel - &bss);
 
@@ -62,11 +53,11 @@ int main() {
   initInterrupts();
   loadIDT();
 
+  // Init timer
+  timer_init();
+
   // Initialize video driver
   vga_init();
-
-  // Initialize stdout
-  io_init();
 
   // Enable status bar
   status_setEnabled(1);

@@ -86,17 +86,21 @@ typedef struct {
    * multiple of 8 bytes.
    */
   const uint64_t *characterData;
-} vga_font_t;
+} vga_fontData_t;
 
-extern const vga_font_t *vga_fontTiny;
-extern const vga_font_t *vga_fontTinyBold;
-extern const vga_font_t *vga_fontSmall;
-extern const vga_font_t *vga_fontDefault;
-extern const vga_font_t *vga_fontLarge;
-extern const vga_font_t *vga_fontAlt;
-extern const vga_font_t *vga_fontAltBold;
-extern const vga_font_t *vga_fontFuture;
-extern const vga_font_t *vga_fontOld;
+typedef const vga_fontData_t *vga_fontPtr_t;
+
+typedef enum {
+  VGA_FONT_DEFAULT = 0,
+  VGA_FONT_TINY,
+  VGA_FONT_TINY_BOLD,
+  VGA_FONT_SMALL,
+  VGA_FONT_LARGE,
+  VGA_FONT_ALT,
+  VGA_FONT_ALT_BOLD,
+  VGA_FONT_FUTURE,
+  VGA_FONT_OLD,
+} vga_font_t;
 
 /*
  * Flags used by drawing functions
@@ -194,15 +198,15 @@ void vga_gradient(
 
 /*
  * Set the font used for drawing text.
- * Returns a pointer to the previous font used, so it can be restored with
+ * Returns the previous font used, so it can be restored with
  * another call to vga_font.
  */
-const vga_font_t *vga_font(const vga_font_t *font);
+vga_font_t vga_font(vga_font_t font);
 
 /*
  * Get the font used for drawing text
  */
-const vga_font_t *vga_getfont();
+vga_fontPtr_t vga_getfont(vga_font_t font);
 
 /*
  * Draw a single character to VRAM at the specified position using the current

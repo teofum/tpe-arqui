@@ -11,7 +11,7 @@
 #define DEFAULT_FG 0xd8d8d8
 
 #define copyToMainFramebuffer()                                                \
-  vga_copy(NULL, textFramebuffer, status_enabled() ? STATUS_HEIGHT : 0)
+  vga_copy(NULL, io_framebuffer, status_enabled() ? STATUS_HEIGHT : 0)
 
 /*
  * The I/O subsystem keeps its own framebuffer, so it can preserve text written
@@ -20,35 +20,37 @@
  * This takes up a bunch of memory (2.25 MB), but it allows us to both draw
  * text very efficiently and preserve it when an application uses graphics mode.
  */
-uint8_t textFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3] = {0};
-const vga_font_t *textFont;
+static uint8_t io_framebuffer[VGA_WIDTH * VGA_HEIGHT * 3] = {0};
+static vga_font_t io_textFont;
 
 /*
  * Text drawing cursor
  */
-uint32_t cur_y = 0;
-uint32_t cur_x = 0;
+static uint32_t cur_y = 0;
+static uint32_t cur_x = 0;
 
 /*
  * Foreground and background colors
  */
-uint32_t background = DEFAULT_BG;
-uint32_t foreground = DEFAULT_FG;
+static uint32_t io_background = DEFAULT_BG;
+static uint32_t io_foreground = DEFAULT_FG;
 
-uint8_t cursorStyle = IO_CURSOR_UNDER;
+static uint8_t io_cursorStyle = IO_CURSOR_UNDER;
 
 static void nextline() {
+  vga_fontPtr_t font = vga_getfont(io_textFont);
+
   cur_x = 0;
-  cur_y += textFont->lineHeight;
+  cur_y += font->lineHeight;
 
   uint32_t maxHeight = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
-  int32_t remaining = maxHeight - (int32_t) (cur_y + textFont->lineHeight);
+  int32_t remaining = maxHeight - (int32_t) (cur_y + font->lineHeight);
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
     uint32_t offset = offsetLines * VGA_WIDTH * 3;
     memcpy(
-      textFramebuffer, textFramebuffer + offset,
+      io_framebuffer, io_framebuffer + offset,
       VGA_WIDTH * VGA_HEIGHT * 3 - offset
     );
 
@@ -65,58 +67,61 @@ static void nextline() {
  * This way it doesn't persist when we draw more text.
  */
 static inline void drawCursor() {
+  vga_fontPtr_t font = vga_getfont(io_textFont);
   uint32_t cursor_y = cur_y + (status_enabled() ? STATUS_HEIGHT : 0);
-  switch (cursorStyle) {
+
+  switch (io_cursorStyle) {
     case IO_CURSOR_UNDER:
       vga_rect(
-        cur_x, cursor_y + textFont->charHeight - CURSOR_HEIGHT,
-        cur_x + textFont->charWidth, cursor_y + textFont->charHeight - 1,
-        foreground, 0
+        cur_x, cursor_y + font->charHeight - CURSOR_HEIGHT,
+        cur_x + font->charWidth, cursor_y + font->charHeight - 1, io_foreground,
+        0
       );
       break;
     case IO_CURSOR_FRAME:
       vga_frame(
-        cur_x, cursor_y, cur_x + textFont->charWidth,
-        cursor_y + textFont->charHeight, foreground, 0
+        cur_x, cursor_y, cur_x + font->charWidth, cursor_y + font->charHeight,
+        io_foreground, 0
       );
       break;
     case IO_CURSOR_BLOCK:
       vga_rect(
-        cur_x, cursor_y, cur_x + textFont->charWidth,
-        cursor_y + textFont->charHeight, foreground | 0x80000000,
-        VGA_ALPHA_BLEND
+        cur_x, cursor_y, cur_x + font->charWidth, cursor_y + font->charHeight,
+        io_foreground | 0x80000000, VGA_ALPHA_BLEND
       );
       break;
   }
 }
 
 static inline void putcImpl(char c) {
+  vga_fontPtr_t font = vga_getfont(io_textFont);
+
   if (c == '\b') {
-    if (cur_x > 0) cur_x -= textFont->charWidth;
+    if (cur_x > 0) cur_x -= font->charWidth;
     vga_rect(
-      cur_x, cur_y, cur_x + textFont->charWidth - 1,
-      cur_y + textFont->charHeight - 1, DEFAULT_BG, 0
+      cur_x, cur_y, cur_x + font->charWidth - 1, cur_y + font->charHeight - 1,
+      DEFAULT_BG, 0
     );
   } else if (c == '\t') {
-    cur_x += (TAB_SIZE * textFont->charWidth) -
-             (cur_x % (TAB_SIZE * textFont->charWidth));
+    cur_x +=
+      (TAB_SIZE * font->charWidth) - (cur_x % (TAB_SIZE * font->charWidth));
   } else if (c != '\n') {
-    vga_char(cur_x, cur_y, c, foreground, background, VGA_TEXT_BG);
-    cur_x += textFont->charWidth;
+    vga_char(cur_x, cur_y, c, io_foreground, io_background, VGA_TEXT_BG);
+    cur_x += font->charWidth;
   }
   if (cur_x >= VGA_WIDTH || c == '\n') nextline();
 }
 
-void io_init() { textFont = vga_fontDefault; }
-
 void io_blankFrom(uint32_t x) {
-  vga_setFramebuffer(textFramebuffer);
+  vga_fontPtr_t font = vga_getfont(io_textFont);
 
-  cur_x = x * textFont->charWidth;
-  if (cur_x >= VGA_WIDTH) cur_x = VGA_WIDTH - textFont->charWidth;
+  vga_setFramebuffer(io_framebuffer);
+
+  cur_x = x * font->charWidth;
+  if (cur_x >= VGA_WIDTH) cur_x = VGA_WIDTH - font->charWidth;
 
   vga_rect(
-    cur_x, cur_y, VGA_WIDTH - 1, cur_y + textFont->lineHeight - 1, DEFAULT_BG, 0
+    cur_x, cur_y, VGA_WIDTH - 1, cur_y + font->lineHeight - 1, DEFAULT_BG, 0
   );
 
   copyToMainFramebuffer();
@@ -125,8 +130,8 @@ void io_blankFrom(uint32_t x) {
 }
 
 void io_putc(char c) {
-  vga_setFramebuffer(textFramebuffer);
-  const vga_font_t *lastFont = vga_font(textFont);
+  vga_setFramebuffer(io_framebuffer);
+  vga_font_t lastFont = vga_font(io_textFont);
 
   putcImpl(c);
 
@@ -166,17 +171,17 @@ static const char *parseColorEscape(const char *str) {
   color |= channel;
 
   if (mode == 0) {
-    foreground = color;
+    io_foreground = color;
   } else {
-    background = color;
+    io_background = color;
   }
 
   return str;
 }
 
 uint32_t io_writes(const char *str) {
-  vga_setFramebuffer(textFramebuffer);
-  const vga_font_t *lastFont = vga_font(textFont);
+  vga_setFramebuffer(io_framebuffer);
+  vga_font_t lastFont = vga_font(io_textFont);
 
   char c;
   uint32_t written = 0;
@@ -189,8 +194,8 @@ uint32_t io_writes(const char *str) {
     }
   }
 
-  background = DEFAULT_BG;
-  foreground = DEFAULT_FG;
+  io_background = DEFAULT_BG;
+  io_foreground = DEFAULT_FG;
   vga_font(lastFont);
   copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
@@ -201,8 +206,8 @@ uint32_t io_writes(const char *str) {
 }
 
 uint32_t io_write(const char *str, uint32_t len) {
-  vga_setFramebuffer(textFramebuffer);
-  const vga_font_t *lastFont = vga_font(textFont);
+  vga_setFramebuffer(io_framebuffer);
+  vga_font_t lastFont = vga_font(io_textFont);
 
   char c;
   const char *end = str + len;
@@ -216,8 +221,8 @@ uint32_t io_write(const char *str, uint32_t len) {
     }
   }
 
-  background = DEFAULT_BG;
-  foreground = DEFAULT_FG;
+  io_background = DEFAULT_BG;
+  io_foreground = DEFAULT_FG;
   vga_font(lastFont);
   copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
@@ -228,7 +233,7 @@ uint32_t io_write(const char *str, uint32_t len) {
 }
 
 void io_clear() {
-  vga_setFramebuffer(textFramebuffer);
+  vga_setFramebuffer(io_framebuffer);
   vga_clear(0x000000);
   copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
@@ -283,47 +288,18 @@ uint32_t io_read(char *buf, uint32_t len) {
   return readChars;
 }
 
-void io_setfont(io_font_t font) {
-  // We use an enum here so we can call this from a syscall, since we don't
-  // have the pointers to VGA font data in userland
-  switch (font) {
-    case IO_FONT_DEFAULT:
-      textFont = vga_fontDefault;
-      break;
-    case IO_FONT_TINY:
-      textFont = vga_fontTiny;
-      break;
-    case IO_FONT_TINY_BOLD:
-      textFont = vga_fontTinyBold;
-      break;
-    case IO_FONT_SMALL:
-      textFont = vga_fontSmall;
-      break;
-    case IO_FONT_LARGE:
-      textFont = vga_fontLarge;
-      break;
-    case IO_FONT_ALT:
-      textFont = vga_fontAlt;
-      break;
-    case IO_FONT_ALT_BOLD:
-      textFont = vga_fontAltBold;
-      break;
-    case IO_FONT_FUTURE:
-      textFont = vga_fontFuture;
-      break;
-    case IO_FONT_OLD:
-      textFont = vga_fontOld;
-      break;
-  }
+void io_setfont(vga_font_t font) {
+  io_textFont = font;
+  vga_fontPtr_t fontData = vga_getfont(io_textFont);
 
-  vga_setFramebuffer(textFramebuffer);
-  int32_t remaining = VGA_HEIGHT - (int32_t) (cur_y + textFont->lineHeight);
+  vga_setFramebuffer(io_framebuffer);
+  int32_t remaining = VGA_HEIGHT - (int32_t) (cur_y + fontData->lineHeight);
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
     uint32_t offset = offsetLines * VGA_WIDTH * 3;
     memcpy(
-      textFramebuffer, textFramebuffer + offset,
+      io_framebuffer, io_framebuffer + offset,
       VGA_WIDTH * VGA_HEIGHT * 3 - offset
     );
 
@@ -339,10 +315,12 @@ void io_setfont(io_font_t font) {
   vga_present();
 }
 
-void io_setcursor(io_cursor_t cursor) { cursorStyle = cursor; }
+void io_setcursor(io_cursor_t cursor) { io_cursorStyle = cursor; }
 
 void io_movecursor(int32_t dx) {
-  dx *= textFont->charWidth;
+  vga_fontPtr_t font = vga_getfont(io_textFont);
+
+  dx *= font->charWidth;
   if (dx < 0 && cur_x < -dx) {
     cur_x = 0;
   } else {

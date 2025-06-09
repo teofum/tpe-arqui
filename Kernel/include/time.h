@@ -2,7 +2,7 @@
 #define _TIME_H_
 #include <stdint.h>
 
-#define TICKS_PER_SECOND 18
+#define TICKS_PER_SECOND 1000
 
 #define SECONDS 0x00
 #define MINUTES 0x02
@@ -28,6 +28,10 @@ typedef struct {
   uint8_t seconds;
 } dateTime_t;
 
+/*
+ * Initialize the system timer to tick every 1ms
+ */
+void timer_init();
 
 void timer_handler();
 

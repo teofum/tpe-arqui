@@ -10,6 +10,13 @@ int strcmp(const char *a, const char *b) {
   return *a - *b;
 }
 
+uint64_t strlen(const char *s) {
+  uint64_t len = 0;
+  while (*s++) len++;
+
+  return len;
+}
+
 const char *strsplit(char *out, const char *str, char delim) {
   while (*str != 0 && *str != delim) { *out++ = *str++; }
 

@@ -142,6 +142,7 @@ typedef struct {
   uint8_t capslock : 1;
 } kbd_event_t;
 
+
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */

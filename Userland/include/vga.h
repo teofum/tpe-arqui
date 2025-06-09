@@ -11,6 +11,18 @@
 typedef uint32_t color_t;
 
 typedef enum {
+  VGA_FONT_DEFAULT = 0,
+  VGA_FONT_TINY,
+  VGA_FONT_TINY_BOLD,
+  VGA_FONT_SMALL,
+  VGA_FONT_LARGE,
+  VGA_FONT_ALT,
+  VGA_FONT_ALT_BOLD,
+  VGA_FONT_FUTURE,
+  VGA_FONT_OLD,
+} vga_font_t;
+
+typedef enum {
   VGA_TEXT_NORMAL = 0x00,// Draw text normally
   VGA_TEXT_BG = 0x01,    // Draw background color
   VGA_TEXT_NOFG = 0x02,  // Turn off foreground
@@ -96,17 +108,12 @@ extern void vga_gradient(
   uint8_t flags
 );
 
-// /*
-//  * Set the font used for drawing text.
-//  * Returns a pointer to the previous font used, so it can be restored with
-//  * another call to vga_font.
-//  */
-// const vga_font_t *vga_font(const vga_font_t *font);
-//
-// /*
-//  * Get the font used for drawing text
-//  */
-// const vga_font_t *vga_getfont();
+/*
+ * Set the font used for drawing text.
+ * Returns the previous font used, so it can be restored with
+ * another call to vga_font.
+ */
+extern vga_font_t vga_font(vga_font_t font);
 
 /*
  * Draw a single character to VRAM at the specified position using the current
@@ -148,7 +155,7 @@ extern void vga_textWrap(
  * Bitmaps are stored in 8bpc RGB format, with a header encoding image size.
  * Flags are currently unused, parameter is reserved.
  */
-void vga_bitmap(
+extern void vga_bitmap(
   uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
 );
 
@@ -167,6 +174,6 @@ extern void vga_copy(uint8_t *dst, uint8_t *src, uint64_t offset);
  * Copy the top-left corner of a framebuffer to a different framebuffer,
  * multiplying size by two.
  */
-void vga_copy2x(uint8_t *dst, uint8_t *src);
+extern void vga_copy2x(uint8_t *dst, uint8_t *src);
 
 #endif

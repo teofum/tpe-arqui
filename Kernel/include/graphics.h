@@ -35,9 +35,10 @@ typedef enum {
  * Render resolution settings
  */
 typedef enum {
-  GFX_RES_FULL,
-  GFX_RES_HALF,
-} gfx_res_t;
+  GFX_HALFRES = 0x01,
+  GFX_DEPTH_TEST = 0x02,
+  GFX_DEPTH_WRITE = 0x04,
+} gfx_flags_t;
 
 /*
  * Clear the internal frame and depth buffers.
@@ -97,10 +98,10 @@ void gfx_setLightType(gfx_light_t mode);
 void gfx_setMatrix(gfx_matrix_t which, float4x4 *data);
 
 /*
- * Set render resolution.
+ * Set renderer flags.
  * The driver supports rendering at half resolution for increased performance.
  */
-void gfx_setRenderResolution(gfx_res_t res);
+void gfx_setFlag(gfx_flags_t flag, uint8_t value);
 
 /*
  * Present the internal framebuffer to the VGA driver's main framebuffer.
@@ -118,7 +119,30 @@ void gfx_present();
 void gfx_parseObj(
   const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni,
   uint32_t *fc
-
 );
+
+/*
+ * Set the frame and depthbuffers used for drawing.
+ * Simlar to vga_setFramebuffer, this function lets the user draw to an auxiliary
+ * framebuffer for advanced composition effects.
+ */
+void gfx_setBuffers(uint8_t *framebuffer, float *depthbuffer);
+
+/*
+ * Copy the contents of one framebuffer to another. Similar to vga_copy, but
+ * accounting for half-res mode.
+ */
+void gfx_copy(uint8_t *dst, uint8_t *src);
+
+/*
+ * Copy the contents of one depthbuffer to another.
+ */
+void gfx_depthcopy(float *dst, float *src);
+
+/*
+ * Get a pointer to the internal framebuffer. Useful if we want to draw on the
+ * framebuffer directly, for example to combine 2D and 3D graphics.
+ */
+uint8_t *gfx_getFramebuffer();
 
 #endif

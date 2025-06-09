@@ -126,6 +126,8 @@ _irq80Handler:
   push rbp
   mov rbp, rsp
 
+  sti ; Allow syscalls to be interrupted
+
   mov rax, [syscallDispatchTable + rax * 8]
   call rax
 

@@ -19,7 +19,7 @@ int demo3d() {
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
-  uint64_t ticksElapsed = 0, ticksStart = _syscall(SYS_TICKS), frames = 0;
+  uint64_t frametime = 0, ticksTotal = _syscall(SYS_TICKS);
   float angle = 0;
   int wireframe = 0;
 
@@ -28,8 +28,8 @@ int demo3d() {
    */
 
   // Set half render resolution for speed
-  gfx_res_t renderRes = GFX_RES_HALF;
-  gfx_setRenderResolution(renderRes);
+  uint8_t halfres = 1;
+  gfx_setFlag(GFX_HALFRES, halfres);
 
   // Set up view and projection matrices
   float3 pos = {0, 2, 4};
@@ -104,26 +104,10 @@ int demo3d() {
 
       gfx_setLightType(lightType);
     }
-    if (kbd_keypressed(KEY_W)) {
-      wireframe = !wireframe;
-
-      // Reset frametime counter; it works with averages so the drastically
-      // changing framerate throws it off
-      ticksElapsed = 0;
-      ticksStart = _syscall(SYS_TICKS);
-      frames = 0;
-    }
+    if (kbd_keypressed(KEY_W)) { wireframe = !wireframe; }
     if (kbd_keypressed(KEY_R)) {
-      if (renderRes == GFX_RES_HALF) {
-        renderRes = GFX_RES_FULL;
-      } else {
-        renderRes = GFX_RES_HALF;
-      }
-
-      gfx_setRenderResolution(renderRes);
-      ticksElapsed = 0;
-      ticksStart = _syscall(SYS_TICKS);
-      frames = 0;
+      halfres = !halfres;
+      gfx_setFlag(GFX_HALFRES, halfres);
     }
     if (kbd_keypressed(KEY_COMMA)) {
       fovDegrees += 5.0f;
@@ -188,18 +172,13 @@ int demo3d() {
     gfx_present();
 
     // Draw the frametime counter
-    uint64_t frametimeMicros = frames == 0 ? 0 : ticksElapsed * 55000 / frames;
-    uint64_t frametime = frametimeMicros / 1000;
-    uint64_t fpsTimes100 =
-      frametimeMicros == 0 ? 0 : 100000000 / frametimeMicros;
+    uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
     uint64_t fps = fpsTimes100 / 100;
-    frametimeMicros %= 1000;
     fpsTimes100 %= 100;
 
     char buf[50];
     sprintf(
-      buf, "Frametime: %llu.%03llums (%llu.%02llu fps)", frametime,
-      frametimeMicros, fps, fpsTimes100
+      buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
     );
     vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
 
@@ -229,8 +208,9 @@ int demo3d() {
     angle += 0.01;
     if (angle > M_PI) angle -= 2.0f * M_PI;
 
-    frames++;
-    ticksElapsed = _syscall(SYS_TICKS) - ticksStart;
+    uint64_t ticks = _syscall(SYS_TICKS);
+    frametime = ticks - ticksTotal;
+    ticksTotal = ticks;
   }
 
   // Restore status bar enabled state

@@ -3,6 +3,8 @@
         "stdint.h": "c",
         "kbd.h": "c",
         "time.h": "c",
-        "vga.h": "c"
+        "vga.h": "c",
+        "cmath": "c",
+        "cstdlib": "c"
     }
 }

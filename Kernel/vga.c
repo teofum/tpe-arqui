@@ -25,8 +25,10 @@
 #define putpixel(fb, offset, color)                                            \
   fb[offset] = b(color), fb[offset + 1] = g(color), fb[offset + 2] = r(color)
 
+#define ACTIVE_FONT vga_fonts[vga_activeFont]
+
 #define ACTIVE_FONT_BITS                                                       \
-  ((((active_font->charWidth + 7) >> 3) << 3) * active_font->charHeight)
+  ((((ACTIVE_FONT->charWidth + 7) >> 3) << 3) * ACTIVE_FONT->charHeight)
 
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define max(x, y) ((x) > (y) ? (x) : (y))
@@ -64,91 +66,88 @@ uint8_t *activeFramebuffer;
  */
 #include <fontdata.h>
 
-vga_font_t _vga_fontTiny = {
+vga_fontData_t _vga_fontTiny = {
   .charWidth = 6,
   .charHeight = 8,
   .lineHeight = 8,
   .spacing = 0,
   .characterData = _vga_fontdata_hp_lx100_6x8
 };
-const vga_font_t *vga_fontTiny = &_vga_fontTiny;
 
-vga_font_t _vga_fontTinyBold = {
+vga_fontData_t _vga_fontTinyBold = {
   .charWidth = 8,
   .charHeight = 8,
   .lineHeight = 8,
   .spacing = 0,
   .characterData = _vga_fontdata_hp_lx100_8x8
 };
-const vga_font_t *vga_fontTinyBold = &_vga_fontTinyBold;
 
-vga_font_t _vga_fontSmall = {
+vga_fontData_t _vga_fontSmall = {
   .charWidth = 6,
   .charHeight = 12,
   .lineHeight = 12,
   .spacing = 0,
   .characterData = _vga_fontdata_dos_ank_6x12
 };
-const vga_font_t *vga_fontSmall = &_vga_fontSmall;
 
-vga_font_t _vga_fontDefault = {
+vga_fontData_t _vga_fontDefault = {
   .charWidth = 8,
   .charHeight = 16,
   .lineHeight = 16,
   .spacing = 0,
   .characterData = _vga_fontdata_dos_ank_8x16
 };
-const vga_font_t *vga_fontDefault = &_vga_fontDefault;
 
-vga_font_t _vga_fontLarge = {
+vga_fontData_t _vga_fontLarge = {
   .charWidth = 12,
   .charHeight = 24,
   .lineHeight = 24,
   .spacing = 0,
   .characterData = _vga_fontdata_dos_ank_12x24
 };
-const vga_font_t *vga_fontLarge = &_vga_fontLarge;
 
-vga_font_t _vga_fontAlt = {
+vga_fontData_t _vga_fontAlt = {
   .charWidth = 8,
   .charHeight = 16,
   .lineHeight = 16,
   .spacing = 0,
   .characterData = _vga_fontdata_toshiba_txl2_8x16
 };
-const vga_font_t *vga_fontAlt = &_vga_fontAlt;
 
-vga_font_t _vga_fontAltBold = {
+vga_fontData_t _vga_fontAltBold = {
   .charWidth = 8,
   .charHeight = 16,
   .lineHeight = 16,
   .spacing = 0,
   .characterData = _vga_fontdata_toshiba_txl1_8x16
 };
-const vga_font_t *vga_fontAltBold = &_vga_fontAltBold;
 
-vga_font_t _vga_fontFuture = {
+vga_fontData_t _vga_fontFuture = {
   .charWidth = 8,
   .charHeight = 8,
   .lineHeight = 10,
   .spacing = 0,
   .characterData = _vga_fontdata_eagle2_8x8
 };
-const vga_font_t *vga_fontFuture = &_vga_fontFuture;
 
-
-vga_font_t _vga_fontOld = {
+vga_fontData_t _vga_fontOld = {
   .charWidth = 8,
   .charHeight = 8,
   .lineHeight = 10,
   .spacing = 0,
   .characterData = _vga_fontdata_eagle3_8x8
 };
-const vga_font_t *vga_fontOld = &_vga_fontOld;
+
+const vga_fontData_t *vga_fonts[] = {
+  &_vga_fontDefault, &_vga_fontTiny,   &_vga_fontTinyBold,
+  &_vga_fontSmall,   &_vga_fontLarge,  &_vga_fontAlt,
+  &_vga_fontAltBold, &_vga_fontFuture, &_vga_fontOld,
+};
+
 /*
  * Active font for text drawing
  */
-const vga_font_t *active_font = &_vga_fontDefault;
+vga_font_t vga_activeFont = VGA_FONT_DEFAULT;
 
 /*
  * Alpha premultiply using evil bit manipulation tricks.
@@ -430,17 +429,17 @@ void vga_char(
 
   uint8_t *fb = VGA_FRAMEBUFFER;
 
-  for (uint16_t y = 0; y < active_font->charHeight; y++) {
+  for (uint16_t y = 0; y < ACTIVE_FONT->charHeight; y++) {
     uint64_t offset = pixelOffset(x0, y0 + y);
 
-    for (uint16_t x = 0; x < active_font->charWidth; x++) {
+    for (uint16_t x = 0; x < ACTIVE_FONT->charWidth; x++) {
       size_t charOffsetBits = (c - ' ') * ACTIVE_FONT_BITS +
-                              y * (((active_font->charWidth + 7) >> 3) << 3) +
+                              y * (((ACTIVE_FONT->charWidth + 7) >> 3) << 3) +
                               x;
       size_t charOffsetWords = charOffsetBits >> 6;
       charOffsetBits &= 0x3f;
 
-      uint64_t charBit = (active_font->characterData[charOffsetWords] &
+      uint64_t charBit = (ACTIVE_FONT->characterData[charOffsetWords] &
                           (1ull << (63 - charOffsetBits))) >>
                          (63 - charOffsetBits);
 
@@ -462,12 +461,12 @@ void vga_text(
 ) {
   size_t i = 0;
   uint16_t x = x0, y = y0;
-  uint16_t advance = active_font->charWidth + active_font->spacing;
+  uint16_t advance = ACTIVE_FONT->charWidth + ACTIVE_FONT->spacing;
   char c;
   while ((c = string[i]) != 0) {
     if (c == '\n') {
       x = x0;
-      y += active_font->lineHeight;
+      y += ACTIVE_FONT->lineHeight;
     } else if (c == '\t') {
       x += advance * TAB_SIZE - (x % (advance * TAB_SIZE));
     } else {
@@ -490,7 +489,7 @@ void vga_textWrap(
 
   size_t i = 0;
   uint16_t x = x0, y = y0;
-  uint16_t advance = active_font->charWidth + active_font->spacing;
+  uint16_t advance = ACTIVE_FONT->charWidth + ACTIVE_FONT->spacing;
   char c;
 
   int wrapNext = 0;
@@ -503,7 +502,7 @@ void vga_textWrap(
         xend += advance;
         if (xend > xmax) {
           x = x0;
-          y += active_font->lineHeight;
+          y += ACTIVE_FONT->lineHeight;
           break;
         }
       }
@@ -511,7 +510,7 @@ void vga_textWrap(
 
     if (c == '\n') {
       x = x0;
-      y += active_font->lineHeight;
+      y += ACTIVE_FONT->lineHeight;
       wrapNext = 1;
     } else if (c == '\t') {
       x += advance * TAB_SIZE - (x % (advance * TAB_SIZE));
@@ -523,7 +522,7 @@ void vga_textWrap(
 
       if (x >= xmax) {
         x = x0;
-        y += active_font->lineHeight;
+        y += ACTIVE_FONT->lineHeight;
         wrapNext = 0;
       }
     } else {
@@ -620,13 +619,14 @@ void vga_bitmap(
   }
 }
 
-const vga_font_t *vga_font(const vga_font_t *font) {
-  const vga_font_t *lastFont = active_font;
-  active_font = font;
+vga_font_t vga_font(vga_font_t font) {
+  vga_font_t lastFont = vga_activeFont;
+  vga_activeFont = font;
+
   return lastFont;
 }
 
-const vga_font_t *vga_getfont() { return active_font; }
+vga_fontPtr_t vga_getfont(vga_font_t font) { return vga_fonts[font]; }
 
 static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
   for (uint64_t i = 0; i < len; i++) { *dst++ = *src++; }

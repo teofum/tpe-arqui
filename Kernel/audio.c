@@ -159,4 +159,3 @@ void audio_timer_tick(void) {
   // Configura el countdown para la nueva nota
   audio_state.countdown = (next_note->duration * TICKS_PER_SECOND) / 1000;
 }
-
