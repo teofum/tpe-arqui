@@ -61,18 +61,18 @@ typedef enum {
   SC_EXT_MM_MEDIA_SELECT,
 } ext_scancode_t;
 
-kbd_buffer_t kbd_buffer = {
+static kbd_buffer_t kbd_buffer = {
   .data = {0},
   .writePos = 0,
   .readPos = 0,
 };
 
-uint8_t kbd_state[128] = {0};
-uint8_t kbd_lastState[128] = {0};
-uint8_t kbd_capslock = 0;
-uint8_t kbd_extended = 0;
+static uint8_t kbd_state[128] = {0};
+static uint8_t kbd_lastState[128] = {0};
+static uint8_t kbd_capslock = 0;
+static uint8_t kbd_extended = 0;
 
-int kbd_key2ascii[128] = {
+static int kbd_key2ascii[128] = {
   -1,  0x1B, '1',  '2', '3',  '4', '5', '6',  '7', '8', '9', '0', '-',
   '=', '\b', '\t', 'q', 'w',  'e', 'r', 't',  'y', 'u', 'i', 'o', 'p',
   '[', ']',  '\n', 0,   'a',  's', 'd', 'f',  'g', 'h', 'j', 'k', 'l',
@@ -85,7 +85,7 @@ int kbd_key2ascii[128] = {
   0,   0,    0,    0,   0,    0,   0,   0,    0,   0,   0,
 };
 
-int kbd_key2ascii_shift[128] = {
+static int kbd_key2ascii_shift[128] = {
   -1,  0x1B, '!',  '@', '#', '$', '%', '^',  '&', '*', '(', ')', '_',
   '+', '\b', '\t', 'Q', 'W', 'E', 'R', 'T',  'Y', 'U', 'I', 'O', 'P',
   '{', '}',  '\n', 0,   'A', 'S', 'D', 'F',  'G', 'H', 'J', 'K', 'L',
