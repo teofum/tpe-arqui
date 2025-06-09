@@ -1,8 +1,10 @@
 #include "golfGame.h"
 #include <print.h>
 #include <shell.h>
+#include <stdint.h>
 #include <strings.h>
 #include <syscall.h>
+#include <sound.h>
 
 #include <gfxdemo.h>
 
@@ -143,6 +145,16 @@ int throw06() {
   return 0;
 }
 
+static int beep(){
+  sound_shell_beep();
+  return 0;
+}
+
+static int music(){
+  sound_play_tetris();
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -154,6 +166,8 @@ command_t commands[] = {
   {"demo3d", "3d Graphics demo", demo3d},
   {"history", "Print command history", history},
   {"status", "Turn the system status bar on or off", status},
+  {"beep", "Plays a short beep", beep},
+  {"music", "Plays Tetris music", music},
   {"except", "Test exceptions", exceptionTest},
   {"golf", "Play Golf", gg_startGame},
 };
@@ -347,3 +361,4 @@ int startShell() {
 
   return 0;
 }
+

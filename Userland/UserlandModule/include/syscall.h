@@ -36,6 +36,10 @@ typedef enum {
   SYS_VGA_PRESENT = 0x2A,
   SYS_VGA_SET_FB = 0x2B,
 
+  /* Audio syscalls */
+  SYS_AUDIO_BEEP = 0x30,
+  SYS_AUDIO_MELODY = 0x31,
+
   /* Status bar syscalls */
   SYS_STATUS_GET_ENABLED = 0x40,
   SYS_STATUS_SET_ENABLED = 0x41,
@@ -58,3 +62,4 @@ typedef enum {
 extern uint64_t _syscall(uint64_t n, ...);
 
 #endif
+
