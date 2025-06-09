@@ -18,6 +18,7 @@ extern uint8_t endOfKernel;
 
 static const uint64_t PageSize = 0x1000;
 
+// We moved userland a bit to make room for all the framebuffers
 static void *const sampleCodeModuleAddress = (void *) 0x2000000;
 static void *const sampleDataModuleAddress = (void *) 0x3000000;
 

@@ -235,6 +235,7 @@ void showCPUState() {
   const char *footer;
   char buf[256];
 
+  int statusEnabled = status_enabled();
   if (regdumpContext.flag == REGDUMP_EXCEPTION) {
     status_setEnabled(0);
     bg_colors = colors(0x500000, 0x800000);
@@ -415,4 +416,11 @@ void showCPUState() {
 
   char key = 0;
   while (!key) { key = kbd_getKeyEvent().key; }
+
+  // Restore statusbar
+  status_setEnabled(statusEnabled);
+
+  // Restore regdump ctx
+  regdumpContext.flag = REGDUMP_NORMAL;
+  regdumpContext.exception_id = 0;
 }

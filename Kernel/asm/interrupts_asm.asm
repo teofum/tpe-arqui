@@ -50,6 +50,7 @@ extern irqDispatcher
 
 ; Generic exception handler
 extern regdumpContext
+extern getStackBase
 %macro exceptionHandler 1
   push rax
 
@@ -92,9 +93,13 @@ extern regdumpContext
 
   call _regdump
 
-  ; Reset CPU through keyboard controller
-  mov al, 0xfe
-  out 0x64, al
+  ; Restart to userland
+  add rsp, 48                   ; yeet the stack
+  call getStackBase
+  mov [rsp + 8 * 3], rax        ; Reset stack pointer
+  mov qword [rsp], userland     ; Userland entry point
+
+  iretq
 %endmacro
 
 ; -----------------------------------------------------------------------------
@@ -263,3 +268,7 @@ _regdump:
     popall
 
     ret
+
+section .rodata
+kernel      equ 0x100000
+userland    equ 0x2000000
