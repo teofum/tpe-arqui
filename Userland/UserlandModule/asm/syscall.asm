@@ -13,230 +13,52 @@ _syscall:
 
     ret
 
-global kbd_pollEvents
-kbd_pollEvents:
-    mov rax, 0x10
+%macro defineSyscall 2
+global %1
+%1:
+    mov rax, %2
     int 0x80
     ret
+%endmacro
 
-global kbd_keydown
-kbd_keydown:
-    mov rax, 0x11
-    int 0x80
-    ret
+defineSyscall kbd_pollEvents, 0x10
+defineSyscall kbd_keydown, 0x11
+defineSyscall kbd_keypressed, 0x12
+defineSyscall kbd_keyreleased, 0x13
+defineSyscall kbd_getKeyEvent, 0x14
+defineSyscall kbd_getchar, 0x15
 
-global kbd_keypressed
-kbd_keypressed:
-    mov rax, 0x12
-    int 0x80
-    ret
+defineSyscall vga_clear, 0x20
+defineSyscall vga_pixel, 0x21
+defineSyscall vga_line, 0x22
+defineSyscall vga_rect, 0x23
+defineSyscall vga_frame, 0x24
+defineSyscall vga_shade, 0x25
+defineSyscall vga_gradient, 0x26
+defineSyscall vga_font, 0x27
+defineSyscall vga_text, 0x28
+defineSyscall vga_textWrap, 0x29
+defineSyscall vga_present, 0x2A
+defineSyscall vga_setFramebuffer, 0x2B
+defineSyscall vga_copy, 0x2C
+defineSyscall vga_copy2x, 0x2D
+defineSyscall vga_bitmap, 0x2E
 
-global kbd_keyreleased
-kbd_keyreleased:
-    mov rax, 0x13
-    int 0x80
-    ret
+defineSyscall gfx_clear, 0xA0
+defineSyscall gfx_drawPrimitives, 0xA1
+defineSyscall gfx_drawPrimitivesIndexed, 0xA2
+defineSyscall gfx_drawWireframe, 0xA3
+defineSyscall gfx_drawWireframeIndexed, 0xA4
+defineSyscall gfx_setBuffers, 0xA5
+defineSyscall gfx_copy, 0xA6
+defineSyscall gfx_depthcopy, 0xA7
+defineSyscall gfx_parseObj, 0xA9
+defineSyscall gfx_setLight, 0xAA
+defineSyscall gfx_setLightType, 0xAB
+defineSyscall gfx_setMatrix, 0xAC
+defineSyscall gfx_setFlag, 0xAD
+defineSyscall gfx_getFramebuffer, 0xAE
+defineSyscall gfx_present, 0xAF
 
-global kbd_getKeyEvent
-kbd_getKeyEvent:
-    mov rax, 0x14
-    int 0x80
-    ret
-
-global kbd_getchar
-kbd_getchar:
-    mov rax, 0x15
-    int 0x80
-    ret
-
-global vga_clear
-vga_clear:
-    mov rax, 0x20
-    int 0x80
-    ret
-
-global vga_pixel
-vga_pixel:
-    mov rax, 0x21
-    int 0x80
-    ret
-
-global vga_line
-vga_line:
-    mov rax, 0x22
-    int 0x80
-    ret
-
-global vga_rect
-vga_rect:
-    mov rax, 0x23
-    int 0x80
-    ret
-
-global vga_frame
-vga_frame:
-    mov rax, 0x24
-    int 0x80
-    ret
-
-global vga_shade
-vga_shade:
-    mov rax, 0x25
-    int 0x80
-    ret
-
-global vga_gradient
-vga_gradient:
-    mov rax, 0x26
-    int 0x80
-    ret
-
-global vga_font
-vga_font:
-    mov rax, 0x27
-    int 0x80
-    ret
-
-global vga_text
-vga_text:
-    mov rax, 0x28
-    int 0x80
-    ret
-
-global vga_textWrap
-vga_textWrap:
-    mov rax, 0x29
-    int 0x80
-    ret
-
-global vga_present
-vga_present:
-    mov rax, 0x2A
-    int 0x80
-    ret
-
-global vga_setFramebuffer
-vga_setFramebuffer:
-    mov rax, 0x2B
-    int 0x80
-    ret
-
-global vga_copy
-vga_copy:
-    mov rax, 0x2C
-    int 0x80
-    ret
-
-global vga_copy2x
-vga_copy2x:
-    mov rax, 0x2D
-    int 0x80
-    ret
-
-global vga_bitmap
-vga_bitmap:
-    mov rax, 0x2E
-    int 0x80
-    ret
-
-global gfx_clear
-gfx_clear:
-    mov rax, 0xA0
-    int 0x80
-    ret
-
-global gfx_drawPrimitives
-gfx_drawPrimitives:
-    mov rax, 0xA1
-    int 0x80
-    ret
-
-global gfx_drawPrimitivesIndexed
-gfx_drawPrimitivesIndexed:
-    mov rax, 0xA2
-    int 0x80
-    ret
-
-global gfx_drawWireframe
-gfx_drawWireframe:
-    mov rax, 0xA3
-    int 0x80
-    ret
-
-global gfx_drawWireframeIndexed
-gfx_drawWireframeIndexed:
-    mov rax, 0xA4
-    int 0x80
-    ret
-
-global gfx_setBuffers
-gfx_setBuffers:
-    mov rax, 0xA5
-    int 0x80
-    ret
-
-global gfx_copy
-gfx_copy:
-    mov rax, 0xA6
-    int 0x80
-    ret
-
-global gfx_depthcopy
-gfx_depthcopy:
-    mov rax, 0xA7
-    int 0x80
-    ret
-
-global gfx_parseObj
-gfx_parseObj:
-    mov rax, 0xA9
-    int 0x80
-    ret
-
-global gfx_setLight
-gfx_setLight:
-    mov rax, 0xAA
-    int 0x80
-    ret
-
-global gfx_setLightType
-gfx_setLightType:
-    mov rax, 0xAB
-    int 0x80
-    ret
-
-global gfx_setMatrix
-gfx_setMatrix:
-    mov rax, 0xAC
-    int 0x80
-    ret
-
-global gfx_setFlag
-gfx_setFlag:
-    mov rax, 0xAD
-    int 0x80
-    ret
-
-global gfx_getFramebuffer
-gfx_getFramebuffer:
-    mov rax, 0xAE
-    int 0x80
-    ret
-
-global gfx_present
-gfx_present:
-    mov rax, 0xAF
-    int 0x80
-    ret
-
-global audio_beep
-audio_beep:
-  mov rax, 0x30
-  int 0x80
-  ret
-
-global audio_play_melody
-audio_play_melody:
-  mov rax, 0x31
-  int 0x80
-  ret
+defineSyscall audio_beep, 0x30
+defineSyscall audio_play_melody, 0x31
