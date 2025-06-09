@@ -6,7 +6,6 @@
 #include <kbd.h>
 #include <lib.h>
 #include <moduleLoader.h>
-#include <naiveConsole.h>
 #include <print.h>
 #include <stdint.h>
 #include <stdio.h>
