@@ -9,6 +9,7 @@
 #include <strings.h>
 #include <syscall.h>
 #include <vga.h>
+#include <sound.h>
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
@@ -277,7 +278,7 @@ static inline float randomFloat(pcg32_random_t *rng) {
 }
 
 /*
-* Aplica "aceleracion" y actualiza el estado 
+* Aplica "aceleracion" y actualiza el estado
 */
 static void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   // Add velocity
@@ -361,7 +362,7 @@ static void updateObject(physicsObject_t *obj) {
 }
 
 /*
-* asumiendo que son circulos 
+* asumiendo que son circulos
 * retorna el vetor de 'a' a 'b'
 */ //notalolo: final menos inicial
 static inline int
@@ -1168,6 +1169,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
             if (hit && i == j && iframes[i] == 0) {
               hits[i]++;
               iframes[i] = HIT_DEBOUNCE_MS;
+              sound_ball_hit();
             }
           }
 
@@ -1592,3 +1594,4 @@ int gg_startGame() {
 
   return 0;
 }
+
