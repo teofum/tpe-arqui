@@ -1,15 +1,14 @@
-#include "graphics.h"
-#include "io.h"
-#include "status.h"
-#include "vga.h"
+#include <audio.h>
 #include <defs.h>
+#include <graphics.h>
 #include <interrupts.h>
+#include <io.h>
 #include <kbd.h>
 #include <print.h>
 #include <status.h>
 #include <stdint.h>
 #include <time.h>
-#include <audio.h>
+#include <vga.h>
 
 #define ID_TIMER_TICK 0x20
 #define ID_KEYBOARD 0x21
@@ -406,4 +405,3 @@ void showCPUState() {
   char key = 0;
   while (!key) { key = kbd_getKeyEvent().key; }
 }
-

@@ -148,6 +148,11 @@ typedef enum {
   KEY_MM_MEDIA_SELECT,
 } keycode_t;
 
+typedef enum {
+  KBD_EV_PRESS = 0x01,
+  KBD_EV_RELEASE = 0x02,
+} kbd_eventType_t;
+
 typedef struct {
   uint8_t data[KBD_BUFFER_SIZE];
   int writePos, readPos;
