@@ -1,5 +1,9 @@
 section .text
 
+;------------------------------------------------------------------------------
+; Macros
+;------------------------------------------------------------------------------
+
 %macro pushall 0
   push rax
   push rcx
@@ -24,7 +28,7 @@ section .text
   pop rax
 %endmacro
 
-; Macro para handlers de IRQ
+; Generic IRQ handler
 extern irqDispatcher
 %macro irqHandlerMaster 1
 	pushall
@@ -44,97 +48,7 @@ extern irqDispatcher
 	iretq
 %endmacro
 
-; -----------------------------------------------------------------------------
-; Rutinas de PIC
-; -----------------------------------------------------------------------------
-
-; Establece la máscara del PIC maestro
-global _picMasterMask
-_picMasterMask:
-  mov rax, rdi
-  out 0x21, al
-  ret
-
-; Establece la máscara del PIC esclavo
-global _picSlaveMask
-_picSlaveMask:
-  mov rax, rdi  ; ax = mascara de 16 bits
-  out 0xa1, al
-  ret
-
-; -----------------------------------------------------------------------------
-; Handlers de interrupciones
-; -----------------------------------------------------------------------------
-
-; Timer tick (IRQ 0)
-global _irq00Handler
-_irq00Handler:
-	irqHandlerMaster 0
-
-; Keyboard handler
-; Special handling to alter CPU state as little as possible
-; for state dump function
-global _irq01Handler
-extern kbd_addKeyEvent
-extern _regdump
-_irq01Handler:
-  push rax     ; Preserve RAX value for statedump
-
-  mov rax, 0
-  in  al, 0x60
-
-; Signal PIC EOI (End of Interrupt)
-  push rax
-	mov al, 0x20
-	out 0x20, al
-  pop rax
-
-  cmp al, 0x3B ; if F1 is pressed, dump registers
-  jne .keyEvent
-
-  mov rax, [rsp + 8 * 1] ; RIP
-  push rax
-  mov rax, [rsp + 8 * 3] ; CS
-  push rax
-  mov rax, [rsp + 8 * 5] ; RFLAGS
-  push rax
-  mov rax, [rsp + 8 * 7] ; RSP (old)
-  push rax
-  mov rax, [rsp + 8 * 9] ; SS
-  push rax
-
-  call _regdump
-  add rsp, 40 ; yeet the stack
-  jmp .exit
-
-.keyEvent:
-	pushall
-
-  mov rdi, rax
-  call kbd_addKeyEvent
-
-  popall
-
-.exit:
-  pop rax
-	iretq
-
-; Syscall handler (IRQ 80h)
-global _irq80Handler
-extern syscallDispatchTable
-_irq80Handler:
-  push rbp
-  mov rbp, rsp
-
-  sti ; Allow syscalls to be interrupted
-
-  mov rax, [syscallDispatchTable + rax * 8]
-  call rax
-
-  mov rsp, rbp
-  pop rbp
-  iretq
-
+; Generic exception handler
 extern regdumpContext
 %macro exceptionHandler 1
   push rax
@@ -183,12 +97,169 @@ extern regdumpContext
   out 0x64, al
 %endmacro
 
+; -----------------------------------------------------------------------------
+; Rutinas de PIC
+; -----------------------------------------------------------------------------
+
+; Establece la máscara del PIC maestro
+global _picMasterMask
+_picMasterMask:
+  mov rax, rdi
+  out 0x21, al
+  ret
+
+; Establece la máscara del PIC esclavo
+global _picSlaveMask
+_picSlaveMask:
+  mov rax, rdi
+  out 0xA1, al
+  ret
+
+; -----------------------------------------------------------------------------
+; Handlers de interrupciones
+; -----------------------------------------------------------------------------
+
+;------------------------------------------------------------------------------
+; Timer tick (IRQ 0)
+;------------------------------------------------------------------------------
+
+global _irq00Handler
+_irq00Handler:
+	irqHandlerMaster 0
+
+;------------------------------------------------------------------------------
+; Keyboard handler
+; Special handling to alter CPU state as little as possible
+; for state dump function
+;------------------------------------------------------------------------------
+
+global _irq01Handler
+extern kbd_addKeyEvent
+extern _regdump
+_irq01Handler:
+  push rax     ; Preserve RAX value for statedump
+
+  mov rax, 0
+  in  al, 0x60
+
+; Signal PIC EOI (End of Interrupt)
+  push rax
+	mov al, 0x20
+	out 0x20, al
+  pop rax
+
+  cmp al, 0x3B ; if F1 is pressed, dump registers
+  jne .keyEvent
+
+  mov rax, [rsp + 8 * 1] ; RIP
+  push rax
+  mov rax, [rsp + 8 * 3] ; CS
+  push rax
+  mov rax, [rsp + 8 * 5] ; RFLAGS
+  push rax
+  mov rax, [rsp + 8 * 7] ; RSP (old)
+  push rax
+  mov rax, [rsp + 8 * 9] ; SS
+  push rax
+
+  call _regdump
+  add rsp, 40 ; yeet the stack
+  jmp .exit
+
+.keyEvent:
+	pushall
+
+  mov rdi, rax
+  call kbd_addKeyEvent
+
+  popall
+
+.exit:
+  pop rax
+	iretq
+
+;------------------------------------------------------------------------------
+; Syscall handler (IRQ 80h)
+;------------------------------------------------------------------------------
+
+global _irq80Handler
+extern syscallDispatchTable
+_irq80Handler:
+  push rbp
+  mov rbp, rsp
+
+  sti ; Allow syscalls to be interrupted
+
+  mov rax, [syscallDispatchTable + rax * 8]
+  call rax
+
+  mov rsp, rbp
+  pop rbp
+  iretq
+
+;------------------------------------------------------------------------------
+; Exceptions
+;------------------------------------------------------------------------------
+
 ; Division by Zero (0x00)
-GLOBAL _exception00Handler
+global _exception00Handler
 _exception00Handler:
   exceptionHandler 0x00
 
 ; Invalid Opcode (0x06)
-GLOBAL _exception06Handler
+global _exception06Handler
 _exception06Handler:
   exceptionHandler 0x06
+
+;------------------------------------------------------------------------------
+; Register dump function
+;------------------------------------------------------------------------------
+
+extern registerState
+extern showCPUState
+_regdump:
+    cli
+
+    mov rax, [rsp + 8 * 6]
+    mov [registerState + 0x00], rax
+    mov [registerState + 0x08], rbx
+    mov [registerState + 0x10], rcx
+    mov [registerState + 0x18], rdx
+
+    mov [registerState + 0x20], rsi
+    mov [registerState + 0x28], rdi
+    mov rax, [rsp + 8 * 2]  ; RSP (before jumping into IRQ handler)
+    mov [registerState + 0x30], rax
+    mov [registerState + 0x38], rbp
+
+    mov [registerState + 0x40], r8
+    mov [registerState + 0x48], r9
+    mov [registerState + 0x50], r10
+    mov [registerState + 0x58], r11
+    mov [registerState + 0x60], r12
+    mov [registerState + 0x68], r13
+    mov [registerState + 0x70], r14
+    mov [registerState + 0x78], r15
+
+    mov rax, [rsp + 8 * 5] ; RIP (before jumping into IRQ handler)
+    mov [registerState + 0x80], rax
+
+    mov rax, [rsp + 8 * 3] ; RFLAGS
+    mov [registerState + 0x88], rax
+
+    mov rax, [rsp + 8 * 4] ; CS
+    mov [registerState + 0xB8], ax
+    mov rax, [rsp + 8 * 1] ; SS
+    mov [registerState + 0xBA], ax
+    mov [registerState + 0xBC], ds
+    mov [registerState + 0xBE], es
+    mov [registerState + 0xC0], fs
+    mov [registerState + 0xC2], gs
+
+    sti
+
+    pushall
+    call showCPUState
+    popall
+
+    ret

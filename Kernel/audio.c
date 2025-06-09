@@ -1,17 +1,7 @@
 #include <audio.h>
+#include <lib.h>
 #include <stdint.h>
 #include <time.h>
-
-/* Funciones externas de audio_asm */
-/**
- * Lee un byte de un puerto de E/S y devuelve valor leído del puerto
- */
-extern uint8_t inb(uint16_t port);
-
-/**
- * Escribe un byte en un puerto de E/S
- */
-extern void outb(uint16_t port, uint8_t value);
 
 /* Constantes relacionadas con el PC Speaker */
 #define PIT_CHANNEL2_DATA_PORT                                                 \

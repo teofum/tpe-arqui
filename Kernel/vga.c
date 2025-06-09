@@ -628,6 +628,9 @@ vga_font_t vga_font(vga_font_t font) {
 
 vga_fontPtr_t vga_getfont(vga_font_t font) { return vga_fonts[font]; }
 
+/*
+ * 64-bit aligned memcpy, super fast
+ */
 static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
   for (uint64_t i = 0; i < len; i++) { *dst++ = *src++; }
 }

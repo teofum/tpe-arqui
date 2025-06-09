@@ -1,15 +1,12 @@
-#include "status.h"
-#include "time.h"
-#include <audio.h>
 #include <interrupts.h>
-#include <io.h>
 #include <kbd.h>
 #include <lib.h>
 #include <moduleLoader.h>
 #include <print.h>
+#include <status.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <vga.h>
 
 extern uint8_t text;

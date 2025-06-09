@@ -1,9 +1,9 @@
 #include <audio.h>
+#include <lib.h>
 #include <print.h>
 #include <status.h>
 #include <time.h>
 #include <vga.h>
-#include <audio.h>
 
 #define bcd_decode(x) ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 
@@ -11,11 +11,6 @@ extern uint8_t _rtc_getTime(uint64_t descriptor);// de rtc.asm
 extern void audio_timer_tick(void);
 
 static uint64_t timer_ticks = 0;
-
-/*
- * Escribe un byte en un puerto de E/S
- */
-extern void outb(uint16_t port, uint8_t value);
 
 void timer_init() {
   // Set mode 3, channel 0, high/low byte
@@ -29,7 +24,7 @@ void timer_init() {
 void timer_handler() {
   timer_ticks++;
   if (!(timer_ticks % (TICKS_PER_SECOND))) { status_drawStatusBar(); }
-  
+
   audio_timer_tick();
 }
 
@@ -111,4 +106,3 @@ dateTime_t rtc_getLocalTime(void) {
 
   return dt;
 }
-

@@ -3,6 +3,7 @@
 #include <interrupts.h>
 #include <io.h>
 #include <kbd.h>
+#include <lib.h>
 #include <print.h>
 #include <status.h>
 #include <stdint.h>
@@ -69,9 +70,6 @@ struct {
 
 extern void _picMasterMask(uint8_t mask);
 extern void _picSlaveMask(uint8_t mask);
-extern void _cli();
-extern void _sti();
-extern void _hlt();
 
 extern void _irq00Handler();
 extern void _irq01Handler();
