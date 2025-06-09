@@ -76,8 +76,6 @@ void audio_stop(void) {
 }
 
 void audio_beep(uint16_t frequency, uint16_t duration) {
-  _sti();
-
   single_beep[0].frequency = frequency;
   single_beep[0].duration = duration;
 
@@ -96,8 +94,6 @@ void audio_play_melody(const uint16_t *freqs, const uint16_t *durs,
                        uint32_t count) {
   if (!freqs || !durs || count == 0 || count > 511)
     return;
-
-  _sti();
 
   for (uint32_t i = 0; i < count; i++) {
     melody_buffer[i].frequency = freqs[i];
