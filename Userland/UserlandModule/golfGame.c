@@ -1171,6 +1171,9 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
               iframes[i] = HIT_DEBOUNCE_MS;
               sound_ball_hit();
             }
+            else if (hit && i != j) {
+              sound_ball_hit(); // Se puede poner otro sonido
+            }
           }
 
           // Player-player and ball-ball collisions
