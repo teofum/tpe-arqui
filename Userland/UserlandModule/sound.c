@@ -99,5 +99,5 @@ void sound_play_tetris(void) {
  */
 void sound_shell_beep(void) { sound_beep(1000, 300); }
 
-void sound_ball_hit(void) { sound_beep(1200, 150); }
+void sound_ball_hit(void) { sound_beep(1600, 130); }
 
