@@ -43,6 +43,7 @@ defineSyscall vga_setFramebuffer, 0x2B
 defineSyscall vga_copy, 0x2C
 defineSyscall vga_copy2x, 0x2D
 defineSyscall vga_bitmap, 0x2E
+defineSyscall vga_getVBEInfo, 0x2F
 
 defineSyscall gfx_clear, 0xA0
 defineSyscall gfx_drawPrimitives, 0xA1

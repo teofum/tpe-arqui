@@ -61,7 +61,7 @@ struct vbe_mode_info_t {
   uint8_t reserved1[206];
 } __attribute__((packed));
 
-
+typedef struct vbe_mode_info_t vbe_info_t;
 typedef struct vbe_mode_info_t *vbe_info_ptr;
 extern vbe_info_ptr VBEModeInfo;
 
@@ -273,5 +273,10 @@ void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset);
  * multiplying size by two.
  */
 void vga_copy2x(uint8_t *dst, uint8_t *src);
+
+/*
+ * Return information about the display device.
+ */
+vbe_info_t vga_getVBEInfo();
 
 #endif

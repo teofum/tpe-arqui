@@ -174,6 +174,7 @@ void initSyscalls() {
   registerSyscall(0x2C, vga_copy);
   registerSyscall(0x2D, vga_copy2x);
   registerSyscall(0x2E, vga_bitmap);
+  registerSyscall(0x2F, vga_getVBEInfo);
 
   /* Audio */
   registerSyscall(0x30, audio_beep);

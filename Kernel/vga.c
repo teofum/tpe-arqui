@@ -676,3 +676,5 @@ void vga_copy2x(uint8_t *dst, uint8_t *src) {
     dst2 += OFFSET_Y;
   }
 }
+
+vbe_info_t vga_getVBEInfo() { return *VBEModeInfo; }
