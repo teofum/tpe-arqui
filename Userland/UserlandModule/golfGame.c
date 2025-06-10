@@ -285,7 +285,6 @@ static void accelerateObject(physicsObject_t *obj, vector_t *dir) {
   obj->vy += dir->y;
 
   // Cap velocity
-  // TODO this should be a parameter for different objects
   float v = sqrt(sqr(obj->vx) + sqr(obj->vy));
   float vmax = VMAX / frametime;
   if (v > vmax) {
@@ -314,7 +313,6 @@ static void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
   }
   if (up) {
     vector_t dir;
-    // TODO make acceleration a constant
     dir.x = ACCELERATION * frametime * cos(obj->angle);
     dir.y = ACCELERATION * frametime * sin(obj->angle);
     accelerateObject(obj, &dir);
@@ -371,7 +369,6 @@ checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
   float dist = sqrt(sqr(difx) + sqr(dify));
 
   if (dist <= b->size + a->size) {
-    //TODO, habria que normalizarlo o algo asi/ ///////////////////////
     dir->x = (difx);
     dir->y = (dify);
     return 1;
