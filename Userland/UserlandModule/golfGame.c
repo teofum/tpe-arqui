@@ -1057,11 +1057,11 @@ static gg_pauseOption_t showPauseMenu() {
       if (i == selected) {
         vga_rect(
           CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
-          y0 + 48 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
+          y0 + 56 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
         );
         vga_frame(
           CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
-          y0 + 48 + 24 * i + 19, 0xffffff, 0
+          y0 + 56 + 24 * i + 19, 0xffffff, 0
         );
       }
       vga_text(
