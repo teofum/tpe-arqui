@@ -54,52 +54,23 @@ haltcpu:
 	hlt
 	ret
 
-global _regdump
-extern registerState
-extern showCPUState
-_regdump:
-    cli
+;------------------------------------------------------------------------------
+; uint8_t inb(uint16_t port)
+;------------------------------------------------------------------------------
+global inb
+inb:
+  mov dx, di        ; El primer parámetro (port) está en DI (16 bits)
+  xor rax, rax      ; Limpiar rax
+  in al, dx         ; Leer byte del puerto en AL
+  ret
 
-    mov rax, [rsp + 8 * 6]
-    mov [registerState + 0x00], rax
-    mov [registerState + 0x08], rbx
-    mov [registerState + 0x10], rcx
-    mov [registerState + 0x18], rdx
-
-    mov [registerState + 0x20], rsi
-    mov [registerState + 0x28], rdi
-    mov rax, [rsp + 8 * 2]  ; RSP (before jumping into IRQ handler)
-    mov [registerState + 0x30], rax
-    mov [registerState + 0x38], rbp
-
-    mov [registerState + 0x40], r8
-    mov [registerState + 0x48], r9
-    mov [registerState + 0x50], r10
-    mov [registerState + 0x58], r11
-    mov [registerState + 0x60], r12
-    mov [registerState + 0x68], r13
-    mov [registerState + 0x70], r14
-    mov [registerState + 0x78], r15
-
-    mov rax, [rsp + 8 * 5] ; RIP (before jumping into IRQ handler)
-    mov [registerState + 0x80], rax
-
-    mov rax, [rsp + 8 * 3] ; RFLAGS
-    mov [registerState + 0x88], rax
-
-    mov rax, [rsp + 8 * 4] ; CS
-    mov [registerState + 0xB8], ax
-    mov rax, [rsp + 8 * 1] ; SS
-    mov [registerState + 0xBA], ax
-    mov [registerState + 0xBC], ds
-    mov [registerState + 0xBE], es
-    mov [registerState + 0xC0], fs
-    mov [registerState + 0xC2], gs
-
-    sti
-
-    pushall
-    call showCPUState
-    popall
-
-    ret
+;------------------------------------------------------------------------------
+; void outb(uint16_t port, uint8_t value)
+;------------------------------------------------------------------------------
+global outb
+outb:
+  mov dx, di        ; El primer parámetro (port) está en DI (16 bits)
+  mov al, sil       ; El segundo parámetro (value) está en SI (8 bits)
+  out dx, al        ; Escribir AL al puerto DX
+  ret
+;------------------------------------------------------------------------------

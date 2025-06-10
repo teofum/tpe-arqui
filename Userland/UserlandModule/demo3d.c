@@ -7,12 +7,12 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
-extern const char *obj_utah;
+static void *obj_utah = (void *) 0x3007800;
 
-float3 demo3d_v[900];
-float3 demo3d_n[900];
-uint32_t demo3d_vi[1600 * 3];
-uint32_t demo3d_ni[1600 * 3];
+float3 *demo3d_v;
+float3 *demo3d_n;
+uint32_t *demo3d_vi;
+uint32_t *demo3d_ni;
 
 int demo3d() {
   // Disable status bar drawing while application is active
@@ -39,9 +39,11 @@ int demo3d() {
   float4x4 view = mat_lookat(pos, target, up);
   gfx_setMatrix(GFX_MAT_VIEW, &view);
 
+  vbe_info_t info = vga_getVBEInfo();
+  float aspect = (float) info.width / info.height;
   float fovDegrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Light colors
@@ -70,8 +72,8 @@ int demo3d() {
   };
 
   // Load the teapot model
-  uint32_t primCount;
-  gfx_parseObj(obj_utah, demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, &primCount);
+  uint32_t primCount =
+    gfx_loadModel(obj_utah, &demo3d_v, &demo3d_n, &demo3d_vi, &demo3d_ni);
 
   /*
    * Render loop
@@ -111,14 +113,12 @@ int demo3d() {
     }
     if (kbd_keypressed(KEY_COMMA)) {
       fovDegrees += 5.0f;
-      projection =
-        mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+      projection = mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
       gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
     }
     if (kbd_keypressed(KEY_PERIOD)) {
       fovDegrees -= 5.0f;
-      projection =
-        mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+      projection = mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
       gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
     }
     if (kbd_keypressed(KEY_ARROW_UP)) {

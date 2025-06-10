@@ -20,6 +20,11 @@
 #define LFT charcode(KEY_ARROW_LEFT)
 #define RGT charcode(KEY_ARROW_RIGHT)
 
+#define SC_EXT_HEADER 0xE0
+
+#define NUM_KEYS 128
+#define STATE_QWORDS (NUM_KEYS >> 6)
+
 typedef enum {
   SC_EXT_MM_PREV = 0x10,
   SC_EXT_MM_NEXT = 0x19,
@@ -61,18 +66,23 @@ typedef enum {
   SC_EXT_MM_MEDIA_SELECT,
 } ext_scancode_t;
 
-kbd_buffer_t kbd_buffer = {
+typedef uint64_t kbd_state_t[STATE_QWORDS];
+
+static kbd_buffer_t kbd_buffer = {
   .data = {0},
   .writePos = 0,
   .readPos = 0,
 };
 
-uint8_t kbd_state[128] = {0};
-uint8_t kbd_lastState[128] = {0};
-uint8_t kbd_capslock = 0;
-uint8_t kbd_extended = 0;
+static kbd_state_t kbd_state = {0};
+static kbd_state_t kbd_lastState = {0};
 
-int kbd_key2ascii[128] = {
+static uint8_t kbd_capslock = 0;
+static uint8_t kbd_extended = 0;
+
+static kbd_eventType_t kbd_eventmask = KBD_EV_PRESS;
+
+static int kbd_key2ascii[128] = {
   -1,  0x1B, '1',  '2', '3',  '4', '5', '6',  '7', '8', '9', '0', '-',
   '=', '\b', '\t', 'q', 'w',  'e', 'r', 't',  'y', 'u', 'i', 'o', 'p',
   '[', ']',  '\n', 0,   'a',  's', 'd', 'f',  'g', 'h', 'j', 'k', 'l',
@@ -85,7 +95,7 @@ int kbd_key2ascii[128] = {
   0,   0,    0,    0,   0,    0,   0,   0,    0,   0,   0,
 };
 
-int kbd_key2ascii_shift[128] = {
+static int kbd_key2ascii_shift[128] = {
   -1,  0x1B, '!',  '@', '#', '$', '%', '^',  '&', '*', '(', ')', '_',
   '+', '\b', '\t', 'Q', 'W', 'E', 'R', 'T',  'Y', 'U', 'I', 'O', 'P',
   '{', '}',  '\n', 0,   'A', 'S', 'D', 'F',  'G', 'H', 'J', 'K', 'L',
@@ -97,6 +107,24 @@ int kbd_key2ascii_shift[128] = {
   0,   0,    0,    0,   UP,  DN,  LFT, RGT,  0,   0,   0,   0,   0,
   0,   0,    0,    0,   0,   0,   0,   0,    0,   0,   0,
 };
+
+static inline uint64_t getKeyState(kbd_state_t state, uint8_t key) {
+  uint8_t qword = key >> 6;
+  uint64_t mask = 0x1ull << (key & 0x3F);
+
+  return state[qword] & mask ? 1 : 0;
+}
+
+static inline void setKeyState(kbd_state_t state, uint8_t key, uint8_t value) {
+  uint8_t qword = key >> 6;
+  uint64_t mask = 0x1ull << (key & 0x3F);
+
+  if (value) {
+    state[qword] |= mask;
+  } else {
+    state[qword] &= ~mask;
+  }
+}
 
 static uint8_t getExtendedKey(uint8_t key) {
   // A table would look nicer, but the data is too sparse for it to be worth it
@@ -196,81 +224,85 @@ void kbd_addKeyEvent(uint8_t sc) {
   return;
 }
 
+/*
+ * Consume the next event in the queue and update keyboard state.
+ * Returns nonzero if the event should be handled, 0 if it should be ignored.
+ */
+static inline int kbd_nextEvent(kbd_event_t *ev) {
+  // Get the next event and advance queue pointer
+  uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
+  next(kbd_buffer.readPos);
+
+  // Handle special byte indicating two-part scancode
+  if (scancode == SC_EXT_HEADER) {
+    kbd_extended = 1;
+    return 0;
+  }
+
+  // Get the keycode
+  uint8_t key = scancodeToKey(scancode);
+
+  // If we're in extended mode, convert to an extended keycode
+  if (kbd_extended) {
+    key = getExtendedKey(key);
+    kbd_extended = 0;
+  }
+
+  // Update keyboard state
+  setKeyState(kbd_state, key, isRelease(scancode) ? 0 : 1);
+
+  // Special handling for caps lock, it acts as a toggle
+  if (key == KEY_CAPSLOCK && !isRelease(scancode)) kbd_capslock = !kbd_capslock;
+
+  // Return whether event should be handled
+  int handle =
+    !isSpecial(key) && (isRelease(scancode) ? (kbd_eventmask & KBD_EV_RELEASE)
+                                            : (kbd_eventmask & KBD_EV_PRESS));
+
+  // Set event properties if not null
+  if (handle && ev != NULL) {
+    ev->key = key;
+    ev->isReleased = isRelease(scancode);
+    ev->alt = getKeyState(kbd_state, KEY_LEFT_ALT);
+    ev->alt_r = getKeyState(kbd_state, KEY_RIGHT_ALT);
+    ev->ctrl = getKeyState(kbd_state, KEY_LEFT_CTRL);
+    ev->ctrl_r = getKeyState(kbd_state, KEY_RIGHT_CTRL);
+    ev->shift = getKeyState(kbd_state, KEY_LEFT_SHIFT);
+    ev->shift_r = getKeyState(kbd_state, KEY_RIGHT_SHIFT);
+    ev->gui = getKeyState(kbd_state, KEY_LEFT_GUI);
+    ev->gui_r = getKeyState(kbd_state, KEY_RIGHT_GUI);
+    ev->capslock = kbd_capslock;
+  }
+
+  return handle;
+}
+
 void kbd_pollEvents() {
   memcpy(kbd_lastState, kbd_state, sizeof(kbd_state));
 
-  while (kbd_buffer.readPos != kbd_buffer.writePos) {
-    uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
-
-    if (scancode == 0xE0) {
-      kbd_extended = 1;
-    } else {
-      uint8_t key = scancodeToKey(scancode);
-      if (kbd_extended) {
-        key = getExtendedKey(key);
-        kbd_extended = 0;
-      }
-
-      kbd_state[key] = isRelease(scancode) ? 0 : 1;
-    }
-
-    next(kbd_buffer.readPos);
-  }
+  while (kbd_buffer.readPos != kbd_buffer.writePos) { kbd_nextEvent(NULL); }
 }
 
-int kbd_keydown(uint8_t key) { return kbd_state[key]; }
+int kbd_keydown(uint8_t key) { return getKeyState(kbd_state, key); }
 
 int kbd_keypressed(uint8_t key) {
-  return (kbd_state[key] && !kbd_lastState[key]);
+  return (getKeyState(kbd_state, key) && !getKeyState(kbd_lastState, key));
 }
 
 int kbd_keyreleased(uint8_t key) {
-  return (!kbd_state[key] && kbd_lastState[key]);
+  return (!getKeyState(kbd_state, key) && getKeyState(kbd_lastState, key));
 }
 
 kbd_event_t kbd_getKeyEvent() {
-  kbd_event_t kbd_event = {0};
-  kbd_event.key = 0;
+  kbd_event_t event = {0};
+  event.key = 0;
 
   while (kbd_buffer.readPos != kbd_buffer.writePos) {
-    uint8_t scancode = kbd_buffer.data[kbd_buffer.readPos];
-    next(kbd_buffer.readPos);
-
-    uint8_t key = scancodeToKey(scancode);
-    if (kbd_extended) {
-      key = getExtendedKey(key);
-      kbd_extended = 0;
-    }
-
-    if (scancode == 0xE0) {
-      kbd_extended = 1;
-    } else if (isSpecial(key) || isRelease(scancode)) {
-      if (key == KEY_CAPSLOCK) {
-        // Special handling for caps lock, it acts as a toggle
-        if (!isRelease(scancode)) kbd_capslock = !kbd_capslock;
-      } else {
-        kbd_state[key] = isRelease(scancode) ? 0 : 1;
-      }
-    } else {
-      kbd_state[key] = 1;
-      kbd_event.key = key;
-      kbd_event.isReleased = 0;// redundant
-
-      kbd_event.alt = kbd_state[KEY_LEFT_ALT];
-      kbd_event.alt_r = kbd_state[KEY_RIGHT_ALT];
-      kbd_event.ctrl = kbd_state[KEY_LEFT_CTRL];
-      kbd_event.ctrl_r = kbd_state[KEY_RIGHT_CTRL];
-      kbd_event.shift = kbd_state[KEY_LEFT_SHIFT];
-      kbd_event.shift_r = kbd_state[KEY_RIGHT_SHIFT];
-      kbd_event.gui = kbd_state[KEY_LEFT_GUI];
-      kbd_event.gui_r = kbd_state[KEY_RIGHT_GUI];
-      kbd_event.capslock = kbd_capslock;
-
-      return kbd_event;
-    }
+    uint8_t key;
+    if (kbd_nextEvent(&event)) return event;
   }
 
-  return kbd_event;
+  return event;
 }
 
 int kbd_getchar() {

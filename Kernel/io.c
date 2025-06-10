@@ -17,10 +17,10 @@
  * The I/O subsystem keeps its own framebuffer, so it can preserve text written
  * to the screen after graphics mode functions are used (for example, writing
  * to the main framebuffer directly).
- * This takes up a bunch of memory (2.25 MB), but it allows us to both draw
+ * This takes up a bunch of memory (3 MB), but it allows us to both draw
  * text very efficiently and preserve it when an application uses graphics mode.
  */
-static uint8_t io_framebuffer[VGA_WIDTH * VGA_HEIGHT * 3] = {0};
+static uint8_t io_framebuffer[FRAMEBUFFER_SIZE] = {0};
 static vga_font_t io_textFont;
 
 /*
@@ -48,10 +48,9 @@ static void nextline() {
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
-    uint32_t offset = offsetLines * VGA_WIDTH * 3;
+    uint32_t offset = offsetLines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset,
-      VGA_WIDTH * VGA_HEIGHT * 3 - offset
+      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(
@@ -293,22 +292,23 @@ void io_setfont(vga_font_t font) {
   vga_fontPtr_t fontData = vga_getfont(io_textFont);
 
   vga_setFramebuffer(io_framebuffer);
-  int32_t remaining = VGA_HEIGHT - (int32_t) (cur_y + fontData->lineHeight);
+  uint32_t maxHeight = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
+  int32_t remaining = maxHeight - (int32_t) (cur_y + fontData->lineHeight);
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
-    uint32_t offset = offsetLines * VGA_WIDTH * 3;
+    uint32_t offset = offsetLines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset,
-      VGA_WIDTH * VGA_HEIGHT * 3 - offset
+      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(
-      0, VGA_HEIGHT - offsetLines, VGA_WIDTH - 1, VGA_HEIGHT - 1, DEFAULT_BG, 0
+      0, maxHeight - offsetLines, VGA_WIDTH - 1, maxHeight - 1, DEFAULT_BG, 0
     );
 
     cur_y -= offsetLines;
   }
+
   copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();

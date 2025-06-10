@@ -3,12 +3,56 @@
 
 #include <stdint.h>
 
-#define VGA_WIDTH 1024
-#define VGA_HEIGHT 768
+// Without dynamic allocation, framebuffer size is determined by
+// the maximum supported resolution, in our case this is 1280x1024
+#define VGA_MAX_WIDTH 1280
+#define VGA_MAX_HEIGHT 1024
+#define FRAMEBUFFER_SIZE (VGA_MAX_WIDTH * VGA_MAX_HEIGHT * 4)
 
 #define colors(x, y) (((uint64_t) (x) << 32) | (y))
 
 typedef uint32_t color_t;
+
+struct vbe_mode_info_t {
+  uint16_t attributes; // deprecated
+  uint8_t window_a;    // deprecated
+  uint8_t window_b;    // deprecated
+  uint16_t granularity;// deprecated
+  uint16_t window_size;
+  uint16_t segment_a;
+  uint16_t segment_b;
+  uint32_t win_func_ptr;// deprecated
+  uint16_t pitch;       // number of bytes per horizontal line
+  uint16_t width;       // width in pixels
+  uint16_t height;      // height in pixels
+  uint8_t w_char;       // unused...
+  uint8_t y_char;       // ...
+  uint8_t planes;
+  uint8_t bpp;  // bits per pixel in this mode
+  uint8_t banks;// deprecated; total number of banks in this mode
+  uint8_t memory_model;
+  uint8_t bank_size;// deprecated
+  uint8_t image_pages;
+  uint8_t reserved0;
+
+  uint8_t red_mask;
+  uint8_t red_position;
+  uint8_t green_mask;
+  uint8_t green_position;
+  uint8_t blue_mask;
+  uint8_t blue_position;
+  uint8_t reserved_mask;
+  uint8_t reserved_position;
+  uint8_t direct_color_attributes;
+
+  uint32_t framebuffer;// physical address of the linear frame buffer
+  uint32_t off_screen_mem_off;
+  uint16_t off_screen_mem_size;
+  uint8_t reserved1[206];
+} __attribute__((packed));
+
+typedef struct vbe_mode_info_t vbe_info_t;
+typedef struct vbe_mode_info_t *vbe_info_ptr;
 
 typedef enum {
   VGA_FONT_DEFAULT = 0,
@@ -175,5 +219,10 @@ extern void vga_copy(uint8_t *dst, uint8_t *src, uint64_t offset);
  * multiplying size by two.
  */
 extern void vga_copy2x(uint8_t *dst, uint8_t *src);
+
+/*
+ * Return information about the display device.
+ */
+vbe_info_t vga_getVBEInfo();
 
 #endif
