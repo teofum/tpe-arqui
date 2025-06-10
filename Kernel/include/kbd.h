@@ -148,6 +148,11 @@ typedef enum {
   KEY_MM_MEDIA_SELECT,
 } keycode_t;
 
+typedef enum {
+  KBD_EV_PRESS = 0x01,
+  KBD_EV_RELEASE = 0x02,
+} kbd_eventType_t;
+
 typedef struct {
   uint8_t data[KBD_BUFFER_SIZE];
   int writePos, readPos;
@@ -189,7 +194,7 @@ int kbd_keypressed(uint8_t key);
 int kbd_keyreleased(uint8_t key);
 
 /*
- * Returns the next keyboard event.
+ * Returns the next keyboard event, updating keyboard state.
  */
 kbd_event_t kbd_getKeyEvent();
 

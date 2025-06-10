@@ -2,6 +2,7 @@
 #include <graphics.h>
 #include <print.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <vga.h>
 
 #define OFFSET_X (3)
@@ -441,112 +442,25 @@ void gfx_present() {
   }
 }
 
-static const char *parseFloat(const char *data, float *out) {
-  char c;
-  int decimal = 0;
-  float weight = 1.0f;
-  float sign = 1.0f;
-  *out = 0.0f;
-  while ((c = *data++) != ' ' && c != 0) {
-    if (c == '-') {
-      sign = -sign;
-    } else if (c == '.') {
-      decimal = 1;
-      weight *= 0.1f;
-    } else if (c >= '0' && c <= '9') {
-      uint32_t digit = c - '0';
-      if (decimal) {
-        *out += (float) digit * weight;
-        weight *= 0.1f;
-      } else {
-        *out *= 10.0f;
-        *out += (float) digit;
-      }
-    }
-    // Break *before* a newline so it gets processed by nextLine()
-    if (data[0] == '\n') break;
-  }
-
-  *out *= sign;
-  return data;
-}
-
-static const char *parseObjFloat3(const char *data, float3 *out) {
-  data = parseFloat(data, &out->x);
-  data = parseFloat(data, &out->y);
-  data = parseFloat(data, &out->z);
-
-  return data;
-}
-
-static const char *parseUnsigned(const char *data, uint32_t *out) {
-  char c;
-  *out = 0.0f;
-  while ((c = *data++) != ' ' && c != '/' && c != 0) {
-    if (c >= '0' && c <= '9') {
-      uint32_t digit = c - '0';
-      *out *= 10;
-      *out += digit;
-    }
-    // Break *before* a newline so it gets processed by nextLine()
-    if (data[0] == '\n') break;
-  }
-
-  return data;
-}
-
-static const char *
-parseObjIndices(const char *data, uint32_t *vi, uint32_t *ni) {
-  char c;
-  for (int i = 2; i >= 0; i--) {
-    data = parseUnsigned(data, &vi[i]);
-    vi[i]--;// Account for obj using 1-indexing for some unfathomable reason
-    while ((c = *data++) != '/' && c != ' ' && c != 0);
-    data = parseUnsigned(data, &ni[i]);
-    ni[i]--;
-  }
-
-  return data;
-}
-
-static const char *nextLine(const char *data) {
-  char c;
-  while ((c = *data++) != '\n' && c != 0);
-  return data;
-}
-
-void gfx_parseObj(
-  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni,
-  uint32_t *fc
+uint32_t gfx_loadModel(
+  void *data, float3 **v, float3 **n, uint32_t **vi, uint32_t **ni
 ) {
-  char c;
-  uint32_t vc = 0, nc = 0;
-  *fc = 0;
-  while ((c = *data++) != 0) {
-    switch (c) {
-      case 'v':
-        c = *data++;
-        if (c == 'n') {
-          data++;// skip the space
-          data = parseObjFloat3(data, n);
-          *n = vnorm(*n);
-          n++;
-        } else if (c == ' ') {
-          data = parseObjFloat3(data, v++);
-        }
-        break;
-      case 'f':
-        c = *data++;
-        if (c == ' ') {
-          data = parseObjIndices(data, vi, ni);
-          vi += 3;
-          ni += 3;
-          (*fc)++;
-        }
-        break;
-    }
-    data = nextLine(data);
-  }
+  uint32_t *header = (uint32_t *) data;
+  uint32_t nVerts = *header++;
+  uint32_t nNormals = *header++;
+  uint32_t nFaces = *header++;
+
+  uint32_t vOffset = 0;
+  uint32_t nOffset = vOffset + nVerts * 3;
+  uint32_t viOffset = nOffset + nNormals * 3;
+  uint32_t niOffset = viOffset + nFaces * 3;
+
+  *v = (float3 *) (header + vOffset);
+  *n = (float3 *) (header + nOffset);
+  *vi = header + viOffset;
+  *ni = header + niOffset;
+
+  return nFaces;
 }
 
 void gfx_setBuffers(uint8_t *framebuffer, float *depthbuffer) {
@@ -575,6 +489,5 @@ void gfx_depthcopy(float *dst, float *src) {
     (uint64_t *) dst, (uint64_t *) src, (VGA_WIDTH >> 1) * gfx_renderHeight
   );
 }
-
 
 uint8_t *gfx_getFramebuffer() { return _gfxFramebuffer; }

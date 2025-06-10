@@ -1,15 +1,28 @@
-#include "graphics.h"
-#include "io.h"
-#include "status.h"
-#include "vga.h"
-#include <defs.h>
+#include <audio.h>
+#include <graphics.h>
 #include <interrupts.h>
+#include <io.h>
 #include <kbd.h>
+#include <lib.h>
 #include <print.h>
 #include <status.h>
 #include <stdint.h>
 #include <time.h>
-#include <audio.h>
+#include <vga.h>
+
+/* Flags para derechos de acceso de los segmentos */
+#define ACS_PRESENT 0x80 /* segmento presente en memoria */
+#define ACS_CSEG 0x18    /* segmento de codigo */
+#define ACS_DSEG 0x10    /* segmento de datos */
+#define ACS_READ 0x02    /* segmento de lectura */
+#define ACS_WRITE 0x02   /* segmento de escritura */
+#define ACS_IDT ACS_DSEG
+#define ACS_INT_386 0x0E /* Interrupt GATE 32 bits */
+#define ACS_INT (ACS_PRESENT | ACS_INT_386)
+
+#define ACS_CODE (ACS_PRESENT | ACS_CSEG | ACS_READ)
+#define ACS_DATA (ACS_PRESENT | ACS_DSEG | ACS_WRITE)
+#define ACS_STACK (ACS_PRESENT | ACS_DSEG | ACS_WRITE)
 
 #define ID_TIMER_TICK 0x20
 #define ID_KEYBOARD 0x21
@@ -57,9 +70,6 @@ struct {
 
 extern void _picMasterMask(uint8_t mask);
 extern void _picSlaveMask(uint8_t mask);
-extern void _cli();
-extern void _sti();
-extern void _hlt();
 
 extern void _irq00Handler();
 extern void _irq01Handler();
@@ -185,7 +195,7 @@ void initSyscalls() {
   registerSyscall(0xA5, gfx_setBuffers);
   registerSyscall(0xA6, gfx_copy);
   registerSyscall(0xA7, gfx_depthcopy);
-  registerSyscall(0xA9, gfx_parseObj);
+  registerSyscall(0xA8, gfx_loadModel);
   registerSyscall(0xAA, gfx_setLight);
   registerSyscall(0xAB, gfx_setLightType);
   registerSyscall(0xAC, gfx_setMatrix);
@@ -225,6 +235,7 @@ void showCPUState() {
   const char *footer;
   char buf[256];
 
+  int statusEnabled = status_enabled();
   if (regdumpContext.flag == REGDUMP_EXCEPTION) {
     status_setEnabled(0);
     bg_colors = colors(0x500000, 0x800000);
@@ -405,5 +416,11 @@ void showCPUState() {
 
   char key = 0;
   while (!key) { key = kbd_getKeyEvent().key; }
-}
 
+  // Restore statusbar
+  status_setEnabled(statusEnabled);
+
+  // Restore regdump ctx
+  regdumpContext.flag = REGDUMP_NORMAL;
+  regdumpContext.exception_id = 0;
+}

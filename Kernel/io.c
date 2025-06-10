@@ -293,7 +293,8 @@ void io_setfont(vga_font_t font) {
   vga_fontPtr_t fontData = vga_getfont(io_textFont);
 
   vga_setFramebuffer(io_framebuffer);
-  int32_t remaining = VGA_HEIGHT - (int32_t) (cur_y + fontData->lineHeight);
+  uint32_t maxHeight = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
+  int32_t remaining = maxHeight - (int32_t) (cur_y + fontData->lineHeight);
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
@@ -304,11 +305,12 @@ void io_setfont(vga_font_t font) {
     );
 
     vga_rect(
-      0, VGA_HEIGHT - offsetLines, VGA_WIDTH - 1, VGA_HEIGHT - 1, DEFAULT_BG, 0
+      0, maxHeight - offsetLines, VGA_WIDTH - 1, maxHeight - 1, DEFAULT_BG, 0
     );
 
     cur_y -= offsetLines;
   }
+
   copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();

@@ -1,18 +1,7 @@
 #include <audio.h>
-#include <libasm.h>
+#include <lib.h>
 #include <stdint.h>
 #include <time.h>
-
-/* Funciones externas de audio_asm */
-/**
- * Lee un byte de un puerto de E/S y devuelve valor leído del puerto
- */
-extern uint8_t inb(uint16_t port);
-
-/**
- * Escribe un byte en un puerto de E/S
- */
-extern void outb(uint16_t port, uint8_t value);
 
 /* Constantes relacionadas con el PC Speaker */
 #define PIT_CHANNEL2_DATA_PORT                                                 \
@@ -31,17 +20,17 @@ extern void outb(uint16_t port, uint8_t value);
 
 /* Estado del driver de audio */
 static struct {
-  audio_note_t *current_melody; // Array interno de notas
-  uint32_t current_note_index;  // Índice de la nota actual
-  uint32_t countdown;           // Countdown para la nota actual
-  uint8_t is_playing_melody;    // Flag
-  uint32_t melody_length;       // Longitud del array de notas
+  audio_note_t *current_melody;// Array interno de notas
+  uint32_t current_note_index; // Índice de la nota actual
+  uint32_t countdown;          // Countdown para la nota actual
+  uint8_t is_playing_melody;   // Flag
+  uint32_t melody_length;      // Longitud del array de notas
 } audio_state = {0};
 
 // Array para Beep simple
 static audio_note_t single_beep[2] = {
-    {0, 0},               // Nota a reproducir
-    {AUDIO_END_MELODY, 0} // Marcador de fin
+  {0, 0},              // Nota a reproducir
+  {AUDIO_END_MELODY, 0}// Marcador de fin
 };
 
 #define MAX_NOTES 512
@@ -60,8 +49,8 @@ void audio_play(uint16_t frequency) {
   /* Configura el canal 2 del PIT a la frecuencia deseada */
   /* PIT recibe de a 8 bits --> Byte bajo primero, alto despues por LE */
   outb(PIT_MODE_COMMAND_PORT, PIT_CHANNEL2_MODE);
-  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t)(divisor));      /* Byte bajo */
-  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t)(divisor >> 8)); /* Byte alto */
+  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t) (divisor));      /* Byte bajo */
+  outb(PIT_CHANNEL2_DATA_PORT, (uint8_t) (divisor >> 8)); /* Byte alto */
 
   /* Conecta el canal 2 del PIT al PC Speaker habilitando los bits 0-1 */
   uint8_t tmp = inb(PC_SPEAKER_PORT);
@@ -90,10 +79,10 @@ void audio_beep(uint16_t frequency, uint16_t duration) {
   }
 }
 
-void audio_play_melody(const uint16_t *freqs, const uint16_t *durs,
-                       uint32_t count) {
-  if (!freqs || !durs || count == 0 || count > 511)
-    return;
+void audio_play_melody(
+  const uint16_t *freqs, const uint16_t *durs, uint32_t count
+) {
+  if (!freqs || !durs || count == 0 || count > 511) return;
 
   for (uint32_t i = 0; i < count; i++) {
     melody_buffer[i].frequency = freqs[i];
@@ -120,9 +109,7 @@ void audio_play_melody(const uint16_t *freqs, const uint16_t *durs,
 }
 
 void audio_timer_tick(void) {
-  if (!audio_state.is_playing_melody || !audio_state.current_melody) {
-    return;
-  }
+  if (!audio_state.is_playing_melody || !audio_state.current_melody) { return; }
 
   if (audio_state.countdown > 0) {
     audio_state.countdown--;
@@ -139,10 +126,10 @@ void audio_timer_tick(void) {
   }
 
   const audio_note_t *next_note =
-      &audio_state.current_melody[audio_state.current_note_index];
+    &audio_state.current_melody[audio_state.current_note_index];
 
   if (next_note->frequency == AUDIO_END_MELODY) {
-    audio_stop(); // Termina la reproducción
+    audio_stop();// Termina la reproducción
     // Resetea el estado
     audio_state.current_melody = NULL;
     audio_state.current_note_index = 0;

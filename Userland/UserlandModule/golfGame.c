@@ -158,45 +158,45 @@ static uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
 /*
  * OBJ strings for 3D models
  */
-extern const char *obj_capybase;
-extern const char *obj_capyface;
-extern const char *obj_capyclub;
-extern const char *obj_flag;
-extern const char *obj_flagpole;
-extern const char *obj_ball;
+static void *obj_capybase = (void *) 0x3003000;
+static void *obj_capyface = (void *) 0x3006000;
+static void *obj_capyclub = (void *) 0x3006800;
+static void *obj_flag = (void *) 0x3006C00;
+static void *obj_flagpole = (void *) 0x3006E00;
+static void *obj_ball = (void *) 0x3007000;
 
 /*
  * 3D model data
  */
-static float3 v_base[150];
-static float3 n_base[150];
-static uint32_t vi_base[280 * 3];
-static uint32_t ni_base[280 * 3];
+static float3 *v_base;
+static float3 *n_base;
+static uint32_t *vi_base;
+static uint32_t *ni_base;
 
-static float3 v_face[23];
-static float3 n_face[23];
-static uint32_t vi_face[20 * 3];
-static uint32_t ni_face[20 * 3];
+static float3 *v_face;
+static float3 *n_face;
+static uint32_t *vi_face;
+static uint32_t *ni_face;
 
-static float3 v_club[12];
-static float3 n_club[12];
-static uint32_t vi_club[20 * 3];
-static uint32_t ni_club[20 * 3];
+static float3 *v_club;
+static float3 *n_club;
+static uint32_t *vi_club;
+static uint32_t *ni_club;
 
-static float3 v_flag[5];
-static float3 n_flag[4];
-static uint32_t vi_flag[4 * 3];
-static uint32_t ni_flag[4 * 3];
+static float3 *v_flag;
+static float3 *n_flag;
+static uint32_t *vi_flag;
+static uint32_t *ni_flag;
 
-static float3 v_pole[8];
-static float3 n_pole[8];
-static uint32_t vi_pole[9 * 3];
-static uint32_t ni_pole[9 * 3];
+static float3 *v_pole;
+static float3 *n_pole;
+static uint32_t *vi_pole;
+static uint32_t *ni_pole;
 
-static float3 v_ball[12];
-static float3 n_ball[12];
-static uint32_t vi_ball[20 * 3];
-static uint32_t ni_ball[20 * 3];
+static float3 *v_ball;
+static float3 *n_ball;
+static uint32_t *vi_ball;
+static uint32_t *ni_ball;
 
 static uint32_t pc_base, pc_face, pc_club, pc_flag, pc_pole, pc_ball;
 
@@ -1552,12 +1552,12 @@ int gg_startGame() {
   makeHoleMesh();
 
   // Load the capybara models
-  gfx_parseObj(obj_capybase, v_base, n_base, vi_base, ni_base, &pc_base);
-  gfx_parseObj(obj_capyface, v_face, n_face, vi_face, ni_face, &pc_face);
-  gfx_parseObj(obj_capyclub, v_club, n_club, vi_club, ni_club, &pc_club);
-  gfx_parseObj(obj_flag, v_flag, n_flag, vi_flag, ni_flag, &pc_flag);
-  gfx_parseObj(obj_flagpole, v_pole, n_pole, vi_pole, ni_pole, &pc_pole);
-  gfx_parseObj(obj_ball, v_ball, n_ball, vi_ball, ni_ball, &pc_ball);
+  pc_base = gfx_loadModel(obj_capybase, &v_base, &n_base, &vi_base, &ni_base);
+  pc_face = gfx_loadModel(obj_capyface, &v_face, &n_face, &vi_face, &ni_face);
+  pc_club = gfx_loadModel(obj_capyclub, &v_club, &n_club, &vi_club, &ni_club);
+  pc_flag = gfx_loadModel(obj_flag, &v_flag, &n_flag, &vi_flag, &ni_flag);
+  pc_pole = gfx_loadModel(obj_flagpole, &v_pole, &n_pole, &vi_pole, &ni_pole);
+  pc_ball = gfx_loadModel(obj_ball, &v_ball, &n_ball, &vi_ball, &ni_ball);
 
   // Init deltatime timer
   totalTicks = _syscall(SYS_TICKS);

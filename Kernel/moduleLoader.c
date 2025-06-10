@@ -1,6 +1,5 @@
 #include <lib.h>
 #include <moduleLoader.h>
-#include <naiveConsole.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -18,7 +17,6 @@ void loadModules(void *payloadStart, void **targetModuleAddress) {
 
 static void loadModule(uint8_t **module, void *targetModuleAddress) {
   uint32_t moduleSize = readUint32(module);
-  // if (!moduleSize) moduleSize = 589824;
 
   memcpy(targetModuleAddress, *module, moduleSize);
   *module += moduleSize;
