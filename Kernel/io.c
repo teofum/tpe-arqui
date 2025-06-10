@@ -48,10 +48,9 @@ static void nextline() {
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
-    uint32_t offset = offsetLines * VGA_WIDTH * 3;
+    uint32_t offset = offsetLines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset,
-      VGA_WIDTH * VGA_HEIGHT * 3 - offset
+      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(
@@ -298,10 +297,9 @@ void io_setfont(vga_font_t font) {
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
-    uint32_t offset = offsetLines * VGA_WIDTH * 3;
+    uint32_t offset = offsetLines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset,
-      VGA_WIDTH * VGA_HEIGHT * 3 - offset
+      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(

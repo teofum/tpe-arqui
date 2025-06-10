@@ -5,6 +5,8 @@
 
 #define VGA_WIDTH VBE_mode_info->width
 #define VGA_HEIGHT VBE_mode_info->height
+#define OFFSET_X (VBE_mode_info->bpp >> 3)
+#define OFFSET_Y (VBE_mode_info->pitch)
 
 // Without dynamic allocation, framebuffer size is determined by
 // the maximum supported resolution, in our case this is 1280x1024

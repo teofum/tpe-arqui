@@ -10,8 +10,6 @@
   (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
 #define VGA_FRAMEBUFFER activeFramebuffer
 
-#define OFFSET_X (VBE_mode_info->bpp >> 3)
-#define OFFSET_Y (VBE_mode_info->pitch)
 #define pixelOffset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
 
 #define TAB_SIZE 8
