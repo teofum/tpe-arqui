@@ -146,9 +146,11 @@ typedef enum {
 
 /*
  * Background framebuffers for optimized pre-rendering
+ * These only need to be half size, rendering is half res
+ * (half the buffers are still unused, this is a potential improvement)
  */
-static uint8_t bgFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
-static float bgDepthbuffer[VGA_WIDTH * VGA_HEIGHT];
+static uint8_t bgFramebuffer[FRAMEBUFFER_SIZE >> 1];
+static float bgDepthbuffer[(VGA_WIDTH * VGA_HEIGHT) >> 1];
 
 /*
  * Bitmap image data

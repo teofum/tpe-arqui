@@ -17,7 +17,7 @@
  * The I/O subsystem keeps its own framebuffer, so it can preserve text written
  * to the screen after graphics mode functions are used (for example, writing
  * to the main framebuffer directly).
- * This takes up a bunch of memory (2.25 MB), but it allows us to both draw
+ * This takes up a bunch of memory (3 MB), but it allows us to both draw
  * text very efficiently and preserve it when an application uses graphics mode.
  */
 static uint8_t io_framebuffer[FRAMEBUFFER_SIZE] = {0};

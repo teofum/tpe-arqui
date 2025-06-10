@@ -6,6 +6,8 @@
 #define VGA_WIDTH 1024
 #define VGA_HEIGHT 768
 
+#define FRAMEBUFFER_SIZE (VGA_WIDTH * VGA_HEIGHT * 4)
+
 #define colors(x, y) (((uint64_t) (x) << 32) | (y))
 
 typedef uint32_t color_t;
