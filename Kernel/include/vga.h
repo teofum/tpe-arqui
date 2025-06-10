@@ -3,11 +3,14 @@
 
 #include <stdint.h>
 
-// todo
-#define VGA_WIDTH 1024
-#define VGA_HEIGHT 768
+#define VGA_WIDTH VBE_mode_info->width
+#define VGA_HEIGHT VBE_mode_info->height
 
-#define FRAMEBUFFER_SIZE (VGA_WIDTH * VGA_HEIGHT * 4)
+// Without dynamic allocation, framebuffer size is determined by
+// the maximum supported resolution, in our case this is 1280x1024
+#define VGA_MAX_WIDTH 1280
+#define VGA_MAX_HEIGHT 1024
+#define FRAMEBUFFER_SIZE (VGA_MAX_WIDTH * VGA_MAX_HEIGHT * 4)
 
 #define VGA_FONT_MAX_HEIGHT 24
 

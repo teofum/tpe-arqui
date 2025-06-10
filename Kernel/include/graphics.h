@@ -41,6 +41,11 @@ typedef enum {
 } gfx_flags_t;
 
 /*
+ * Initialize the graphics subsystem
+ */
+void gfx_init();
+
+/*
  * Clear the internal frame and depth buffers.
  */
 void gfx_clear(color_t color);

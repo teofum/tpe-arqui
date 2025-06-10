@@ -22,7 +22,7 @@
  * Default buffers
  */
 static uint8_t gfx_defaultFramebuffer[FRAMEBUFFER_SIZE];
-static float gfx_defaultDepthbuffer[VGA_WIDTH * VGA_HEIGHT];
+static float gfx_defaultDepthbuffer[VGA_MAX_WIDTH * VGA_MAX_HEIGHT];
 
 /*
  * Framebuffer for the graphics subsystem
@@ -38,8 +38,8 @@ static float *_depthbuffer = gfx_defaultDepthbuffer;
  * Render resolution settings.
  * Rendering at half resolution is supported for faster rendering.
  */
-static uint32_t gfx_renderWidth = VGA_WIDTH;
-static uint32_t gfx_renderHeight = VGA_HEIGHT;
+static uint32_t gfx_renderWidth;
+static uint32_t gfx_renderHeight;
 
 /*
  * Graphics system state.
@@ -64,6 +64,11 @@ static float3 gfx_ambientLight;
 static gfx_light_t gfx_lightType = GFX_LIGHT_DIRECTIONAL;
 
 static gfx_flags_t gfx_flags = GFX_DEPTH_TEST | GFX_DEPTH_WRITE;
+
+void gfx_init() {
+  gfx_renderWidth = VGA_WIDTH;
+  gfx_renderHeight = VGA_HEIGHT;
+}
 
 /*
  * End of state.
