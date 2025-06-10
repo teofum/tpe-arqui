@@ -119,7 +119,10 @@ rtc_poll:
 	jne VBEdone			                ; If not then skip VESA init
 
 vesa_lookup_init:
-    mov edx, 0                          ; Index to edid_prefer
+    mov edx, 0                          ; Index to res_prefer
+
+vesa_lookup_reset:
+    mov si, 0x0000
 
 vesa_lookup_loop:
 	mov edi, VBEModeInfoBlock	        ; VBE data will be stored at this address
@@ -130,32 +133,53 @@ vesa_lookup_loop:
 	; 0x4118 is 1024x768x24bit, 0x4138 should be 32bit
 	; 0x411B is 1280x1024x24bit, 0x413D should be 32bit
 
-	mov cx, [edid_prefer + 4 * edx]	    ; Put your desired mode here
+	mov cx, si                    	    ; Put your desired mode here
 	mov bx, cx			                ; Mode is saved to BX for the set command later
 	int 0x10
-
 	cmp ax, 0x004F			            ; Return value in AX should equal 0x004F if command supported and successful
-    jne next_edid
+    jne next_res
 
-    mov si, msg_edid_found
-    mov [si + 6], dl
-    add byte [si + 6], 0x30
-    call print_string_16
+test_sx:
+	mov cx, [res_prefer + 8 * edx]	; res_prefer[edx].x
+	cmp word [VBEModeInfoBlock.XResolution], cx	;
+	jne next_res
 
-    mov cx, [edid_prefer + 4 * edx + 2]             ; Selected mode BPP
-    cmp byte [VBEModeInfoBlock.BitsPerPixel], cl    ; Make sure this matches the number of bits for the mode!
-    je  edid_ok
+test_sy:
+	mov cx, [res_prefer + 8 * edx + 2]	; res_prefer[edx].y
+	cmp word [VBEModeInfoBlock.YResolution], cx	;
+	jne next_res
+
+test_bpp:
+	mov cl, [res_prefer + 8 * edx + 4]	; res_prefer[edx].bpp
+	cmp byte [VBEModeInfoBlock.BitsPerPixel], cl	;
+	jne next_res
+
+success:
+	je res_ok
+
+    ;mov si, msg_edid_found
+    ;mov [si + 6], dl
+    ;add byte [si + 6], 0x30
+    ;call print_string_16
+
+    ;mov cx, [res_prefer + 4 * edx + 2]             ; Selected mode BPP
+    ;cmp byte [VBEModeInfoBlock.BitsPerPixel], cl    ; Make sure this matches the number of bits for the mode!
+    ;je  res_ok
 
     mov si, msg_edid_bpp_fail
     call print_string_16
 
-next_edid:
-    inc edx
-    cmp edx, edid_size
-    je  VBEfail
-    jmp vesa_lookup_loop
+next_res:
+    inc si
+    cmp si, 0xFFFF
+    jne vesa_lookup_loop
 
-edid_ok:
+    inc edx
+    cmp edx, res_size
+    je  VBEfail
+    jmp vesa_lookup_reset
+
+res_ok:
 	or bx, 0x4000			            ; Use linear/flat frame buffer model (set bit 14)
 	mov ax, 0x4F02			            ; SET SuperVGA VIDEO MODE - http://www.ctyme.com/intr/rb-0275.htm
 	int 0x10

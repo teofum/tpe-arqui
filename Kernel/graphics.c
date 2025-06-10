@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <vga.h>
 
-#define OFFSET_X (3)
-#define OFFSET_Y (3 * VGA_WIDTH)
+#define OFFSET_X (VBE_mode_info->bpp >> 3)
+#define OFFSET_Y (VBE_mode_info->pitch)
 #define pixelOffset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
 
 #define b(c) ((c) & 0xff)
@@ -21,7 +21,7 @@
 /*
  * Default buffers
  */
-static uint8_t gfx_defaultFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+static uint8_t gfx_defaultFramebuffer[FRAMEBUFFER_SIZE];
 static float gfx_defaultDepthbuffer[VGA_WIDTH * VGA_HEIGHT];
 
 /*

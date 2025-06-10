@@ -3,8 +3,11 @@
 
 #include <stdint.h>
 
+// todo
 #define VGA_WIDTH 1024
 #define VGA_HEIGHT 768
+
+#define FRAMEBUFFER_SIZE (VGA_WIDTH * VGA_HEIGHT * 4)
 
 #define VGA_FONT_MAX_HEIGHT 24
 

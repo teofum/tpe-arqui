@@ -70,13 +70,12 @@ msg_novesa:		db 'VESA error', 0
 msg_edid_bpp_fail:		db ' bpp fail', 0
 msg_edid_found:		    db ' EDID 0', 0
 
-edid_prefer:		    ;; En orden de preferencia: EDID, bpp
-edid0_1024_768_24_qemu:	dw 0x4118, 24
-edid1_1024_768_32:		dw 0x0118, 32
-edid2_1366_768_32:		dw 0x017F, 32
-edid3_1024_600_32:		dw 0x0162, 32
-edid4_800_600_32:		dw 0x0115, 32
-edid_size		        equ ($-edid_prefer)/4
+res_prefer:		    ;; En orden de preferencia: EDID, bpp
+						dw 1024, 768, 32, 0x0000
+                        dw 1366, 768, 32, 0x0000
+						dw 1024, 600, 32, 0x0000
+                        dw 1024, 768, 24, 0x0000
+res_size		        equ ($-res_prefer)/8
 
 ; VESA
 ; Mandatory information for all VBE revisions

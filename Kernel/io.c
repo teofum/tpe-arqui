@@ -20,7 +20,7 @@
  * This takes up a bunch of memory (2.25 MB), but it allows us to both draw
  * text very efficiently and preserve it when an application uses graphics mode.
  */
-static uint8_t io_framebuffer[VGA_WIDTH * VGA_HEIGHT * 3] = {0};
+static uint8_t io_framebuffer[FRAMEBUFFER_SIZE] = {0};
 static vga_font_t io_textFont;
 
 /*

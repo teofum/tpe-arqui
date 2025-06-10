@@ -51,7 +51,7 @@ VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
  * provide new framebuffers. Instead, the application must reserve enough
  * memory for its own framebuffer.
  */
-uint8_t _framebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+uint8_t _framebuffer[FRAMEBUFFER_SIZE];
 
 /*
  * Pointer to the active framebuffer. This is the framebuffer being drawn to
@@ -661,9 +661,9 @@ void vga_copy2x(uint8_t *dst, uint8_t *src) {
   uint64_t height = VGA_HEIGHT >> 1;
   for (uint64_t y = 0; y < height; y++) {
     for (uint64_t x = 0; x < width; x++) {
-      dst[0] = dst[3] = dst2[0] = dst2[3] = src[0];
-      dst[1] = dst[4] = dst2[1] = dst2[4] = src[1];
-      dst[2] = dst[5] = dst2[2] = dst2[5] = src[2];
+      dst[0] = dst[OFFSET_X + 0] = dst2[0] = dst2[OFFSET_X + 0] = src[0];
+      dst[1] = dst[OFFSET_X + 1] = dst2[1] = dst2[OFFSET_X + 1] = src[1];
+      dst[2] = dst[OFFSET_X + 2] = dst2[2] = dst2[OFFSET_X + 2] = src[2];
 
       src += OFFSET_X;
       dst += (OFFSET_X << 1);
