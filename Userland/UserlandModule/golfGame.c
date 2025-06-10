@@ -600,9 +600,10 @@ static void setupGameRender(float4x4 *view) {
   // Set up view and projection matrices
   gfx_setMatrix(GFX_MAT_VIEW, view);
 
+  float aspect = (float) VBEModeInfo.width / VBEModeInfo.height;
   float fovDegrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 100.0f);
+    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 100.0f);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Set up lighting
@@ -801,9 +802,10 @@ static int showTitleScreen(gameSettings_t *settings) {
   float4x4 view = mat_lookat(pos, target, up);
   gfx_setMatrix(GFX_MAT_VIEW, &view);
 
+  float aspect = (float) VBEModeInfo.width / VBEModeInfo.height;
   float fovDegrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Set up lighting
