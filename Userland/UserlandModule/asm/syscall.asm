@@ -52,6 +52,7 @@ defineSyscall gfx_drawWireframeIndexed, 0xA4
 defineSyscall gfx_setBuffers, 0xA5
 defineSyscall gfx_copy, 0xA6
 defineSyscall gfx_depthcopy, 0xA7
+defineSyscall gfx_loadModel, 0xA8
 defineSyscall gfx_parseObj, 0xA9
 defineSyscall gfx_setLight, 0xAA
 defineSyscall gfx_setLightType, 0xAB

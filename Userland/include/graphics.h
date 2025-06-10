@@ -122,6 +122,14 @@ void gfx_parseObj(
 );
 
 /*
+ * Load model data from a binary model object.
+ * Returns primitive count and sets the pointers passed as parameters to the
+ * corresponding arrays in data.
+ */
+uint32_t
+gfx_loadModel(void *data, float3 **v, float3 **n, uint32_t **vi, uint32_t **ni);
+
+/*
  * Set the frame and depthbuffers used for drawing.
  * Simlar to vga_setFramebuffer, this function lets the user draw to an auxiliary
  * framebuffer for advanced composition effects.

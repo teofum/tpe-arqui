@@ -2,6 +2,7 @@
 #include <graphics.h>
 #include <print.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <vga.h>
 
 #define OFFSET_X (3)
@@ -547,6 +548,29 @@ void gfx_parseObj(
     }
     data = nextLine(data);
   }
+}
+
+uint32_t gfx_loadModel(
+  void *data, float3 **v, float3 **n, uint32_t **vi, uint32_t **ni
+) {
+  uint32_t *header = (uint32_t *) data;
+  uint32_t nVerts = *header++;
+  uint32_t nNormals = *header++;
+  uint32_t nFaces = *header++;
+
+  uint32_t vOffset = 0;
+  uint32_t nOffset = vOffset + nVerts * 3;
+  uint32_t viOffset = nOffset + nNormals * 3;
+  uint32_t niOffset = viOffset + nFaces * 3;
+
+  printf("load model %u %u %u\n", nVerts, nNormals, nFaces);
+
+  *v = (float3 *) (header + vOffset);
+  *n = (float3 *) (header + nOffset);
+  *vi = header + viOffset;
+  *ni = header + niOffset;
+
+  return nFaces;
 }
 
 void gfx_setBuffers(uint8_t *framebuffer, float *depthbuffer) {

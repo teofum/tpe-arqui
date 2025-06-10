@@ -194,7 +194,7 @@ int kbd_keypressed(uint8_t key);
 int kbd_keyreleased(uint8_t key);
 
 /*
- * Returns the next keyboard event.
+ * Returns the next keyboard event, updating keyboard state.
  */
 kbd_event_t kbd_getKeyEvent();
 

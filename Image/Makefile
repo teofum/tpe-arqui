@@ -8,7 +8,7 @@ VMDK=$(OSIMAGENAME).vmdk
 QCOW2=$(OSIMAGENAME).qcow2
 IMG=$(OSIMAGENAME).img
 KERNEL=../Kernel/out/kernel.bin
-USERLAND=../Userland/0000-userlandModule.bin ../Userland/0001-imageData.bin
+USERLAND=../Userland/0000-userlandModule.bin ../Userland/assets/capibara.meme ../Userland/assets/capybase.mdl ../Userland/assets/capyface.mdl ../Userland/assets/capyclub.mdl ../Userland/assets/flag.mdl ../Userland/assets/flagpole.mdl ../Userland/assets/ball.mdl
 
 PACKEDKERNEL=packedKernel.bin
 IMGSIZE=16777216
