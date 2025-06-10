@@ -17,10 +17,10 @@
  * The I/O subsystem keeps its own framebuffer, so it can preserve text written
  * to the screen after graphics mode functions are used (for example, writing
  * to the main framebuffer directly).
- * This takes up a bunch of memory (2.25 MB), but it allows us to both draw
+ * This takes up a bunch of memory (3 MB), but it allows us to both draw
  * text very efficiently and preserve it when an application uses graphics mode.
  */
-static uint8_t io_framebuffer[VGA_WIDTH * VGA_HEIGHT * 3] = {0};
+static uint8_t io_framebuffer[FRAMEBUFFER_SIZE] = {0};
 static vga_font_t io_textFont;
 
 /*
@@ -48,10 +48,9 @@ static void nextline() {
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
-    uint32_t offset = offsetLines * VGA_WIDTH * 3;
+    uint32_t offset = offsetLines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset,
-      VGA_WIDTH * VGA_HEIGHT * 3 - offset
+      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(
@@ -298,10 +297,9 @@ void io_setfont(vga_font_t font) {
   if (remaining <= 0) {
     uint16_t offsetLines = -remaining;
 
-    uint32_t offset = offsetLines * VGA_WIDTH * 3;
+    uint32_t offset = offsetLines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset,
-      VGA_WIDTH * VGA_HEIGHT * 3 - offset
+      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(

@@ -12,6 +12,11 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
+#define VGA_WIDTH VBEModeInfo.width
+#define VGA_HEIGHT VBEModeInfo.height
+#define CENTER_X (VGA_WIDTH >> 1)
+#define CENTER_Y (VGA_HEIGHT >> 1)
+
 #define TITLE_TEXT_BLINK_MS 400
 
 #define FIELD_WIDTH 15.0f
@@ -146,9 +151,16 @@ typedef enum {
 
 /*
  * Background framebuffers for optimized pre-rendering
+ * These only need to be half size, rendering is half res
+ * (half the buffers are still unused, this is a potential improvement)
  */
-static uint8_t bgFramebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
-static float bgDepthbuffer[VGA_WIDTH * VGA_HEIGHT];
+static uint8_t bgFramebuffer[FRAMEBUFFER_SIZE >> 1];
+static float bgDepthbuffer[(VGA_MAX_WIDTH * VGA_MAX_HEIGHT) >> 1];
+
+/*
+ * VGA info struct
+ */
+static vbe_info_t VBEModeInfo;
 
 /*
  * Bitmap image data
@@ -588,9 +600,10 @@ static void setupGameRender(float4x4 *view) {
   // Set up view and projection matrices
   gfx_setMatrix(GFX_MAT_VIEW, view);
 
+  float aspect = (float) VBEModeInfo.width / VBEModeInfo.height;
   float fovDegrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 100.0f);
+    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 100.0f);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Set up lighting
@@ -789,9 +802,10 @@ static int showTitleScreen(gameSettings_t *settings) {
   float4x4 view = mat_lookat(pos, target, up);
   gfx_setMatrix(GFX_MAT_VIEW, &view);
 
+  float aspect = (float) VBEModeInfo.width / VBEModeInfo.height;
   float fovDegrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Set up lighting
@@ -866,67 +880,89 @@ static int showTitleScreen(gameSettings_t *settings) {
     vga_setFramebuffer(NULL);
 
     // Draw the title logo (it floats!)
-    vga_bitmap(256, 128 - 18 * sin(a), titlescreenLogo, 2, VGA_ALPHA_BLEND);
+    vga_bitmap(
+      CENTER_X - 256, CENTER_Y - 256 - 18 * sin(a), titlescreenLogo, 2,
+      VGA_ALPHA_BLEND
+    );
 
     // Draw UI text
     if (screen == GG_SCREEN_TITLE &&
         textBlinkTimer > (TITLE_TEXT_BLINK_MS >> 1)) {
       vga_font_t oldfont = vga_font(VGA_FONT_ALT_BOLD);
-      vga_text(424, 500, "Press any key to start", 0xffffff, 0, VGA_TEXT_BG);
+      vga_text(
+        CENTER_X - 88, CENTER_Y + 116, "Press any key to start", 0xffffff, 0,
+        VGA_TEXT_BG
+      );
       vga_font(oldfont);
     }
 
     if (screen == GG_SCREEN_PLAYERSELECT) {
-      vga_shade(384, 400, 639, 599, 0, 0);
-      vga_rect(
-        384, 400, 639, 599, 0xa0ffffff & UI_GREEN_LIGHT, VGA_ALPHA_BLEND
-      );
-      vga_frame(384, 400, 639, 599, 0xffffff, 0);
+      uint16_t x0 = CENTER_X - 128, y0 = CENTER_Y + 16;
+      uint16_t x1 = x0 + 255, y1 = y0 + 199;
+
+      vga_shade(x0, y0, x1, y1, 0, 0);
+      vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_LIGHT, VGA_ALPHA_BLEND);
+      vga_frame(x0, y0, x1, y1, 0xffffff, 0);
 
       vga_font_t oldfont = vga_font(VGA_FONT_LARGE);
-      vga_text(458, 416, "MAIN MENU", 0xffffff, 0, 0);
+      vga_text(CENTER_X - 54, y0 + 16, "MAIN MENU", 0xffffff, 0, 0);
       vga_font(oldfont);
 
       for (int i = 0; i < menuItemCount; i++) {
         if (i == menuItem) {
           vga_rect(
-            428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
+            CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
+            y0 + 56 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
           );
-          vga_frame(428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, 0xffffff, 0);
+          vga_frame(
+            CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
+            y0 + 56 + 24 * i + 19, 0xffffff, 0
+          );
         }
-        vga_text(452, 456 + 24 * i, menuStrings[i], 0xffffff, 0, 0);
+        vga_text(
+          CENTER_X - 60, y0 + 56 + 24 * i, menuStrings[i], 0xffffff, 0, 0
+        );
       }
     }
 
     if (screen == GG_SCREEN_SETUP) {
-      vga_shade(384, 400, 639, 599, 0, 0);
-      vga_rect(
-        384, 400, 639, 599, 0xa0ffffff & UI_GREEN_LIGHT, VGA_ALPHA_BLEND
-      );
-      vga_frame(384, 400, 639, 599, 0xffffff, 0);
+      uint16_t x0 = CENTER_X - 128, y0 = CENTER_Y + 16;
+      uint16_t x1 = x0 + 255, y1 = y0 + 199;
+
+      vga_shade(x0, y0, x1, y1, 0, 0);
+      vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_LIGHT, VGA_ALPHA_BLEND);
+      vga_frame(x0, y0, x1, y1, 0xffffff, 0);
 
       vga_font_t oldfont = vga_font(VGA_FONT_LARGE);
-      vga_text(452, 416, "GAME SETUP", 0xffffff, 0, 0);
+      vga_text(CENTER_X - 60, y0 + 16, "GAME SETUP", 0xffffff, 0, 0);
       vga_font(oldfont);
 
       for (int i = 0; i < setupItemCount; i++) {
         if (i == menuItem) {
           vga_rect(
-            428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
+            CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
+            y0 + 56 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
           );
-          vga_frame(428, 456 + 24 * i - 4, 595, 456 + 24 * i + 19, 0xffffff, 0);
+          vga_frame(
+            CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
+            y0 + 56 + 24 * i + 19, 0xffffff, 0
+          );
         }
         if (i == 0) {
           char buf[20];
           sprintf(buf, " Holes: %u ", settings->nHoles);
-          vga_text(472, 456, buf, 0xffffff, 0, 0);
+          vga_text(CENTER_X - 40, y0 + 56, buf, 0xffffff, 0, 0);
         } else {
-          vga_text(472, 456 + 24 * i, setupStrings[i], 0xffffff, 0, 0);
+          vga_text(
+            CENTER_X - 40, y0 + 56 + 24 * i, setupStrings[i], 0xffffff, 0, 0
+          );
         }
       }
     }
 
-    vga_text(824, 736, "(c) 1998 TONKATSU GAMES", 0xffffff, 0, 0);
+    vga_text(
+      VGA_WIDTH - 200, VGA_WIDTH - 32, "(c) 1998 TONKATSU GAMES", 0xffffff, 0, 0
+    );
 
     // Draw everything to screen
     vga_present();
@@ -1002,8 +1038,8 @@ static gg_pauseOption_t showPauseMenu() {
   while (!exit) {
     updateTimer();
 
-    uint16_t x0 = (VGA_WIDTH >> 1) - 128, x1 = x0 + 255;
-    uint16_t y0 = (VGA_HEIGHT >> 1) - 96, y1 = y0 + 191;
+    uint16_t x0 = CENTER_X - 128, x1 = x0 + 255;
+    uint16_t y0 = CENTER_Y - 96, y1 = y0 + 191;
 
     // Use current game graphics as background
     gfx_present();
@@ -1022,15 +1058,16 @@ static gg_pauseOption_t showPauseMenu() {
     for (int i = 0; i < optionCount; i++) {
       if (i == selected) {
         vga_rect(
-          428, y0 + 48 + 24 * i - 4, 595, y0 + 48 + 24 * i + 19,
-          UI_GREEN_HIGHLIGHT, 0
+          CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
+          y0 + 56 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
         );
         vga_frame(
-          428, y0 + 48 + 24 * i - 4, 595, y0 + 48 + 24 * i + 19, 0xffffff, 0
+          CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
+          y0 + 56 + 24 * i + 19, 0xffffff, 0
         );
       }
       vga_text(
-        (VGA_WIDTH - 136) >> 1, y0 + 48 + 24 * i, optionStrings[i], 0xffffff, 0,
+        (VGA_WIDTH - 136) >> 1, y0 + 56 + 24 * i, optionStrings[i], 0xffffff, 0,
         0
       );
     }
@@ -1268,20 +1305,16 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     vga_line(0, 63, VGA_WIDTH - 1, 63, 0xffffff, 0);
     vga_line(VGA_WIDTH >> 1, 0, VGA_WIDTH >> 1, 63, 0xffffff, 0);
 
-    vga_rect(
-      (VGA_WIDTH >> 1) - 32, 12, (VGA_WIDTH >> 1) + 31, 51, UI_GREEN_DARK, 0
-    );
-    vga_frame(
-      (VGA_WIDTH >> 1) - 32, 12, (VGA_WIDTH >> 1) + 31, 51, 0xffffff, 0
-    );
+    vga_rect(CENTER_X - 32, 12, CENTER_X + 31, 51, UI_GREEN_DARK, 0);
+    vga_frame(CENTER_X - 32, 12, CENTER_X + 31, 51, 0xffffff, 0);
 
     // Text
     vga_font_t oldfont = vga_font(VGA_FONT_ALT_BOLD);
     sprintf(buf, "Hole %u", nHole + 1);
-    vga_text((VGA_WIDTH >> 1) - 24, 16, buf, 0xffffff, 0x000000, 0);
+    vga_text(CENTER_X - 24, 16, buf, 0xffffff, 0x000000, 0);
     vga_font(oldfont);
     sprintf(buf, "Par: %u", PAR);
-    vga_text((VGA_WIDTH >> 1) - 24, 32, buf, 0xffffff, 0x000000, 0);
+    vga_text(CENTER_X - 24, 32, buf, 0xffffff, 0x000000, 0);
 
     vga_text(24, 16, "PLAYER 1", 0xffffff, 0x000000, 0);
     sprintf(buf, "Hits: %u", hits[0]);
@@ -1298,20 +1331,19 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     }
 
     if (settings->nPlayers > 1) {
-      vga_text((VGA_WIDTH >> 1) + 56, 16, "PLAYER 2", 0xffffff, 0x000000, 0);
+      vga_text(CENTER_X + 56, 16, "PLAYER 2", 0xffffff, 0x000000, 0);
       sprintf(buf, "Hits: %u", hits[1]);
-      vga_text((VGA_WIDTH >> 1) + 56, 32, buf, 0xffffff, 0x000000, 0);
+      vga_text(CENTER_X + 56, 32, buf, 0xffffff, 0x000000, 0);
 
-      vga_text((VGA_WIDTH >> 1) + 136, 16, " Hole", 0xffffff, 0x000000, 0);
-      vga_text((VGA_WIDTH >> 1) + 136, 32, "Score", 0xffffff, 0x000000, 0);
+      vga_text(CENTER_X + 136, 16, " Hole", 0xffffff, 0x000000, 0);
+      vga_text(CENTER_X + 136, 32, "Score", 0xffffff, 0x000000, 0);
 
       for (uint32_t h = 0; h < settings->nHoles; h++) {
         sprintf(buf, "%u", h + 1);
-        vga_text((VGA_WIDTH >> 1) + 194 + h * 16, 16, buf, 0xffffff, 0, 0);
+        vga_text(CENTER_X + 194 + h * 16, 16, buf, 0xffffff, 0, 0);
         sprintf(buf, "%u", settings->scores[1][h]);
         vga_text(
-          (VGA_WIDTH >> 1) + 194 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff,
-          0, 0
+          CENTER_X + 194 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff, 0, 0
         );
       }
     }
@@ -1320,8 +1352,8 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
      * Display game end screen
      */
     if (gameState == GG_GAME_END) {
-      uint16_t x0 = (VGA_WIDTH >> 1) - 128, x1 = x0 + 255;
-      uint16_t y0 = (VGA_HEIGHT >> 1) - 96, y1 = y0 + 191;
+      uint16_t x0 = CENTER_X - 128, x1 = x0 + 255;
+      uint16_t y0 = CENTER_Y - 96, y1 = y0 + 191;
 
       // Background
       vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_DARK, VGA_ALPHA_BLEND);
@@ -1414,8 +1446,8 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
           break;
       }
     } else if (gameState == GG_GAME_SCOREBOARD) {
-      uint16_t x0 = (VGA_WIDTH >> 1) - 192, x1 = x0 + 383;
-      uint16_t y0 = (VGA_HEIGHT >> 1) - 96, y1 = y0 + 191;
+      uint16_t x0 = CENTER_X - 192, x1 = x0 + 383;
+      uint16_t y0 = CENTER_Y - 96, y1 = y0 + 191;
 
       // Background
       vga_rect(x0, y0, x1, y1, 0xa0ffffff & UI_GREEN_DARK, VGA_ALPHA_BLEND);
@@ -1543,6 +1575,9 @@ int gg_startGame() {
   // Disable status bar drawing while application is active
   uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
+
+  // Get VGA info
+  VBEModeInfo = vga_getVBEInfo();
 
   // Initialize RNG
   pcg32_random_t rng;

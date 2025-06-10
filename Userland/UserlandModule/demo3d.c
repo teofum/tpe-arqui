@@ -39,9 +39,11 @@ int demo3d() {
   float4x4 view = mat_lookat(pos, target, up);
   gfx_setMatrix(GFX_MAT_VIEW, &view);
 
+  vbe_info_t info = vga_getVBEInfo();
+  float aspect = (float) info.width / info.height;
   float fovDegrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
   gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
 
   // Light colors
@@ -111,14 +113,12 @@ int demo3d() {
     }
     if (kbd_keypressed(KEY_COMMA)) {
       fovDegrees += 5.0f;
-      projection =
-        mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+      projection = mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
       gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
     }
     if (kbd_keypressed(KEY_PERIOD)) {
       fovDegrees -= 5.0f;
-      projection =
-        mat_perspective(deg2rad(fovDegrees), 4.0f / 3.0f, 0.1f, 10.0f);
+      projection = mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
       gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
     }
     if (kbd_keypressed(KEY_ARROW_UP)) {

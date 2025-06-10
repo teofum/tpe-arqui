@@ -1,3 +1,4 @@
+#include "graphics.h"
 #include <interrupts.h>
 #include <kbd.h>
 #include <lib.h>
@@ -66,8 +67,9 @@ int main() {
   // Init timer
   timer_init();
 
-  // Initialize video driver
+  // Initialize video driver and graphics
   vga_init();
+  gfx_init();
 
   // Enable status bar
   status_setEnabled(1);

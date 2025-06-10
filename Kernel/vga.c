@@ -6,12 +6,9 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
-#define VGA_PHYSICAL_FRAMEBUFFER                                               \
-  (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
+#define VGA_PHYSICAL_FRAMEBUFFER (uint8_t *) (uint64_t) VBEModeInfo->framebuffer
 #define VGA_FRAMEBUFFER activeFramebuffer
 
-#define OFFSET_X (VBE_mode_info->bpp >> 3)
-#define OFFSET_Y (VBE_mode_info->pitch)
 #define pixelOffset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
 
 #define TAB_SIZE 8
@@ -39,7 +36,7 @@ typedef enum {
   VGA_BMP_16,
 } vga_colormode_t;
 
-VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
+vbe_info_ptr VBEModeInfo = (vbe_info_ptr) 0x0000000000005C00;
 
 /*
  * Default framebuffer.
@@ -51,7 +48,7 @@ VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
  * provide new framebuffers. Instead, the application must reserve enough
  * memory for its own framebuffer.
  */
-uint8_t _framebuffer[VGA_WIDTH * VGA_HEIGHT * 3];
+uint8_t _framebuffer[FRAMEBUFFER_SIZE];
 
 /*
  * Pointer to the active framebuffer. This is the framebuffer being drawn to
@@ -291,19 +288,24 @@ void vga_setFramebuffer(uint8_t *fb) {
 
 void vga_clear(color_t color) {
   uint64_t *fb = (uint64_t *) VGA_FRAMEBUFFER;
-  uint64_t size = (OFFSET_Y >> 3) * VBE_mode_info->height;
+  uint64_t size = (OFFSET_Y >> 3) * VBEModeInfo->height;
 
-  uint64_t c = color & 0xffffff;
-  uint64_t data[] = {
-    (c << 48) | (c << 24) | c,
-    (c << 56) | (c << 32) | (c << 8) | (c >> 16),
-    (c << 40) | (c << 16) | (c >> 8),
-  };
+  if (VBEModeInfo->bpp == 24) {
+    uint64_t c = color & 0xffffff;
+    uint64_t data[] = {
+      (c << 48) | (c << 24) | c,
+      (c << 56) | (c << 32) | (c << 8) | (c >> 16),
+      (c << 40) | (c << 16) | (c >> 8),
+    };
 
-  for (uint64_t offset = 0; offset < size; offset += 3) {
-    fb[offset + 0] = data[0];
-    fb[offset + 1] = data[1];
-    fb[offset + 2] = data[2];
+    for (uint64_t offset = 0; offset < size; offset += 3) {
+      fb[offset + 0] = data[0];
+      fb[offset + 1] = data[1];
+      fb[offset + 2] = data[2];
+    }
+  } else {
+    uint64_t data = color | ((uint64_t) color) << 32;
+    for (uint64_t offset = 0; offset < size; offset++) { fb[offset] = data; }
   }
 }
 
@@ -482,7 +484,7 @@ void vga_textWrap(
   uint16_t x0, uint16_t y0, int16_t maxw, const char *str, uint64_t colors,
   uint8_t flags
 ) {
-  uint16_t xmax = maxw < 0 ? maxw + VBE_mode_info->width : maxw + x0;
+  uint16_t xmax = maxw < 0 ? maxw + VBEModeInfo->width : maxw + x0;
 
   color_t color = colors >> 32;
   color_t bgColor = colors & 0xffffffff;
@@ -661,9 +663,9 @@ void vga_copy2x(uint8_t *dst, uint8_t *src) {
   uint64_t height = VGA_HEIGHT >> 1;
   for (uint64_t y = 0; y < height; y++) {
     for (uint64_t x = 0; x < width; x++) {
-      dst[0] = dst[3] = dst2[0] = dst2[3] = src[0];
-      dst[1] = dst[4] = dst2[1] = dst2[4] = src[1];
-      dst[2] = dst[5] = dst2[2] = dst2[5] = src[2];
+      dst[0] = dst[OFFSET_X + 0] = dst2[0] = dst2[OFFSET_X + 0] = src[0];
+      dst[1] = dst[OFFSET_X + 1] = dst2[1] = dst2[OFFSET_X + 1] = src[1];
+      dst[2] = dst[OFFSET_X + 2] = dst2[2] = dst2[OFFSET_X + 2] = src[2];
 
       src += OFFSET_X;
       dst += (OFFSET_X << 1);
@@ -674,3 +676,5 @@ void vga_copy2x(uint8_t *dst, uint8_t *src) {
     dst2 += OFFSET_Y;
   }
 }
+
+vbe_info_t vga_getVBEInfo() { return *VBEModeInfo; }
