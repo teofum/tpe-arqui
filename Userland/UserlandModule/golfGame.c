@@ -12,6 +12,10 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
+// TODO
+#define VGA_WIDTH 1024
+#define VGA_HEIGHT 768
+
 #define TITLE_TEXT_BLINK_MS 400
 
 #define FIELD_WIDTH 15.0f

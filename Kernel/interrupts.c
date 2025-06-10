@@ -40,9 +40,6 @@
 
 #define MEM_DUMP_SIZE 128
 
-#define CENTER_X (VGA_WIDTH >> 1)
-#define CENTER_Y (VGA_HEIGHT >> 1)
-
 #pragma pack(push) /* Push de la alineación actual */
 #pragma pack(1)    /* Alinear las siguiente estructuras a 1 byte */
 

@@ -6,8 +6,7 @@
 // TODO maybe we should move this to a utils header?
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
-#define VGA_PHYSICAL_FRAMEBUFFER                                               \
-  (uint8_t *) (uint64_t) VBE_mode_info->framebuffer
+#define VGA_PHYSICAL_FRAMEBUFFER (uint8_t *) (uint64_t) VBEModeInfo->framebuffer
 #define VGA_FRAMEBUFFER activeFramebuffer
 
 #define pixelOffset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
@@ -37,7 +36,7 @@ typedef enum {
   VGA_BMP_16,
 } vga_colormode_t;
 
-VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
+vbe_info_ptr VBEModeInfo = (vbe_info_ptr) 0x0000000000005C00;
 
 /*
  * Default framebuffer.
@@ -289,9 +288,9 @@ void vga_setFramebuffer(uint8_t *fb) {
 
 void vga_clear(color_t color) {
   uint64_t *fb = (uint64_t *) VGA_FRAMEBUFFER;
-  uint64_t size = (OFFSET_Y >> 3) * VBE_mode_info->height;
+  uint64_t size = (OFFSET_Y >> 3) * VBEModeInfo->height;
 
-  if (VBE_mode_info->bpp == 24) {
+  if (VBEModeInfo->bpp == 24) {
     uint64_t c = color & 0xffffff;
     uint64_t data[] = {
       (c << 48) | (c << 24) | c,
@@ -485,7 +484,7 @@ void vga_textWrap(
   uint16_t x0, uint16_t y0, int16_t maxw, const char *str, uint64_t colors,
   uint8_t flags
 ) {
-  uint16_t xmax = maxw < 0 ? maxw + VBE_mode_info->width : maxw + x0;
+  uint16_t xmax = maxw < 0 ? maxw + VBEModeInfo->width : maxw + x0;
 
   color_t color = colors >> 32;
   color_t bgColor = colors & 0xffffffff;

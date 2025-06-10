@@ -3,9 +3,6 @@
 
 #include <stdint.h>
 
-#define VGA_WIDTH 1024
-#define VGA_HEIGHT 768
-
 // Without dynamic allocation, framebuffer size is determined by
 // the maximum supported resolution, in our case this is 1280x1024
 #define VGA_MAX_WIDTH 1280

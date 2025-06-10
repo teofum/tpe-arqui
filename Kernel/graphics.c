@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include <vga.h>
 
-#define OFFSET_X (VBE_mode_info->bpp >> 3)
-#define OFFSET_Y (VBE_mode_info->pitch)
 #define pixelOffset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
 
 #define b(c) ((c) & 0xff)
