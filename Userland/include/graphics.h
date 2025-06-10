@@ -111,17 +111,6 @@ void gfx_setFlag(gfx_flags_t flag, uint8_t value);
 void gfx_present();
 
 /*
- * Parse a model in Wavefront OBJ format. Supports only the small subset of
- * features used by the renderer.
- * The arrays passed as parameters are assumed to have enough space. Passing a
- * smaller array than needed results in undefined behavior.
- */
-void gfx_parseObj(
-  const char *data, float3 *v, float3 *n, uint32_t *vi, uint32_t *ni,
-  uint32_t *fc
-);
-
-/*
  * Load model data from a binary model object.
  * Returns primitive count and sets the pointers passed as parameters to the
  * corresponding arrays in data.

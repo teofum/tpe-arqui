@@ -7,12 +7,12 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
-extern const char *obj_utah;
+static void *obj_utah = (void *) 0x3007800;
 
-float3 demo3d_v[900];
-float3 demo3d_n[900];
-uint32_t demo3d_vi[1600 * 3];
-uint32_t demo3d_ni[1600 * 3];
+float3 *demo3d_v;
+float3 *demo3d_n;
+uint32_t *demo3d_vi;
+uint32_t *demo3d_ni;
 
 int demo3d() {
   // Disable status bar drawing while application is active
@@ -70,8 +70,8 @@ int demo3d() {
   };
 
   // Load the teapot model
-  uint32_t primCount;
-  gfx_parseObj(obj_utah, demo3d_v, demo3d_n, demo3d_vi, demo3d_ni, &primCount);
+  uint32_t primCount =
+    gfx_loadModel(obj_utah, &demo3d_v, &demo3d_n, &demo3d_vi, &demo3d_ni);
 
   /*
    * Render loop

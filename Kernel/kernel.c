@@ -29,6 +29,7 @@ static void *const modelDataModule3 = (void *) 0x3006800;// Golf club, 744B
 static void *const modelDataModule4 = (void *) 0x3006C00;// Flag, 216B
 static void *const modelDataModule5 = (void *) 0x3006E00;// Flagpole, 420B
 static void *const modelDataModule6 = (void *) 0x3007000;// Ball, 780B
+static void *const modelDataModule7 = (void *) 0x3007800;// Utah teapot, ~58K!!
 
 typedef int (*entrypoint_t)();
 
@@ -45,8 +46,9 @@ void *getStackBase() {
 
 void *initializeKernelBinary() {
   void *moduleAddresses[] = {
-    userlandCodeModule, gameLogoDataModule, modelDataModule1, modelDataModule2,
-    modelDataModule3,   modelDataModule4,   modelDataModule5, modelDataModule6,
+    userlandCodeModule, gameLogoDataModule, modelDataModule1,
+    modelDataModule2,   modelDataModule3,   modelDataModule4,
+    modelDataModule5,   modelDataModule6,   modelDataModule7,
   };
   loadModules(&endOfKernelBinary, moduleAddresses);
 

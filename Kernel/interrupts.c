@@ -196,7 +196,6 @@ void initSyscalls() {
   registerSyscall(0xA6, gfx_copy);
   registerSyscall(0xA7, gfx_depthcopy);
   registerSyscall(0xA8, gfx_loadModel);
-  registerSyscall(0xA9, gfx_parseObj);
   registerSyscall(0xAA, gfx_setLight);
   registerSyscall(0xAB, gfx_setLightType);
   registerSyscall(0xAC, gfx_setMatrix);
