@@ -72,14 +72,14 @@ msg_edid_found:		    db ' EDID 0', 0
 
 res_prefer:		    ;; En orden de preferencia: EDID, bpp
             dw 1440, 900, 32, 0x0000
+            dw 1366, 768, 32, 0x0000
             dw 1280, 800, 32, 0x0000
             dw 1280, 720, 32, 0x0000
-            dw 1024, 768, 32, 0x0000
-            dw 1366, 768, 32, 0x0000
             dw 1280, 1024, 32, 0x0000
-            dw 800, 600, 32, 0x0000
+            dw 1024, 768, 32, 0x0000
             dw 1024, 600, 32, 0x0000
-            dw 1024, 768, 24, 0x0000
+            dw 800, 600, 32, 0x0000
+            dw 1024, 768, 24, 0x0000 ; qemu
 res_size    equ ($-res_prefer)/8
 
 ; VESA
