@@ -291,17 +291,22 @@ void vga_clear(color_t color) {
   uint64_t *fb = (uint64_t *) VGA_FRAMEBUFFER;
   uint64_t size = (OFFSET_Y >> 3) * VBE_mode_info->height;
 
-  uint64_t c = color & 0xffffff;
-  uint64_t data[] = {
-    (c << 48) | (c << 24) | c,
-    (c << 56) | (c << 32) | (c << 8) | (c >> 16),
-    (c << 40) | (c << 16) | (c >> 8),
-  };
+  if (VBE_mode_info->bpp == 24) {
+    uint64_t c = color & 0xffffff;
+    uint64_t data[] = {
+      (c << 48) | (c << 24) | c,
+      (c << 56) | (c << 32) | (c << 8) | (c >> 16),
+      (c << 40) | (c << 16) | (c >> 8),
+    };
 
-  for (uint64_t offset = 0; offset < size; offset += 3) {
-    fb[offset + 0] = data[0];
-    fb[offset + 1] = data[1];
-    fb[offset + 2] = data[2];
+    for (uint64_t offset = 0; offset < size; offset += 3) {
+      fb[offset + 0] = data[0];
+      fb[offset + 1] = data[1];
+      fb[offset + 2] = data[2];
+    }
+  } else {
+    uint64_t data = color | ((uint64_t) color) << 32;
+    for (uint64_t offset = 0; offset < size; offset++) { fb[offset] = data; }
   }
 }
 
