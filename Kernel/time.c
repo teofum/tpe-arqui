@@ -23,7 +23,8 @@ void timer_init() {
 
 void timer_handler() {
   timer_ticks++;
-  if (!(timer_ticks % (TICKS_PER_SECOND))) { status_drawStatusBar(); }
+  // Update every eighth a second so we don't skip seconds every now and then
+  if (!(timer_ticks % (TICKS_PER_SECOND >> 3))) { status_drawStatusBar(); }
 
   audio_timer_tick();
 }
