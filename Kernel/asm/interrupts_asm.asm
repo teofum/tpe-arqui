@@ -32,8 +32,8 @@ section .text
 extern irqDispatcher
 %macro irqHandlerMaster 1
 	pushall
-  push rbp
-  mov rbp, rsp
+    push rbp
+    mov rbp, rsp
 
 	mov rdi, %1
 	call irqDispatcher
@@ -42,8 +42,8 @@ extern irqDispatcher
 	mov al, 0x20
 	out 0x20, al
 
-  mov rsp, rbp
-  pop rbp
+    mov rsp, rbp
+    pop rbp
 	popall
 	iretq
 %endmacro
@@ -52,31 +52,17 @@ extern irqDispatcher
 extern regdumpContext
 extern getStackBase
 %macro exceptionHandler 1
-  push rax
-
   ; Set register dump exception flag
   mov qword [regdumpContext], 0x01
 
   ; Set register dump exception ID
   mov qword [regdumpContext + 8], %1
 
-  ; Push interrupt-stored registers to stack
-  mov rax, [rsp + 8 * 1]  ; RIP
-  mov [regdumpContext + 16], rax ; Store RIP temporarily
-  push rax
-  mov rax, [rsp + 8 * 3]  ; CS
-  push rax
-  mov rax, [rsp + 8 * 5]  ; RFLAGS
-  push rax
-  mov rax, [rsp + 8 * 7]  ; RSP original
-  push rax
-  mov rax, [rsp + 8 * 9]  ; SS
-  push rax
-
   ; Memory dump
+  push rax
   push rbx
   push rcx
-  mov rax, [regdumpContext + 16] ; RIP
+  mov rax, [rsp + 8 * 3] ; RIP
   and rax, -16 ; Align to 16-byte boundary
   sub rax, 96 ; Go back a bit
   mov [regdumpContext + 16], rax ; Store mem dump start address
@@ -90,11 +76,11 @@ extern getStackBase
   jne .loop
   pop rcx
   pop rbx
+  pop rax
 
   call _regdump
 
   ; Restart to userland
-  add rsp, 48                   ; yeet the stack
   call getStackBase
   mov [rsp + 8 * 3], rax        ; Reset stack pointer
   mov qword [rsp], userland     ; Userland entry point
@@ -147,41 +133,30 @@ _irq01Handler:
   mov rax, 0
   in  al, 0x60
 
-; Signal PIC EOI (End of Interrupt)
+  ; Signal PIC EOI (End of Interrupt)
   push rax
-	mov al, 0x20
-	out 0x20, al
+  mov al, 0x20
+  out 0x20, al
   pop rax
 
   cmp al, 0x3B ; if F1 is pressed, dump registers
   jne .keyEvent
 
-  mov rax, [rsp + 8 * 1] ; RIP
-  push rax
-  mov rax, [rsp + 8 * 3] ; CS
-  push rax
-  mov rax, [rsp + 8 * 5] ; RFLAGS
-  push rax
-  mov rax, [rsp + 8 * 7] ; RSP (old)
-  push rax
-  mov rax, [rsp + 8 * 9] ; SS
-  push rax
-
+  pop rax
   call _regdump
-  add rsp, 40 ; yeet the stack
   jmp .exit
 
 .keyEvent:
-	pushall
+  pushall
 
   mov rdi, rax
   call kbd_addKeyEvent
 
   popall
+  pop rax
 
 .exit:
-  pop rax
-	iretq
+  iretq
 
 ;------------------------------------------------------------------------------
 ; Syscall handler (IRQ 80h)
@@ -225,7 +200,7 @@ extern showCPUState
 _regdump:
     cli
 
-    mov rax, [rsp + 8 * 6]
+    push rax
     mov [registerState + 0x00], rax
     mov [registerState + 0x08], rbx
     mov [registerState + 0x10], rcx
@@ -233,7 +208,7 @@ _regdump:
 
     mov [registerState + 0x20], rsi
     mov [registerState + 0x28], rdi
-    mov rax, [rsp + 8 * 2]  ; RSP (before jumping into IRQ handler)
+    mov rax, [rsp + 8 * 5]  ; RSP (before jumping into IRQ handler)
     mov [registerState + 0x30], rax
     mov [registerState + 0x38], rbp
 
@@ -246,15 +221,15 @@ _regdump:
     mov [registerState + 0x70], r14
     mov [registerState + 0x78], r15
 
-    mov rax, [rsp + 8 * 5] ; RIP (before jumping into IRQ handler)
+    mov rax, [rsp + 8 * 2] ; RIP (before jumping into IRQ handler)
     mov [registerState + 0x80], rax
 
-    mov rax, [rsp + 8 * 3] ; RFLAGS
+    mov rax, [rsp + 8 * 4] ; RFLAGS
     mov [registerState + 0x88], rax
 
-    mov rax, [rsp + 8 * 4] ; CS
+    mov rax, [rsp + 8 * 3] ; CS
     mov [registerState + 0xB8], ax
-    mov rax, [rsp + 8 * 1] ; SS
+    mov rax, [rsp + 8 * 6] ; SS
     mov [registerState + 0xBA], ax
     mov [registerState + 0xBC], ds
     mov [registerState + 0xBE], es
@@ -266,6 +241,7 @@ _regdump:
     pushall
     call showCPUState
     popall
+    pop rax
 
     ret
 

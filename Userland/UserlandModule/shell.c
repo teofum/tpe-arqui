@@ -1,10 +1,10 @@
-#include "golfGame.h"
+#include <golfGame.h>
 #include <print.h>
 #include <shell.h>
+#include <sound.h>
 #include <stdint.h>
 #include <strings.h>
 #include <syscall.h>
-#include <sound.h>
 
 #include <gfxdemo.h>
 
@@ -145,12 +145,12 @@ int throw06() {
   return 0;
 }
 
-static int beep(){
+static int beep() {
   sound_shell_beep();
   return 0;
 }
 
-static int music(){
+static int music() {
   sound_play_tetris();
   return 0;
 }
@@ -361,4 +361,3 @@ int startShell() {
 
   return 0;
 }
-

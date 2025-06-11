@@ -1,4 +1,4 @@
-#include "rng.h"
+#include <rng.h>
 
 void pcg32_srand(pcg32_random_t *rng, uint64_t initstate, uint64_t initseq) {
   rng->state = 0U;
