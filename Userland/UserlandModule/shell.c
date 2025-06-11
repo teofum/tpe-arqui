@@ -175,7 +175,7 @@ size_t nCommands = sizeof(commands) / sizeof(command_t);
 
 static int help() {
   printf(
-    "Welcome to " COL_GREEN "tpeOS" COL_RESET "!\n"
+    "Welcome to " COL_GREEN "carpinchOS" COL_RESET "!\n"
     "Available commands:\n\n"
   );
 
