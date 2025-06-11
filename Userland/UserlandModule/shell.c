@@ -11,6 +11,8 @@
 #define CMD_BUF_LEN 256
 #define HISTORY_SIZE 64
 
+extern const char *mascot;
+
 typedef enum {
   RET_EXIT = -1,
   RET_UNKNOWN_CMD = -255,
@@ -155,6 +157,11 @@ static int music() {
   return 0;
 }
 
+static int printMascot() {
+  _syscall(SYS_WRITES, mascot);
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -170,6 +177,7 @@ command_t commands[] = {
   {"music", "Plays Tetris music", music},
   {"except", "Test exceptions", exceptionTest},
   {"golf", "Play Golf", gg_startGame},
+  {"capy", "Print our cute mascot", printMascot},
 };
 size_t nCommands = sizeof(commands) / sizeof(command_t);
 
