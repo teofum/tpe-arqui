@@ -1,3 +1,4 @@
+#include <gfxdemo.h>
 #include <golfGame.h>
 #include <print.h>
 #include <shell.h>
@@ -5,8 +6,6 @@
 #include <stdint.h>
 #include <strings.h>
 #include <syscall.h>
-
-#include <gfxdemo.h>
 
 #define CMD_BUF_LEN 256
 #define HISTORY_SIZE 64
@@ -216,7 +215,10 @@ static void readCommand(char *cmd) {
 
     // Wait for input on stdin
     int len;
-    do { len = _syscall(SYS_READ, temp, CMD_BUF_LEN); } while (!len);
+    do {
+      len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
+      _syscall(SYS_HALT);
+    } while (!len);
 
     for (int i = 0; i < len; i++) {
       if (temp[i] == '\n') {
