@@ -282,8 +282,11 @@ static void vga_lineHi(
 
 void vga_init() { activeFramebuffer = _framebuffer; }
 
-void vga_setFramebuffer(uint8_t *fb) {
+uint8_t *vga_setFramebuffer(uint8_t *fb) {
+  uint8_t *last = activeFramebuffer;
   activeFramebuffer = fb == NULL ? _framebuffer : fb;
+
+  return last == _framebuffer ? NULL : last;
 }
 
 void vga_clear(color_t color) {

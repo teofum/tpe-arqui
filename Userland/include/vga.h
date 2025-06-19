@@ -91,8 +91,12 @@ typedef enum {
  * memory for its own framebuffer.
  * Applications that use their own framebuffer may either present it to the
  * screen directly, or copy it to the main framebuffer using vga_copy.
+ *
+ * Returns a pointer to the previous framebuffer, so it can be restored after
+ * with another call to vga_setFramebuffer. If the previous framebuffer was the
+ * default buffer, returns NULL. 
  */
-extern void vga_setFramebuffer(uint8_t *fb);
+extern uint8_t *vga_setFramebuffer(uint8_t *fb);
 
 /*
  * Clear VRAM with a single solid color.
