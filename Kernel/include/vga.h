@@ -23,6 +23,8 @@
 
 typedef uint32_t color_t;
 
+typedef uint8_t *vga_framebuffer_t;
+
 struct vbe_mode_info_t {
   uint16_t attributes; // deprecated
   uint8_t window_a;    // deprecated
@@ -145,7 +147,7 @@ void vga_init();
  * with another call to vga_setFramebuffer. If the previous framebuffer was the
  * default buffer, returns NULL. 
  */
-uint8_t *vga_setFramebuffer(uint8_t *fb);
+vga_framebuffer_t vga_setFramebuffer(vga_framebuffer_t fb);
 
 /*
  * Clear VRAM with a single solid color.
@@ -270,13 +272,13 @@ void vga_present();
  * Copy contents between two framebuffers.
  * Set either framebuffer to NULL to use the default framebuffer.
  */
-void vga_copy(uint8_t *dst, uint8_t *src, uint32_t offset);
+void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset);
 
 /*
  * Copy the top-left corner of a framebuffer to a different framebuffer,
  * multiplying size by two.
  */
-void vga_copy2x(uint8_t *dst, uint8_t *src);
+void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src);
 
 /*
  * Return information about the display device.
