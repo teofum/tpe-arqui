@@ -114,7 +114,7 @@ static inline void putcImpl(char c) {
 void io_blankFrom(uint32_t x) {
   vga_fontPtr_t font = vga_getfont(io_textFont);
 
-  vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
 
   cur_x = x * font->charWidth;
   if (cur_x >= VGA_WIDTH) cur_x = VGA_WIDTH - font->charWidth;
@@ -126,10 +126,11 @@ void io_blankFrom(uint32_t x) {
   copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   vga_present();
+  vga_setFramebuffer(currentFB);
 }
 
 void io_putc(char c) {
-  vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
   vga_font_t lastFont = vga_font(io_textFont);
 
   putcImpl(c);
@@ -139,6 +140,7 @@ void io_putc(char c) {
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
+  vga_setFramebuffer(currentFB);
 }
 
 static const char *parseColorEscape(const char *str) {
@@ -179,7 +181,7 @@ static const char *parseColorEscape(const char *str) {
 }
 
 uint32_t io_writes(const char *str) {
-  vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
   vga_font_t lastFont = vga_font(io_textFont);
 
   char c;
@@ -200,12 +202,13 @@ uint32_t io_writes(const char *str) {
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
+  vga_setFramebuffer(currentFB);
 
   return written;
 }
 
 uint32_t io_write(const char *str, uint32_t len) {
-  vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
   vga_font_t lastFont = vga_font(io_textFont);
 
   char c;
@@ -227,17 +230,19 @@ uint32_t io_write(const char *str, uint32_t len) {
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
+  vga_setFramebuffer(currentFB);
 
   return written;
 }
 
 void io_clear() {
-  vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
   vga_clear(0x000000);
   copyToMainFramebuffer();
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
+  vga_setFramebuffer(currentFB);
 
   cur_x = cur_y = 0;
 }
@@ -291,7 +296,7 @@ void io_setfont(vga_font_t font) {
   io_textFont = font;
   vga_fontPtr_t fontData = vga_getfont(io_textFont);
 
-  vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
   uint32_t maxHeight = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
   int32_t remaining = maxHeight - (int32_t) (cur_y + fontData->lineHeight);
   if (remaining <= 0) {
@@ -313,6 +318,7 @@ void io_setfont(vga_font_t font) {
   vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
+  vga_setFramebuffer(currentFB);
 }
 
 void io_setcursor(io_cursor_t cursor) { io_cursorStyle = cursor; }
@@ -329,6 +335,8 @@ void io_movecursor(int32_t dx) {
   }
 
   copyToMainFramebuffer();
+  vga_framebuffer_t currentFB = vga_setFramebuffer(NULL);
   drawCursor();
   vga_present();
+  vga_setFramebuffer(currentFB);
 }
