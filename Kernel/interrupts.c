@@ -239,6 +239,7 @@ void showCPUState() {
   char buf[256];
 
   int statusEnabled = status_enabled();
+  vga_framebuffer_t currentFB = vga_setFramebuffer(NULL);
   if (regdumpContext.flag == REGDUMP_EXCEPTION) {
     status_setEnabled(0);
     bg_colors = colors(0x500000, 0x800000);
@@ -422,6 +423,7 @@ void showCPUState() {
   vga_text(CENTER_X - offset, top, footer, TEXT_COLOR, 0, 0);
 
   vga_present();
+  vga_setFramebuffer(currentFB);
 
   char key = 0;
   while (!key) { key = kbd_getKeyEvent().key; }
