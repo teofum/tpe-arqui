@@ -4,12 +4,12 @@
 #include <kbd.h>
 #include <print.h>
 #include <rng.h>
+#include <sound.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
 #include <syscall.h>
 #include <vga.h>
-#include <sound.h>
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
@@ -959,7 +959,8 @@ static int showTitleScreen(gameSettings_t *settings) {
     }
 
     vga_text(
-      VGA_WIDTH - 200, VGA_WIDTH - 32, "(c) 1998 TONKATSU GAMES", 0xffffff, 0, 0
+      VGA_WIDTH - 200, VGA_HEIGHT - 32, "(c) 1998 TONKATSU GAMES", 0xffffff, 0,
+      0
     );
 
     // Draw everything to screen
@@ -1204,9 +1205,8 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
               hits[i]++;
               iframes[i] = HIT_DEBOUNCE_MS;
               sound_ball_hit();
-            }
-            else if (hit && i != j) {
-              sound_ball_hit(); // Se puede poner otro sonido
+            } else if (hit && i != j) {
+              sound_ball_hit();// Se puede poner otro sonido
             }
           }
 
@@ -1629,4 +1629,3 @@ int gg_startGame() {
 
   return 0;
 }
-
