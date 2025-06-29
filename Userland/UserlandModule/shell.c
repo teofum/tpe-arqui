@@ -7,7 +7,7 @@
 #include <strings.h>
 #include <syscall.h>
 
-#define CMD_BUF_LEN 256
+#define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
 
 extern const char *mascot;
@@ -203,114 +203,92 @@ static void writePrompt() { printf("> "); }
 static void readCommand(char *cmd) {
   int inputEnd = 0;
   uint32_t localHistoryPointer = historyPointer;
-
-  uint32_t cmdWritePtr = 0;
-  uint32_t back = 0;
-  uint32_t backspaces = 0;
-  char *cmdStart = cmd;
-  char temp[CMD_BUF_LEN] = {0};
+  uint32_t write = 0, back = 0;
+  char temp[CMD_BUF_LEN];
 
   while (!inputEnd) {
-    uint32_t initialPtr = cmdWritePtr;
-
     // Wait for input on stdin
     int len;
     do {
       len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
-      _syscall(SYS_HALT);
+      if (!len) _syscall(SYS_HALT);
     } while (!len);
 
-    for (int i = 0; i < len; i++) {
-      if (temp[i] == '\n') {
+    // Iterate the input and add to internal buffer, handling special characters
+    char c;
+    for (uint32_t read = 0; read < len; read++) {
+      c = temp[read];
+
+      if (c == '\n') {
+        // Newline: end input
         inputEnd = 1;
         break;
-      } else if (temp[i] == 0x1B) {
-        if (temp[i + 1] == '[') {
-          switch (temp[i + 2]) {
-            case 'A':
-              // Up
-              if (localHistoryPointer > 0) {
-                char *last = commandHistory[--localHistoryPointer];
-                _syscall(SYS_BLANKLINE, promptLength);
-                cmd = cmdStart;
-                cmdWritePtr = strcpy(cmd, last);
-                initialPtr = 0;
-              }
-              break;
-            case 'B':
-              // Down
-              if (localHistoryPointer < historyPointer - 1) {
-                char *last = commandHistory[++localHistoryPointer];
-                _syscall(SYS_BLANKLINE, promptLength);
-                cmd = cmdStart;
-                cmdWritePtr = strcpy(cmd, last);
-                initialPtr = 0;
-              }
-              break;
-            case 'C':
-              // Right
-              if (back > 0) {
-                cmdWritePtr++;
-                initialPtr++;
-                back--;
-                _syscall(
-                  SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK
-                );
-                _syscall(SYS_CURMOVE, 1);
-              }
-              break;
-            case 'D':
-              // Left
-              if (cmdWritePtr > 0) {
-                cmdWritePtr--;
-                back++;
-                _syscall(SYS_CURSOR, IO_CURSOR_BLOCK);
-                _syscall(SYS_CURMOVE, -1);
-              }
-              break;
-          }
+      } else if (c == '\b') {
+        // Backspace: delete last char from buffer
+        if (write > 0) write--;
+        cmd[write] = 0;
+      } else if (c == '\x1B') {
+        // Escape char: handle escape sequences
+        read += 2;     // All existing escape sequences are of the form "\x1B[X"
+        c = temp[read];// Third character is the one we care about
+        switch (c) {
+          case 'A':
+            // Up arrow
+            if (localHistoryPointer > 0) {
+              char *last = commandHistory[--localHistoryPointer];
+              write = strcpy(cmd, last);
+            }
+            break;
+          case 'B':
+            // Down arrow
+            if (localHistoryPointer < historyPointer - 1) {
+              char *last = commandHistory[++localHistoryPointer];
+              write = strcpy(cmd, last);
+            }
+            break;
+          case 'C':
+            // Right
+            if (back > 0) {
+              write++;
+              back--;
+            }
+            break;
+          case 'D':
+            // Left
+            if (write > 0) {
+              write--;
+              back++;
+            }
+            break;
         }
-        i += 2;
-      } else if (temp[i] == '\b') {
-        // Discard backspaces if we're not at the end of the command, or if half
-        // the typed chars are backspaces (prevents us from deleting the prompt)
-        if (back == 0 && initialPtr > backspaces * 2) {
-          cmd[cmdWritePtr++] = temp[i];
-          backspaces++;
-        }
-      } else {
-        cmd[cmdWritePtr++] = temp[i];
-        if (back > 0) {
-          back--;
-          _syscall(SYS_CURSOR, back == 0 ? IO_CURSOR_UNDER : IO_CURSOR_BLOCK);
-        }
+      } else if (write < CMD_BUF_LEN - 1) {
+        // For any other char just add to internal buffer and advance write pointer
+        // If we reached the end of the buffer, ignore any further input
+        cmd[write++] = c;
+        if (back > 0) back--;
+
+        // Make sure the command string is null-terminated
+        cmd[write + back] = 0;
       }
     }
 
-    if (cmdWritePtr > initialPtr) {
-      _syscall(SYS_WRITE, cmd + initialPtr, cmdWritePtr - initialPtr);
-    }
+    // Reset the cursor position and print the command so far to stdout
+    _syscall(SYS_BLANKLINE, promptLength);
+    _syscall(SYS_WRITES, cmd);
+    _syscall(SYS_CURSOR, back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
+    _syscall(SYS_CURMOVE, -back);
   }
 
-  cmd[cmdWritePtr + back] = 0;
+  // Insert a newline and reset the cursor
   _syscall(SYS_PUTC, '\n');
   _syscall(SYS_CURSOR, IO_CURSOR_UNDER);
 
-  // Handle backspaces
-  cmd = cmdStart;
-  int j = 0;
-  for (int i = 0; cmd[i]; i++) {
-    if (cmd[i] == '\b') {
-      if (j > 0) j--;
-    } else {
-      cmd[j++] = cmd[i];
-    }
-  }
-  cmd[j] = 0;
-
+  // Store the entered command in history, if it is different from the most recent one
   if (historyPointer == 0 ||
       strcmp(commandHistory[historyPointer - 1], cmd) != 0) {
     if (historyPointer == HISTORY_SIZE) {
+      // If we reached the maximum history size, shift everything back
+      // deleting the oldest command
       memcpy(
         commandHistory[0], commandHistory[1], (HISTORY_SIZE - 1) * CMD_BUF_LEN
       );

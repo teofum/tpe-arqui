@@ -123,9 +123,6 @@ void io_blankFrom(uint32_t x) {
     cur_x, cur_y, VGA_WIDTH - 1, cur_y + font->lineHeight - 1, DEFAULT_BG, 0
   );
 
-  copyToMainFramebuffer();
-  vga_setFramebuffer(NULL);
-  vga_present();
   vga_setFramebuffer(currentFB);
 }
 
