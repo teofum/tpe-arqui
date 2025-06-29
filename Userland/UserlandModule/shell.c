@@ -209,7 +209,10 @@ static void readCommand(char *cmd) {
   while (!inputEnd) {
     // Wait for input on stdin
     int len;
-    do { len = _syscall(SYS_READ, temp, CMD_BUF_LEN); } while (!len);
+    do {
+      len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
+      if (!len) _syscall(SYS_HALT);
+    } while (!len);
 
     // Iterate the input and add to internal buffer, handling special characters
     char c;
