@@ -204,7 +204,7 @@ static void writePrompt() { printf("> "); }
 static void readCommand(char *cmd) {
   int inputEnd = 0;
   uint32_t localHistoryPointer = historyPointer;
-  uint32_t write = 0;
+  uint32_t write = 0, back = 0;
   char temp[CMD_BUF_LEN];
 
   while (!inputEnd) {
@@ -223,7 +223,7 @@ static void readCommand(char *cmd) {
         break;
       } else if (c == '\b') {
         // Backspace: delete last char from buffer
-        write = max(write - 1, 0);
+        if (write > 0) write--;
         cmd[write] = 0;
       } else if (c == '\x1B') {
         // Escape char: handle escape sequences
@@ -245,31 +245,48 @@ static void readCommand(char *cmd) {
             }
             break;
           case 'C':
+            // Right
+            if (back > 0) {
+              write++;
+              back--;
+            }
             break;
           case 'D':
+            // Left
+            if (write > 0) {
+              write--;
+              back++;
+            }
             break;
         }
-      } else {
+      } else if (write < CMD_BUF_LEN - 1) {
         // For any other char just add to internal buffer and advance write pointer
+        // If we reached the end of the buffer, ignore any further input
         cmd[write++] = c;
-        if (write == CMD_BUF_LEN - 1) break;
+        if (back > 0) back--;
+
+        // Make sure the command string is null-terminated
+        cmd[write + back] = 0;
       }
     }
-
-    // Make sure the command string is null-terminated
-    cmd[write] = 0;
 
     // Reset the cursor position and print the command so far to stdout
     _syscall(SYS_BLANKLINE, promptLength);
     _syscall(SYS_WRITES, cmd);
+    _syscall(SYS_CURSOR, back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
+    _syscall(SYS_CURMOVE, -back);
   }
 
+  // Insert a newline and reset the cursor
   _syscall(SYS_PUTC, '\n');
+  _syscall(SYS_CURSOR, IO_CURSOR_UNDER);
 
   // Store the entered command in history, if it is different from the most recent one
   if (historyPointer == 0 ||
       strcmp(commandHistory[historyPointer - 1], cmd) != 0) {
     if (historyPointer == HISTORY_SIZE) {
+      // If we reached the maximum history size, shift everything back
+      // deleting the oldest command
       memcpy(
         commandHistory[0], commandHistory[1], (HISTORY_SIZE - 1) * CMD_BUF_LEN
       );
