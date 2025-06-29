@@ -1,4 +1,3 @@
-#include "fpmath.h"
 #include <gfxdemo.h>
 #include <golfGame.h>
 #include <print.h>
@@ -8,7 +7,7 @@
 #include <strings.h>
 #include <syscall.h>
 
-#define CMD_BUF_LEN 256
+#define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
 
 extern const char *mascot;
