@@ -226,7 +226,29 @@ static void readCommand(char *cmd) {
         write = max(write - 1, 0);
         cmd[write] = 0;
       } else if (c == '\x1B') {
-        // TODO handle escape sequences
+        // Escape char: handle escape sequences
+        read += 2;     // All existing escape sequences are of the form "\x1B[X"
+        c = temp[read];// Third character is the one we care about
+        switch (c) {
+          case 'A':
+            // Up arrow
+            if (localHistoryPointer > 0) {
+              char *last = commandHistory[--localHistoryPointer];
+              write = strcpy(cmd, last);
+            }
+            break;
+          case 'B':
+            // Down arrow
+            if (localHistoryPointer < historyPointer - 1) {
+              char *last = commandHistory[++localHistoryPointer];
+              write = strcpy(cmd, last);
+            }
+            break;
+          case 'C':
+            break;
+          case 'D':
+            break;
+        }
       } else {
         // For any other char just add to internal buffer and advance write pointer
         cmd[write++] = c;
