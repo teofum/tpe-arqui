@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 
-#define VGA_WIDTH VBEModeInfo->width
-#define VGA_HEIGHT VBEModeInfo->height
-#define OFFSET_X (VBEModeInfo->bpp >> 3)
-#define OFFSET_Y (VBEModeInfo->pitch)
+#define VGA_WIDTH vbe_mode_info->width
+#define VGA_HEIGHT vbe_mode_info->height
+#define OFFSET_X (vbe_mode_info->bpp >> 3)
+#define OFFSET_Y (vbe_mode_info->pitch)
 
 #define CENTER_X (VGA_WIDTH >> 1)
 #define CENTER_Y (VGA_HEIGHT >> 1)
@@ -65,7 +65,7 @@ struct vbe_mode_info_t {
 
 typedef struct vbe_mode_info_t vbe_info_t;
 typedef struct vbe_mode_info_t *vbe_info_ptr;
-extern vbe_info_ptr VBEModeInfo;
+extern vbe_info_ptr vbe_mode_info;
 
 /*
  * Font descriptor. Contains all relevant data about a font so the driver can
@@ -73,13 +73,13 @@ extern vbe_info_ptr VBEModeInfo;
  */
 typedef struct {
   /* Character data width, in pixels */
-  uint8_t charWidth;
+  uint8_t char_width;
 
   /* Character data height, in pixels */
-  uint8_t charHeight;
+  uint8_t char_height;
 
   /* Line height as drawn */
-  uint8_t lineHeight;
+  uint8_t line_height;
 
   /* Space between characters in pixels */
   uint8_t spacing;
@@ -92,10 +92,10 @@ typedef struct {
    * Characters may be stored across multiple words. Data should be padded to a
    * multiple of 8 bytes.
    */
-  const uint64_t *characterData;
-} vga_fontData_t;
+  const uint64_t *character_data;
+} vga_font_data_t;
 
-typedef const vga_fontData_t *vga_fontPtr_t;
+typedef const vga_font_data_t *vga_font_ptr_t;
 
 typedef enum {
   VGA_FONT_DEFAULT = 0,
@@ -147,7 +147,7 @@ void vga_init();
  * with another call to vga_setFramebuffer. If the previous framebuffer was the
  * default buffer, returns NULL. 
  */
-vga_framebuffer_t vga_setFramebuffer(vga_framebuffer_t fb);
+vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb);
 
 /*
  * Clear VRAM with a single solid color.
@@ -217,7 +217,7 @@ vga_font_t vga_font(vga_font_t font);
 /*
  * Get the font used for drawing text
  */
-vga_fontPtr_t vga_getfont(vga_font_t font);
+vga_font_ptr_t vga_getfont(vga_font_t font);
 
 /*
  * Draw a single character to VRAM at the specified position using the current
@@ -226,7 +226,7 @@ vga_fontPtr_t vga_getfont(vga_font_t font);
  * screen bounds.
  */
 void vga_char(
-  uint16_t x0, uint16_t y0, char c, color_t color, color_t bgColor,
+  uint16_t x0, uint16_t y0, char c, color_t color, color_t bg_color,
   uint8_t flags
 );
 
@@ -237,7 +237,7 @@ void vga_char(
  * overflow the screen bounds.
  */
 void vga_text(
-  uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bgColor,
+  uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bg_color,
   uint8_t flags
 );
 
@@ -249,7 +249,7 @@ void vga_text(
  * overflow the screen bounds.
  * The 'colors' parameter takes two colors in the high and low dwords.
  */
-void vga_textWrap(
+void vga_text_wrap(
   uint16_t x0, uint16_t y0, int16_t maxw, const char *string, uint64_t colors,
   uint8_t flags
 );
@@ -283,6 +283,6 @@ void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src);
 /*
  * Return information about the display device.
  */
-vbe_info_t vga_getVBEInfo();
+vbe_info_t vga_get_vbe_info();
 
 #endif

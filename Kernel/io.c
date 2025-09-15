@@ -10,7 +10,7 @@
 #define DEFAULT_BG 0x000000
 #define DEFAULT_FG 0xd8d8d8
 
-#define copyToMainFramebuffer()                                                \
+#define copy_to_main_fb()                                                      \
   vga_copy(NULL, io_framebuffer, status_enabled() ? STATUS_HEIGHT : 0)
 
 /*
@@ -21,7 +21,7 @@
  * text very efficiently and preserve it when an application uses graphics mode.
  */
 static uint8_t io_framebuffer[FRAMEBUFFER_SIZE] = {0};
-static vga_font_t io_textFont;
+static vga_font_t io_text_font;
 
 /*
  * Text drawing cursor
@@ -35,29 +35,29 @@ static uint32_t cur_x = 0;
 static uint32_t io_background = DEFAULT_BG;
 static uint32_t io_foreground = DEFAULT_FG;
 
-static uint8_t io_cursorStyle = IO_CURSOR_UNDER;
+static uint8_t io_cursor_style = IO_CURSOR_UNDER;
 
 static void nextline() {
-  vga_fontPtr_t font = vga_getfont(io_textFont);
+  vga_font_ptr_t font = vga_getfont(io_text_font);
 
   cur_x = 0;
-  cur_y += font->lineHeight;
+  cur_y += font->line_height;
 
-  uint32_t maxHeight = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
-  int32_t remaining = maxHeight - (int32_t) (cur_y + font->lineHeight);
+  uint32_t max_height = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
+  int32_t remaining = max_height - (int32_t) (cur_y + font->line_height);
   if (remaining <= 0) {
-    uint16_t offsetLines = -remaining;
+    uint16_t offset_lines = -remaining;
 
-    uint32_t offset = offsetLines * OFFSET_Y;
+    uint32_t offset = offset_lines * OFFSET_Y;
     memcpy(
       io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(
-      0, maxHeight - offsetLines, VGA_WIDTH - 1, maxHeight - 1, DEFAULT_BG, 0
+      0, max_height - offset_lines, VGA_WIDTH - 1, max_height - 1, DEFAULT_BG, 0
     );
 
-    cur_y -= offsetLines;
+    cur_y -= offset_lines;
   }
 }
 
@@ -65,82 +65,82 @@ static void nextline() {
  * Cursor should be drawn to main framebuffer *after* copying stdout framebuffer.
  * This way it doesn't persist when we draw more text.
  */
-static inline void drawCursor() {
-  vga_fontPtr_t font = vga_getfont(io_textFont);
+static inline void draw_cursor() {
+  vga_font_ptr_t font = vga_getfont(io_text_font);
   uint32_t cursor_y = cur_y + (status_enabled() ? STATUS_HEIGHT : 0);
 
-  switch (io_cursorStyle) {
+  switch (io_cursor_style) {
     case IO_CURSOR_UNDER:
       vga_rect(
-        cur_x, cursor_y + font->charHeight - CURSOR_HEIGHT,
-        cur_x + font->charWidth, cursor_y + font->charHeight - 1, io_foreground,
-        0
+        cur_x, cursor_y + font->char_height - CURSOR_HEIGHT,
+        cur_x + font->char_width, cursor_y + font->char_height - 1,
+        io_foreground, 0
       );
       break;
     case IO_CURSOR_FRAME:
       vga_frame(
-        cur_x, cursor_y, cur_x + font->charWidth, cursor_y + font->charHeight,
+        cur_x, cursor_y, cur_x + font->char_width, cursor_y + font->char_height,
         io_foreground, 0
       );
       break;
     case IO_CURSOR_BLOCK:
       vga_rect(
-        cur_x, cursor_y, cur_x + font->charWidth, cursor_y + font->charHeight,
+        cur_x, cursor_y, cur_x + font->char_width, cursor_y + font->char_height,
         io_foreground | 0x80000000, VGA_ALPHA_BLEND
       );
       break;
   }
 }
 
-static inline void putcImpl(char c) {
-  vga_fontPtr_t font = vga_getfont(io_textFont);
+static inline void putc_impl(char c) {
+  vga_font_ptr_t font = vga_getfont(io_text_font);
 
   if (c == '\b') {
-    if (cur_x > 0) cur_x -= font->charWidth;
+    if (cur_x > 0) cur_x -= font->char_width;
     vga_rect(
-      cur_x, cur_y, cur_x + font->charWidth - 1, cur_y + font->charHeight - 1,
+      cur_x, cur_y, cur_x + font->char_width - 1, cur_y + font->char_height - 1,
       DEFAULT_BG, 0
     );
   } else if (c == '\t') {
     cur_x +=
-      (TAB_SIZE * font->charWidth) - (cur_x % (TAB_SIZE * font->charWidth));
+      (TAB_SIZE * font->char_width) - (cur_x % (TAB_SIZE * font->char_width));
   } else if (c != '\n') {
     vga_char(cur_x, cur_y, c, io_foreground, io_background, VGA_TEXT_BG);
-    cur_x += font->charWidth;
+    cur_x += font->char_width;
   }
   if (cur_x >= VGA_WIDTH || c == '\n') nextline();
 }
 
-void io_blankFrom(uint32_t x) {
-  vga_fontPtr_t font = vga_getfont(io_textFont);
+void io_blank_from(uint32_t x) {
+  vga_font_ptr_t font = vga_getfont(io_text_font);
 
-  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
 
-  cur_x = x * font->charWidth;
-  if (cur_x >= VGA_WIDTH) cur_x = VGA_WIDTH - font->charWidth;
+  cur_x = x * font->char_width;
+  if (cur_x >= VGA_WIDTH) cur_x = VGA_WIDTH - font->char_width;
 
   vga_rect(
-    cur_x, cur_y, VGA_WIDTH - 1, cur_y + font->lineHeight - 1, DEFAULT_BG, 0
+    cur_x, cur_y, VGA_WIDTH - 1, cur_y + font->line_height - 1, DEFAULT_BG, 0
   );
 
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 }
 
 void io_putc(char c) {
-  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
-  vga_font_t lastFont = vga_font(io_textFont);
+  vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
+  vga_font_t last_font = vga_font(io_text_font);
 
-  putcImpl(c);
+  putc_impl(c);
 
-  vga_font(lastFont);
-  copyToMainFramebuffer();
-  vga_setFramebuffer(NULL);
-  drawCursor();
+  vga_font(last_font);
+  copy_to_main_fb();
+  vga_set_framebuffer(NULL);
+  draw_cursor();
   vga_present();
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 }
 
-static const char *parseColorEscape(const char *str) {
+static const char *parse_color_escape(const char *str) {
   char c;
 
   // Color escape sequence
@@ -178,152 +178,152 @@ static const char *parseColorEscape(const char *str) {
 }
 
 uint32_t io_writes(const char *str) {
-  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
-  vga_font_t lastFont = vga_font(io_textFont);
+  vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
+  vga_font_t last_font = vga_font(io_text_font);
 
   char c;
   uint32_t written = 0;
   while ((c = *str++)) {
     if (c == 0x1A) {
-      str = parseColorEscape(str);
+      str = parse_color_escape(str);
     } else {
-      putcImpl(c);
+      putc_impl(c);
       written++;
     }
   }
 
   io_background = DEFAULT_BG;
   io_foreground = DEFAULT_FG;
-  vga_font(lastFont);
-  copyToMainFramebuffer();
-  vga_setFramebuffer(NULL);
-  drawCursor();
+  vga_font(last_font);
+  copy_to_main_fb();
+  vga_set_framebuffer(NULL);
+  draw_cursor();
   vga_present();
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 
   return written;
 }
 
 uint32_t io_write(const char *str, uint32_t len) {
-  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
-  vga_font_t lastFont = vga_font(io_textFont);
+  vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
+  vga_font_t last_font = vga_font(io_text_font);
 
   char c;
   const char *end = str + len;
   uint32_t written = 0;
   while (str < end && (c = *str++)) {
     if (c == 0x1A) {
-      str = parseColorEscape(str);
+      str = parse_color_escape(str);
     } else {
-      putcImpl(c);
+      putc_impl(c);
       written++;
     }
   }
 
   io_background = DEFAULT_BG;
   io_foreground = DEFAULT_FG;
-  vga_font(lastFont);
-  copyToMainFramebuffer();
-  vga_setFramebuffer(NULL);
-  drawCursor();
+  vga_font(last_font);
+  copy_to_main_fb();
+  vga_set_framebuffer(NULL);
+  draw_cursor();
   vga_present();
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 
   return written;
 }
 
 void io_clear() {
-  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
+  vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
   vga_clear(0x000000);
-  copyToMainFramebuffer();
-  vga_setFramebuffer(NULL);
-  drawCursor();
+  copy_to_main_fb();
+  vga_set_framebuffer(NULL);
+  draw_cursor();
   vga_present();
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 
   cur_x = cur_y = 0;
 }
 
 uint32_t io_read(char *buf, uint32_t len) {
-  uint32_t readChars = 0;
+  uint32_t read_chars = 0;
   int c;
-  while ((c = kbd_getchar()) != -1 && readChars < len) {
+  while ((c = kbd_getchar()) != -1 && read_chars < len) {
     if (c != 0) {
-      if (isSpecialCharcode(c)) {
+      if (is_special_charcode(c)) {
         // Make sure there's enough room in the buffer to actually fit the
         // escape sequence, if there isn't we just drop it
         // This can probably be handled better, oh well
-        if (readChars >= len - 2) return readChars;
+        if (read_chars >= len - 2) return read_chars;
 
         // Handle special keys by writing escape sequences to stdin
         // Code that uses read() should handle these escape sequences
         uint8_t key = getKey(c);
         switch (key) {
           case KEY_ARROW_UP:
-            buf[readChars++] = 0x1B;// ESC
-            buf[readChars++] = '[';
-            buf[readChars++] = 'A';
+            buf[read_chars++] = 0x1B;// ESC
+            buf[read_chars++] = '[';
+            buf[read_chars++] = 'A';
             break;
           case KEY_ARROW_DOWN:
-            buf[readChars++] = 0x1B;// ESC
-            buf[readChars++] = '[';
-            buf[readChars++] = 'B';
+            buf[read_chars++] = 0x1B;// ESC
+            buf[read_chars++] = '[';
+            buf[read_chars++] = 'B';
             break;
           case KEY_ARROW_LEFT:
-            buf[readChars++] = 0x1B;// ESC
-            buf[readChars++] = '[';
-            buf[readChars++] = 'D';
+            buf[read_chars++] = 0x1B;// ESC
+            buf[read_chars++] = '[';
+            buf[read_chars++] = 'D';
             break;
           case KEY_ARROW_RIGHT:
-            buf[readChars++] = 0x1B;// ESC
-            buf[readChars++] = '[';
-            buf[readChars++] = 'C';
+            buf[read_chars++] = 0x1B;// ESC
+            buf[read_chars++] = '[';
+            buf[read_chars++] = 'C';
             break;
         }
       } else {
-        buf[readChars++] = c;
+        buf[read_chars++] = c;
       }
     }
   }
 
-  return readChars;
+  return read_chars;
 }
 
 void io_setfont(vga_font_t font) {
-  io_textFont = font;
-  vga_fontPtr_t fontData = vga_getfont(io_textFont);
+  io_text_font = font;
+  vga_font_ptr_t fontData = vga_getfont(io_text_font);
 
-  vga_framebuffer_t currentFB = vga_setFramebuffer(io_framebuffer);
-  uint32_t maxHeight = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
-  int32_t remaining = maxHeight - (int32_t) (cur_y + fontData->lineHeight);
+  vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
+  uint32_t max_height = VGA_HEIGHT - (status_enabled() ? STATUS_HEIGHT : 0);
+  int32_t remaining = max_height - (int32_t) (cur_y + fontData->line_height);
   if (remaining <= 0) {
-    uint16_t offsetLines = -remaining;
+    uint16_t offset_lines = -remaining;
 
-    uint32_t offset = offsetLines * OFFSET_Y;
+    uint32_t offset = offset_lines * OFFSET_Y;
     memcpy(
       io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(
-      0, maxHeight - offsetLines, VGA_WIDTH - 1, maxHeight - 1, DEFAULT_BG, 0
+      0, max_height - offset_lines, VGA_WIDTH - 1, max_height - 1, DEFAULT_BG, 0
     );
 
-    cur_y -= offsetLines;
+    cur_y -= offset_lines;
   }
 
-  copyToMainFramebuffer();
-  vga_setFramebuffer(NULL);
-  drawCursor();
+  copy_to_main_fb();
+  vga_set_framebuffer(NULL);
+  draw_cursor();
   vga_present();
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 }
 
-void io_setcursor(io_cursor_t cursor) { io_cursorStyle = cursor; }
+void io_setcursor(io_cursor_t cursor) { io_cursor_style = cursor; }
 
 void io_movecursor(int32_t dx) {
-  vga_fontPtr_t font = vga_getfont(io_textFont);
+  vga_font_ptr_t font = vga_getfont(io_text_font);
 
-  dx *= font->charWidth;
+  dx *= font->char_width;
   if (dx < 0 && cur_x < -dx) {
     cur_x = 0;
   } else {
@@ -331,9 +331,9 @@ void io_movecursor(int32_t dx) {
     if (cur_x >= VGA_WIDTH) nextline();
   }
 
-  copyToMainFramebuffer();
-  vga_framebuffer_t currentFB = vga_setFramebuffer(NULL);
-  drawCursor();
+  copy_to_main_fb();
+  vga_framebuffer_t current_fb = vga_set_framebuffer(NULL);
+  draw_cursor();
   vga_present();
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 }

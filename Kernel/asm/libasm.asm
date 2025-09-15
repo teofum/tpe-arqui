@@ -5,8 +5,8 @@ section .text
 ; -----------------------------------------------------------------------------
 
 ; Identifica el vendor de la CPU
-global cpuVendor
-cpuVendor:
+global cpu_vendor
+cpu_vendor:
 	push rbp
 	mov rbp, rsp
 

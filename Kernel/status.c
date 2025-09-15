@@ -6,7 +6,7 @@
 
 #define CLOCK_WIDTH (STATUS_PADDING_X * 2 + 37 * 8)
 
-uint8_t _statusEnabled = 0;
+uint8_t _status_enabled = 0;
 
 const char *weekdays[] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
                           "Thursday", "Friday", "Saturday"};
@@ -15,16 +15,16 @@ const char *months[] = {"January",   "February", "March",    "April",
                         "May",       "June",     "July",     "August",
                         "September", "October",  "November", "December"};
 
-void status_drawStatusBar() {
-  if (!_statusEnabled) return;
+void status_draw_statusbar() {
+  if (!_status_enabled) return;
 
   // Set the current framebuffer to default FB
-  vga_framebuffer_t currentFB = vga_setFramebuffer(NULL);
+  vga_framebuffer_t current_fb = vga_set_framebuffer(NULL);
 
   // Get local time
   char buf[64];
   int32_t len;
-  dateTime_t t = rtc_getLocalTime();
+  datetime_t t = rtc_get_local_time();
 
   // Draw statusbar background and border
   vga_gradient(
@@ -42,14 +42,14 @@ void status_drawStatusBar() {
 
   // Draw system clock text
   vga_font_t oldfont = vga_font(VGA_FONT_ALT);
-  uint8_t charWidth = vga_getfont(VGA_FONT_ALT)->charWidth;
+  uint8_t char_width = vga_getfont(VGA_FONT_ALT)->char_width;
 
   len = sprintf(
-    buf, "%s, %s %02u 20%02u %02u:%02u:%02u", weekdays[t.dayOfWeek],
+    buf, "%s, %s %02u 20%02u %02u:%02u:%02u", weekdays[t.day_of_week],
     months[t.month], t.day, t.year, t.hours, t.minutes, t.seconds
   );
   vga_text(
-    VGA_WIDTH - len * charWidth - STATUS_PADDING_X - 1, STATUS_PADDING_Y, buf,
+    VGA_WIDTH - len * char_width - STATUS_PADDING_X - 1, STATUS_PADDING_Y, buf,
     0xffffff, 0, 0
   );
 
@@ -57,14 +57,14 @@ void status_drawStatusBar() {
   vga_present();
 
   // Restore the current framebuffer
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 }
 
-uint8_t status_enabled() { return _statusEnabled; }
+uint8_t status_enabled() { return _status_enabled; }
 
-void status_setEnabled(uint8_t enabled) {
-  _statusEnabled = enabled;
+void status_set_enabled(uint8_t enabled) {
+  _status_enabled = enabled;
 
   // Draw the statusbar immediately on enable
-  if (_statusEnabled) status_drawStatusBar();
+  if (_status_enabled) status_draw_statusbar();
 }

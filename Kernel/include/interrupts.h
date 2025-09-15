@@ -1,10 +1,10 @@
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
-void loadIDT();
+void load_idt();
 
-void initInterrupts();
+void init_interrupts();
 
-void initSyscalls();
+void init_syscalls();
 
 #endif /* INTERRUPTS_H */

@@ -12,7 +12,7 @@
 /*
  * Detect a special charcode
  */
-#define isSpecialCharcode(cc) ((cc) & 0x8000)
+#define is_special_charcode(cc) ((cc) & 0x8000)
 
 /*
  * Decode a charcode to get the underlying keycode
@@ -151,16 +151,16 @@ typedef enum {
 typedef enum {
   KBD_EV_PRESS = 0x01,
   KBD_EV_RELEASE = 0x02,
-} kbd_eventType_t;
+} kbd_event_type_t;
 
 typedef struct {
   uint8_t data[KBD_BUFFER_SIZE];
-  int writePos, readPos;
+  int write_pos, read_pos;
 } kbd_buffer_t;
 
 typedef struct {
   uint8_t key;
-  uint8_t isReleased;
+  uint8_t is_released;
 
   uint8_t shift : 1;
   uint8_t shift_r : 1;
@@ -176,7 +176,7 @@ typedef struct {
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */
-void kbd_pollEvents();
+void kbd_poll_events();
 
 /*
  * Returns 1 if key is pressed, 0 if not.
@@ -196,7 +196,7 @@ int kbd_keyreleased(uint8_t key);
 /*
  * Returns the next keyboard event, updating keyboard state.
  */
-kbd_event_t kbd_getKeyEvent();
+kbd_event_t kbd_get_key_event();
 
 /*
  * Returns the ASCII character corresponding to the next keyboard event.

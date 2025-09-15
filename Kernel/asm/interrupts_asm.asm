@@ -29,14 +29,14 @@ section .text
 %endmacro
 
 ; Generic IRQ handler
-extern irqDispatcher
-%macro irqHandlerMaster 1
+extern irq_dispatcher
+%macro irq_handler_master 1
 	pushall
     push rbp
     mov rbp, rsp
 
 	mov rdi, %1
-	call irqDispatcher
+	call irq_dispatcher
 
 	; Signal PIC EOI (End of Interrupt)
 	mov al, 0x20
@@ -49,14 +49,14 @@ extern irqDispatcher
 %endmacro
 
 ; Generic exception handler
-extern regdumpContext
-extern getStackBase
-%macro exceptionHandler 1
+extern regdump_context
+extern get_stack_base
+%macro exception_handler 1
   ; Set register dump exception flag
-  mov qword [regdumpContext], 0x01
+  mov qword [regdump_context], 0x01
 
   ; Set register dump exception ID
-  mov qword [regdumpContext + 8], %1
+  mov qword [regdump_context + 8], %1
 
   ; Memory dump
   push rax
@@ -65,11 +65,11 @@ extern getStackBase
   mov rax, [rsp + 8 * 3] ; RIP
   and rax, -16 ; Align to 16-byte boundary
   sub rax, 96 ; Go back a bit
-  mov [regdumpContext + 16], rax ; Store mem dump start address
+  mov [regdump_context + 16], rax ; Store mem dump start address
   mov rbx, 0
 .loop:
   mov cl, [rax]
-  mov [regdumpContext + 24 + rbx], cl
+  mov [regdump_context + 24 + rbx], cl
   inc rax
   inc rbx
   cmp rbx, 128
@@ -81,7 +81,7 @@ extern getStackBase
   call _regdump
 
   ; Restart to userland
-  call getStackBase
+  call get_stack_base
   mov [rsp + 8 * 3], rax        ; Reset stack pointer
   mov qword [rsp], userland     ; Userland entry point
 
@@ -93,15 +93,15 @@ extern getStackBase
 ; -----------------------------------------------------------------------------
 
 ; Establece la máscara del PIC maestro
-global _picMasterMask
-_picMasterMask:
+global _pic_master_mask
+_pic_master_mask:
   mov rax, rdi
   out 0x21, al
   ret
 
 ; Establece la máscara del PIC esclavo
-global _picSlaveMask
-_picSlaveMask:
+global _pic_slave_mask
+_pic_slave_mask:
   mov rax, rdi
   out 0xA1, al
   ret
@@ -114,9 +114,9 @@ _picSlaveMask:
 ; Timer tick (IRQ 0)
 ;------------------------------------------------------------------------------
 
-global _irq00Handler
-_irq00Handler:
-	irqHandlerMaster 0
+global _irq_00_handler
+_irq_00_handler:
+	irq_handler_master 0
 
 ;------------------------------------------------------------------------------
 ; Keyboard handler
@@ -124,10 +124,10 @@ _irq00Handler:
 ; for state dump function
 ;------------------------------------------------------------------------------
 
-global _irq01Handler
-extern kbd_addKeyEvent
+global _irq_01_handler
+extern kbd_add_key_event
 extern _regdump
-_irq01Handler:
+_irq_01_handler:
   push rax     ; Preserve RAX value for statedump
 
   mov rax, 0
@@ -150,7 +150,7 @@ _irq01Handler:
   pushall
 
   mov rdi, rax
-  call kbd_addKeyEvent
+  call kbd_add_key_event
 
   popall
   pop rax
@@ -162,15 +162,15 @@ _irq01Handler:
 ; Syscall handler (IRQ 80h)
 ;------------------------------------------------------------------------------
 
-global _irq80Handler
-extern syscallDispatchTable
-_irq80Handler:
+global _irq_80_handler
+extern syscall_dispatch_table
+_irq_80_handler:
   push rbp
   mov rbp, rsp
 
   sti ; Allow syscalls to be interrupted
 
-  mov rax, [syscallDispatchTable + rax * 8]
+  mov rax, [syscall_dispatch_table + rax * 8]
   call rax
 
   mov rsp, rbp
@@ -182,64 +182,64 @@ _irq80Handler:
 ;------------------------------------------------------------------------------
 
 ; Division by Zero (0x00)
-global _exception00Handler
-_exception00Handler:
-  exceptionHandler 0x00
+global _exception_00_handler
+_exception_00_handler:
+  exception_handler 0x00
 
 ; Invalid Opcode (0x06)
-global _exception06Handler
-_exception06Handler:
-  exceptionHandler 0x06
+global _exception_06_handler
+_exception_06_handler:
+  exception_handler 0x06
 
 ;------------------------------------------------------------------------------
 ; Register dump function
 ;------------------------------------------------------------------------------
 
-extern registerState
-extern showCPUState
+extern register_state
+extern show_cpu_state
 _regdump:
     cli
 
     push rax
-    mov [registerState + 0x00], rax
-    mov [registerState + 0x08], rbx
-    mov [registerState + 0x10], rcx
-    mov [registerState + 0x18], rdx
+    mov [register_state + 0x00], rax
+    mov [register_state + 0x08], rbx
+    mov [register_state + 0x10], rcx
+    mov [register_state + 0x18], rdx
 
-    mov [registerState + 0x20], rsi
-    mov [registerState + 0x28], rdi
+    mov [register_state + 0x20], rsi
+    mov [register_state + 0x28], rdi
     mov rax, [rsp + 8 * 5]  ; RSP (before jumping into IRQ handler)
-    mov [registerState + 0x30], rax
-    mov [registerState + 0x38], rbp
+    mov [register_state + 0x30], rax
+    mov [register_state + 0x38], rbp
 
-    mov [registerState + 0x40], r8
-    mov [registerState + 0x48], r9
-    mov [registerState + 0x50], r10
-    mov [registerState + 0x58], r11
-    mov [registerState + 0x60], r12
-    mov [registerState + 0x68], r13
-    mov [registerState + 0x70], r14
-    mov [registerState + 0x78], r15
+    mov [register_state + 0x40], r8
+    mov [register_state + 0x48], r9
+    mov [register_state + 0x50], r10
+    mov [register_state + 0x58], r11
+    mov [register_state + 0x60], r12
+    mov [register_state + 0x68], r13
+    mov [register_state + 0x70], r14
+    mov [register_state + 0x78], r15
 
     mov rax, [rsp + 8 * 2] ; RIP (before jumping into IRQ handler)
-    mov [registerState + 0x80], rax
+    mov [register_state + 0x80], rax
 
     mov rax, [rsp + 8 * 4] ; RFLAGS
-    mov [registerState + 0x88], rax
+    mov [register_state + 0x88], rax
 
     mov rax, [rsp + 8 * 3] ; CS
-    mov [registerState + 0xB8], ax
+    mov [register_state + 0xB8], ax
     mov rax, [rsp + 8 * 6] ; SS
-    mov [registerState + 0xBA], ax
-    mov [registerState + 0xBC], ds
-    mov [registerState + 0xBE], es
-    mov [registerState + 0xC0], fs
-    mov [registerState + 0xC2], gs
+    mov [register_state + 0xBA], ax
+    mov [register_state + 0xBC], ds
+    mov [register_state + 0xBE], es
+    mov [register_state + 0xC0], fs
+    mov [register_state + 0xC2], gs
 
     sti
 
     pushall
-    call showCPUState
+    call show_cpu_state
     popall
     pop rax
 

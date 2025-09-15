@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-extern char *cpuVendor(char *result);
+extern char *cpu_vendor(char *result);
 extern void _hlt();
 extern void _cli();
 extern void _sti();

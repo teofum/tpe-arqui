@@ -53,8 +53,8 @@ typedef struct {
 #pragma pack(pop) /* Reestablece la alineación actual */
 
 idt_descriptor_t *idt = (idt_descriptor_t *) 0;
-void (*irqHandlers[MAX_INTERRUPTS])();
-void *syscallDispatchTable[MAX_SYSCALLS];
+void (*irq_handlers[MAX_INTERRUPTS])();
+void *syscall_dispatch_table[MAX_SYSCALLS];
 
 /*
  * Static memory location for CPU state dump
@@ -66,22 +66,22 @@ struct {
   uint64_t rip, rflags;
   uint64_t cr0, cr2, cr3, cr4, cr8;
   uint16_t cs, ss, ds, es, fs, gs;
-} registerState;
+} register_state;
 
-extern void _picMasterMask(uint8_t mask);
-extern void _picSlaveMask(uint8_t mask);
+extern void _pic_master_mask(uint8_t mask);
+extern void _pic_slave_mask(uint8_t mask);
 
-extern void _irq00Handler();
-extern void _irq01Handler();
-extern void _irq80Handler();
+extern void _irq_00_handler();
+extern void _irq_01_handler();
+extern void _irq_80_handler();
 
-extern void _exception00Handler();
-extern void _exception06Handler();
+extern void _exception_00_handler();
+extern void _exception_06_handler();
 
 extern void outb(uint16_t port, uint8_t value);
 
 /* Configura una entrada en la IDT */
-static void setup_IDT_Entry(int index, uint64_t offset) {
+static void setup_idt_entry(int index, uint64_t offset) {
   idt[index].selector = 0x08;
   idt[index].offset_l = offset & 0xFFFF;
   idt[index].offset_m = (offset >> 16) & 0xFFFF;
@@ -92,120 +92,120 @@ static void setup_IDT_Entry(int index, uint64_t offset) {
 }
 
 /* Carga la IDT con las interrupciones configuradas */
-void loadIDT() {
+void load_idt() {
   _cli();
 
   // IRQ 0: Timer tick
-  setup_IDT_Entry(ID_TIMER_TICK, (uint64_t) &_irq00Handler);
+  setup_idt_entry(ID_TIMER_TICK, (uint64_t) &_irq_00_handler);
 
   // IRQ 1: Teclado (comentado por ahora)
-  setup_IDT_Entry(ID_KEYBOARD, (uint64_t) &_irq01Handler);
+  setup_idt_entry(ID_KEYBOARD, (uint64_t) &_irq_01_handler);
 
   // Syscalls
-  setup_IDT_Entry(ID_SYSCALL, (uint64_t) &_irq80Handler);
+  setup_idt_entry(ID_SYSCALL, (uint64_t) &_irq_80_handler);
 
   // Exceptions
   // Division by Zero (00)
-  setup_IDT_Entry(0x00, (uint64_t) &_exception00Handler);
+  setup_idt_entry(0x00, (uint64_t) &_exception_00_handler);
   // Invalid Opcode (06)
-  setup_IDT_Entry(0x06, (uint64_t) &_exception06Handler);
+  setup_idt_entry(0x06, (uint64_t) &_exception_06_handler);
 
-  _picMasterMask(0xFC);
-  _picSlaveMask(0xFF);
+  _pic_master_mask(0xFC);
+  _pic_slave_mask(0xFF);
 
   _sti();
 }
 
 /* Dispatcher de IRQs */
-void irqDispatcher(uint64_t irq) { irqHandlers[irq](); }
+void irq_dispatcher(uint64_t irq) { irq_handlers[irq](); }
 
 /* Registra un handler para una IRQ */
-static void setInterruptHandler(uint64_t irq, void (*handler)()) {
-  irqHandlers[irq] = handler;
+static void set_interrupt_handler(uint64_t irq, void (*handler)()) {
+  irq_handlers[irq] = handler;
 }
 
 /* inicializa la tabla de interrupts */
-void initInterrupts() {
-  setInterruptHandler(0x00, timer_handler);
+void init_interrupts() {
+  set_interrupt_handler(0x00, timer_handler);
   // Keyboard interrupt (0x01) is handled specially for register dump function,
   // so it doesn't have an entry in the interrupt dispatch table
 }
 
 /* Registra una syscall */
-static void registerSyscall(uint64_t id, void *syscall) {
-  syscallDispatchTable[id] = syscall;
+static void register_syscall(uint64_t id, void *syscall) {
+  syscall_dispatch_table[id] = syscall;
 }
 
 /* Inicializa la tabla de syscalls */
-void initSyscalls() {
+void init_syscalls() {
   /* Virtual terminal I/O */
-  registerSyscall(0x03, io_read);
-  registerSyscall(0x04, io_write);
+  register_syscall(0x03, io_read);
+  register_syscall(0x04, io_write);
   // 0x05, 0x06 reserved for future syscalls (open, close)
-  registerSyscall(0x07, io_writes);
-  registerSyscall(0x08, io_putc);
-  registerSyscall(0x09, io_clear);
-  registerSyscall(0x0A, io_setfont);
-  registerSyscall(0x0B, io_blankFrom);
-  registerSyscall(0x0C, io_setcursor);
-  registerSyscall(0x0D, io_movecursor);
+  register_syscall(0x07, io_writes);
+  register_syscall(0x08, io_putc);
+  register_syscall(0x09, io_clear);
+  register_syscall(0x0A, io_setfont);
+  register_syscall(0x0B, io_blank_from);
+  register_syscall(0x0C, io_setcursor);
+  register_syscall(0x0D, io_movecursor);
 
   /* Keyboard */
-  registerSyscall(0x10, kbd_pollEvents);
-  registerSyscall(0x11, kbd_keydown);
-  registerSyscall(0x12, kbd_keypressed);
-  registerSyscall(0x13, kbd_keyreleased);
-  registerSyscall(0x14, kbd_getKeyEvent);
-  registerSyscall(0x15, kbd_getchar);
+  register_syscall(0x10, kbd_poll_events);
+  register_syscall(0x11, kbd_keydown);
+  register_syscall(0x12, kbd_keypressed);
+  register_syscall(0x13, kbd_keyreleased);
+  register_syscall(0x14, kbd_get_key_event);
+  register_syscall(0x15, kbd_getchar);
 
   /* Video */
-  registerSyscall(0x20, vga_clear);
-  registerSyscall(0x21, vga_pixel);
-  registerSyscall(0x22, vga_line);
-  registerSyscall(0x23, vga_rect);
-  registerSyscall(0x24, vga_frame);
-  registerSyscall(0x25, vga_shade);
-  registerSyscall(0x26, vga_gradient);
-  registerSyscall(0x27, vga_font);
-  registerSyscall(0x28, vga_text);
-  registerSyscall(0x29, vga_textWrap);
-  registerSyscall(0x2A, vga_present);
-  registerSyscall(0x2B, vga_setFramebuffer);
-  registerSyscall(0x2C, vga_copy);
-  registerSyscall(0x2D, vga_copy2x);
-  registerSyscall(0x2E, vga_bitmap);
-  registerSyscall(0x2F, vga_getVBEInfo);
+  register_syscall(0x20, vga_clear);
+  register_syscall(0x21, vga_pixel);
+  register_syscall(0x22, vga_line);
+  register_syscall(0x23, vga_rect);
+  register_syscall(0x24, vga_frame);
+  register_syscall(0x25, vga_shade);
+  register_syscall(0x26, vga_gradient);
+  register_syscall(0x27, vga_font);
+  register_syscall(0x28, vga_text);
+  register_syscall(0x29, vga_text_wrap);
+  register_syscall(0x2A, vga_present);
+  register_syscall(0x2B, vga_set_framebuffer);
+  register_syscall(0x2C, vga_copy);
+  register_syscall(0x2D, vga_copy2x);
+  register_syscall(0x2E, vga_bitmap);
+  register_syscall(0x2F, vga_get_vbe_info);
 
   /* Audio */
-  registerSyscall(0x30, audio_beep);
-  registerSyscall(0x31, audio_play_melody);
+  register_syscall(0x30, audio_beep);
+  register_syscall(0x31, audio_play_melody);
 
   /* Status bar */
-  registerSyscall(0x40, status_enabled);
-  registerSyscall(0x41, status_setEnabled);
+  register_syscall(0x40, status_enabled);
+  register_syscall(0x41, status_set_enabled);
 
   /* Time/RTC */
-  registerSyscall(0x50, ticks_elapsed);
+  register_syscall(0x50, ticks_elapsed);
 
   /* Graphics module */
-  registerSyscall(0xA0, gfx_clear);
-  registerSyscall(0xA1, gfx_drawPrimitives);
-  registerSyscall(0xA2, gfx_drawPrimitivesIndexed);
-  registerSyscall(0xA3, gfx_drawWireframe);
-  registerSyscall(0xA4, gfx_drawWireframeIndexed);
-  registerSyscall(0xA5, gfx_setBuffers);
-  registerSyscall(0xA6, gfx_copy);
-  registerSyscall(0xA7, gfx_depthcopy);
-  registerSyscall(0xA8, gfx_loadModel);
-  registerSyscall(0xAA, gfx_setLight);
-  registerSyscall(0xAB, gfx_setLightType);
-  registerSyscall(0xAC, gfx_setMatrix);
-  registerSyscall(0xAD, gfx_setFlag);
-  registerSyscall(0xAE, gfx_getFramebuffer);
-  registerSyscall(0xAF, gfx_present);
+  register_syscall(0xA0, gfx_clear);
+  register_syscall(0xA1, gfx_draw_primitives);
+  register_syscall(0xA2, gfx_draw_primitives_indexed);
+  register_syscall(0xA3, gfx_draw_wireframe);
+  register_syscall(0xA4, gfx_draw_wireframe_indexed);
+  register_syscall(0xA5, gfx_set_buffers);
+  register_syscall(0xA6, gfx_copy);
+  register_syscall(0xA7, gfx_depthcopy);
+  register_syscall(0xA8, gfx_load_model);
+  register_syscall(0xAA, gfx_set_light);
+  register_syscall(0xAB, gfx_set_light_type);
+  register_syscall(0xAC, gfx_set_matrix);
+  register_syscall(0xAD, gfx_set_flag);
+  register_syscall(0xAE, gfx_get_framebuffer);
+  register_syscall(0xAF, gfx_present);
 
   /* Special */
-  registerSyscall(0xFF, _hlt);
+  register_syscall(0xFF, _hlt);
 }
 
 // Información de excepción
@@ -215,7 +215,7 @@ typedef struct {
 } exception_info_t;
 
 // Tabla de información de excepciones - índice directo por ID
-static const exception_info_t exceptionTable[MAX_EXCEPTIONS] = {
+static const exception_info_t exception_table[MAX_EXCEPTIONS] = {
   [0x00] = {"Division by Zero", "Attempt to divide by zero"},
   [0x06] = {"Invalid Opcode", "Illegal or undefined instruction"}
 };
@@ -224,13 +224,13 @@ typedef struct {
   uint64_t flag;
   uint64_t exception_id;
 
-  uint64_t memdumpStart;
+  uint64_t memdump_start;
   uint8_t memdump[MEM_DUMP_SIZE];
 } regdump_context_t;
 
-regdump_context_t regdumpContext = {REGDUMP_NORMAL, 0};
+regdump_context_t regdump_context = {REGDUMP_NORMAL, 0};
 
-void showCPUState() {
+void show_cpu_state() {
   uint16_t height, top;
   uint16_t width = 800, left = CENTER_X - (width >> 1);
   uint16_t bottom, right = left + width - 1;
@@ -238,10 +238,10 @@ void showCPUState() {
   const char *footer;
   char buf[256];
 
-  int statusEnabled = status_enabled();
-  vga_framebuffer_t currentFB = vga_setFramebuffer(NULL);
-  if (regdumpContext.flag == REGDUMP_EXCEPTION) {
-    status_setEnabled(0);
+  int is_status_enabled = status_enabled();
+  vga_framebuffer_t current_fb = vga_set_framebuffer(NULL);
+  if (regdump_context.flag == REGDUMP_EXCEPTION) {
+    status_set_enabled(0);
     bg_colors = colors(0x500000, 0x800000);
     footer = "Press any key to restart";
 
@@ -273,17 +273,18 @@ void showCPUState() {
     top += 80;
 
     // Información específica de la excepción
-    const exception_info_t *info = &exceptionTable[regdumpContext.exception_id];
+    const exception_info_t *info =
+      &exception_table[regdump_context.exception_id];
     if (info->name) {
       sprintf(
-        buf, "Exception %#02llx %s", regdumpContext.exception_id, info->name
+        buf, "Exception %#02llx %s", regdump_context.exception_id, info->name
       );
       vga_text(left + 16, top + 16, buf, TEXT_COLOR, 0, 0);
 
       sprintf(buf, "Description: %s", info->description);
       vga_text(left + 16, top + 32, buf, TEXT_COLOR, 0, 0);
     } else {
-      sprintf(buf, "Exception %#02llx", regdumpContext.exception_id);
+      sprintf(buf, "Exception %#02llx", regdump_context.exception_id);
       vga_text(left + 16, top + 16, buf, TEXT_COLOR, 0, 0);
       vga_text(
         left + 16, top + 32, "Description: Unknown exception", TEXT_COLOR, 0, 0
@@ -316,99 +317,99 @@ void showCPUState() {
   }
 
   /* General purpose registers */
-  sprintf(buf, "rax: %#016llx", registerState.rax);
+  sprintf(buf, "rax: %#016llx", register_state.rax);
   vga_text(left + 8, top + 16, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "rbx: %#016llx", registerState.rbx);
+  sprintf(buf, "rbx: %#016llx", register_state.rbx);
   vga_text(left + 8, top + 32, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "rcx: %#016llx", registerState.rcx);
+  sprintf(buf, "rcx: %#016llx", register_state.rcx);
   vga_text(left + 8, top + 48, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "rdx: %#016llx", registerState.rdx);
+  sprintf(buf, "rdx: %#016llx", register_state.rdx);
   vga_text(left + 8, top + 64, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "rdi: %#016llx", registerState.rdi);
+  sprintf(buf, "rdi: %#016llx", register_state.rdi);
   vga_text(left + 208, top + 16, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "rsi: %#016llx", registerState.rsi);
+  sprintf(buf, "rsi: %#016llx", register_state.rsi);
   vga_text(left + 208, top + 32, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "rsp: %#016llx", registerState.rsp);
+  sprintf(buf, "rsp: %#016llx", register_state.rsp);
   vga_text(left + 208, top + 48, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "rbp: %#016llx", registerState.rbp);
+  sprintf(buf, "rbp: %#016llx", register_state.rbp);
   vga_text(left + 208, top + 64, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, " r8: %#016llx", registerState.r8);
+  sprintf(buf, " r8: %#016llx", register_state.r8);
   vga_text(left + 408, top + 16, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, " r9: %#016llx", registerState.r9);
+  sprintf(buf, " r9: %#016llx", register_state.r9);
   vga_text(left + 408, top + 32, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "r10: %#016llx", registerState.r10);
+  sprintf(buf, "r10: %#016llx", register_state.r10);
   vga_text(left + 408, top + 48, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "r11: %#016llx", registerState.r11);
+  sprintf(buf, "r11: %#016llx", register_state.r11);
   vga_text(left + 408, top + 64, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "r12: %#016llx", registerState.r12);
+  sprintf(buf, "r12: %#016llx", register_state.r12);
   vga_text(left + 608, top + 16, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "r13: %#016llx", registerState.r13);
+  sprintf(buf, "r13: %#016llx", register_state.r13);
   vga_text(left + 608, top + 32, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "r14: %#016llx", registerState.r14);
+  sprintf(buf, "r14: %#016llx", register_state.r14);
   vga_text(left + 608, top + 48, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "r15: %#016llx", registerState.r15);
+  sprintf(buf, "r15: %#016llx", register_state.r15);
   vga_text(left + 608, top + 64, buf, TEXT_COLOR, 0, 0);
 
   /* Execution state registers */
-  sprintf(buf, "rip: %#016llx", registerState.rip);
+  sprintf(buf, "rip: %#016llx", register_state.rip);
   vga_text(left + 8, top + 96, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "flg: %#016llx", registerState.rflags);
+  sprintf(buf, "flg: %#016llx", register_state.rflags);
   vga_text(left + 8, top + 112, buf, TEXT_COLOR, 0, 0);
 
   /* Segment registers */
-  sprintf(buf, "cs: %#04x", registerState.cs);
+  sprintf(buf, "cs: %#04x", register_state.cs);
   vga_text(left + 208, top + 96, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "ss: %#04x", registerState.ss);
+  sprintf(buf, "ss: %#04x", register_state.ss);
   vga_text(left + 312, top + 96, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "ds: %#04x", registerState.ds);
+  sprintf(buf, "ds: %#04x", register_state.ds);
   vga_text(left + 408, top + 96, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "es: %#04x", registerState.es);
+  sprintf(buf, "es: %#04x", register_state.es);
   vga_text(left + 512, top + 96, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "fs: %#04x", registerState.fs);
+  sprintf(buf, "fs: %#04x", register_state.fs);
   vga_text(left + 608, top + 96, buf, TEXT_COLOR, 0, 0);
 
-  sprintf(buf, "gs: %#04x", registerState.gs);
+  sprintf(buf, "gs: %#04x", register_state.gs);
   vga_text(left + 712, top + 96, buf, TEXT_COLOR, 0, 0);
 
   top += 144;
 
   /* Memory dump (exception only) */
-  if (regdumpContext.flag == REGDUMP_EXCEPTION) {
+  if (regdump_context.flag == REGDUMP_EXCEPTION) {
     vga_text(
       CENTER_X - 140, top, "== Memory dump [RIP highlighted] ==", 0, TEXT_COLOR,
       VGA_TEXT_INV
     );
 
     for (uint32_t y = 0; y < 8; y++) {
-      sprintf(buf, "%#016llx", regdumpContext.memdumpStart + y * 16);
+      sprintf(buf, "%#016llx", regdump_context.memdump_start + y * 16);
       vga_text(CENTER_X - 272, top + 32 + y * 16, buf, TEXT_COLOR, 0, 0);
 
       for (uint32_t x = 0; x < 16; x++) {
-        sprintf(buf, "%02x", regdumpContext.memdump[y * 16 + x]);
+        sprintf(buf, "%02x", regdump_context.memdump[y * 16 + x]);
         vga_text(
           CENTER_X - 104 + x * 24, top + 32 + y * 16, buf, TEXT_COLOR,
           TEXT_COLOR,
-          regdumpContext.memdumpStart + y * 16 + x == registerState.rip
+          regdump_context.memdump_start + y * 16 + x == register_state.rip
             ? VGA_TEXT_INV
             : 0
         );
@@ -419,19 +420,19 @@ void showCPUState() {
   }
 
   /* Prompt */
-  uint32_t offset = regdumpContext.flag == REGDUMP_EXCEPTION ? 96 : 100;
+  uint32_t offset = regdump_context.flag == REGDUMP_EXCEPTION ? 96 : 100;
   vga_text(CENTER_X - offset, top, footer, TEXT_COLOR, 0, 0);
 
   vga_present();
-  vga_setFramebuffer(currentFB);
+  vga_set_framebuffer(current_fb);
 
   char key = 0;
-  while (!key) { key = kbd_getKeyEvent().key; }
+  while (!key) { key = kbd_get_key_event().key; }
 
   // Restore statusbar
-  status_setEnabled(statusEnabled);
+  status_set_enabled(is_status_enabled);
 
   // Restore regdump ctx
-  regdumpContext.flag = REGDUMP_NORMAL;
-  regdumpContext.exception_id = 0;
+  regdump_context.flag = REGDUMP_NORMAL;
+  regdump_context.exception_id = 0;
 }

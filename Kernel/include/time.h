@@ -1,5 +1,6 @@
 #ifndef _TIME_H_
 #define _TIME_H_
+
 #include <stdint.h>
 
 #define TICKS_PER_SECOND 1000
@@ -22,11 +23,11 @@ typedef struct {
   uint8_t year;
   uint8_t month;
   uint8_t day;
-  uint8_t dayOfWeek;
+  uint8_t day_of_week;
   uint8_t hours;
   uint8_t minutes;
   uint8_t seconds;
-} dateTime_t;
+} datetime_t;
 
 /*
  * Initialize the system timer to tick every 1ms
@@ -43,12 +44,10 @@ unsigned int minutes_elapsed();
 
 unsigned int hours_elapsed();
 
-time_t getTimeElapsed(unsigned int ticks);
+uint8_t rtc_get_time(int descriptor);
 
-uint8_t rtc_getTime(int descriptor);
+datetime_t rtc_get_datetime();
 
-dateTime_t rtc_getDateTime();
-
-dateTime_t rtc_getLocalTime(void);
+datetime_t rtc_get_local_time(void);
 
 #endif

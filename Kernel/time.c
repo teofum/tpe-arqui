@@ -7,7 +7,7 @@
 
 #define bcd_decode(x) ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
 
-extern uint8_t _rtc_getTime(uint64_t descriptor);// de rtc.asm
+extern uint8_t _rtc_get_time(uint64_t descriptor);// de rtc.asm
 extern void audio_timer_tick(void);
 
 static uint64_t timer_ticks = 0;
@@ -24,7 +24,7 @@ void timer_init() {
 void timer_handler() {
   timer_ticks++;
   // Update every eighth a second so we don't skip seconds every now and then
-  if (!(timer_ticks % (TICKS_PER_SECOND >> 3))) { status_drawStatusBar(); }
+  if (!(timer_ticks % (TICKS_PER_SECOND >> 3))) { status_draw_statusbar(); }
 
   audio_timer_tick();
 }
@@ -40,7 +40,7 @@ unsigned int minutes_elapsed() { return (seconds_elapsed() / 60) % 60; }
 unsigned int hours_elapsed() { return (minutes_elapsed() / 60) % 24; }
 
 /* get HMS from timer tick in one struct */
-time_t getTimeElapsed(unsigned int ticks) {
+static time_t get_time_elapsed(unsigned int ticks) {
   time_t t;
   unsigned int total_seconds = ticks / TICKS_PER_SECOND;
 
@@ -52,21 +52,21 @@ time_t getTimeElapsed(unsigned int ticks) {
 }
 
 /* Fetches actual UTC real time */
-uint8_t rtc_getTime(int descriptor) {
-  uint8_t toReturn = _rtc_getTime(descriptor);
-  return bcd_decode(toReturn);
+uint8_t rtc_get_time(int descriptor) {
+  uint8_t rtc_time = _rtc_get_time(descriptor);
+  return bcd_decode(rtc_time);
 }
 
 /* Fetches whole YDMHMS in one struct */
-dateTime_t rtc_getDateTime() {
-  dateTime_t dt;
-  dt.seconds = rtc_getTime(SECONDS);
-  dt.minutes = rtc_getTime(MINUTES);
-  dt.hours = rtc_getTime(HOURS);
-  dt.day = rtc_getTime(DAY_OF_THE_MONTH);
-  dt.dayOfWeek = rtc_getTime(DAY_OF_THE_WEEK) - 1;
-  dt.month = rtc_getTime(MONTH) - 1;
-  dt.year = rtc_getTime(YEAR);
+datetime_t rtc_get_datetime() {
+  datetime_t dt;
+  dt.seconds = rtc_get_time(SECONDS);
+  dt.minutes = rtc_get_time(MINUTES);
+  dt.hours = rtc_get_time(HOURS);
+  dt.day = rtc_get_time(DAY_OF_THE_MONTH);
+  dt.day_of_week = rtc_get_time(DAY_OF_THE_WEEK) - 1;
+  dt.month = rtc_get_time(MONTH) - 1;
+  dt.year = rtc_get_time(YEAR);
   return dt;
 }
 
@@ -83,8 +83,8 @@ static uint8_t days_in_month(uint8_t month, uint8_t year) {
   return days[month - 1];
 }
 
-dateTime_t rtc_getLocalTime(void) {
-  dateTime_t dt = rtc_getDateTime();// Get UTC time
+datetime_t rtc_get_local_time(void) {
+  datetime_t dt = rtc_get_datetime();// Get UTC time
 
   // Argentina (UTC-3)
   if (dt.hours >= 3) {

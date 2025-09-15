@@ -11,7 +11,7 @@ typedef enum {
   IO_CURSOR_BLOCK,
 } io_cursor_t;
 
-void io_blankFrom(uint32_t x);
+void io_blank_from(uint32_t x);
 
 void io_putc(char c);
 

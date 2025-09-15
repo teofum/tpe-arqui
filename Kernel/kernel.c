@@ -1,8 +1,8 @@
-#include "graphics.h"
+#include <graphics.h>
 #include <interrupts.h>
 #include <kbd.h>
 #include <lib.h>
-#include <moduleLoader.h>
+#include <module_loader.h>
 #include <print.h>
 #include <status.h>
 #include <stdint.h>
@@ -14,55 +14,58 @@ extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
 extern uint8_t bss;
-extern uint8_t endOfKernelBinary;
-extern uint8_t endOfKernel;
+extern uint8_t end_of_kernel_binary;
+extern uint8_t end_of_kernel;
 
-static const uint64_t PageSize = 0x1000;
+static const uint64_t page_size = 0x1000;
 
 // We moved userland a bit to make room for all the framebuffers
-static void *const userlandCodeModule = (void *) 0x2000000;
+static void *const userland_code_module = (void *) 0x2000000;
 
 // Data module addresses
-static void *const gameLogoDataModule = (void *) 0x3000000;// Image, ~10K
-static void *const modelDataModule1 = (void *) 0x3003000;// Capybara model, ~10K
-static void *const modelDataModule2 = (void *) 0x3006000;// Capybara face, ~1K
-static void *const modelDataModule3 = (void *) 0x3006800;// Golf club, 744B
-static void *const modelDataModule4 = (void *) 0x3006C00;// Flag, 216B
-static void *const modelDataModule5 = (void *) 0x3006E00;// Flagpole, 420B
-static void *const modelDataModule6 = (void *) 0x3007000;// Ball, 780B
-static void *const modelDataModule7 = (void *) 0x3007800;// Utah teapot, ~58K!!
+static void *const game_logo_data_module = (void *) 0x3000000;// Image, ~10K
+static void *const model_data_module_1 =
+  (void *) 0x3003000;// Capybara model, ~10K
+static void *const model_data_module_2 =
+  (void *) 0x3006000;// Capybara face, ~1K
+static void *const model_data_module_3 = (void *) 0x3006800;// Golf club, 744B
+static void *const model_data_module_4 = (void *) 0x3006C00;// Flag, 216B
+static void *const model_data_module_5 = (void *) 0x3006E00;// Flagpole, 420B
+static void *const model_data_module_6 = (void *) 0x3007000;// Ball, 780B
+static void *const model_data_module_7 =
+  (void *) 0x3007800;// Utah teapot, ~58K!!
 
 typedef int (*entrypoint_t)();
 
-void clearBSS(void *bssAddress, uint64_t bssSize) {
-  memset(bssAddress, 0, bssSize);
+void clear_bss(void *bss_address, uint64_t bss_size) {
+  memset(bss_address, 0, bss_size);
 }
 
-void *getStackBase() {
-  return (void *) ((uint64_t) &endOfKernel +
-                   PageSize * 8      //The size of the stack itself, 32KiB
+void *get_stack_base() {
+  return (void *) ((uint64_t) &end_of_kernel +
+                   page_size * 8      //The size of the stack itself, 32KiB
                    - sizeof(uint64_t)//Begin at the top of the stack
   );
 }
 
-void *initializeKernelBinary() {
-  void *moduleAddresses[] = {
-    userlandCodeModule, gameLogoDataModule, modelDataModule1,
-    modelDataModule2,   modelDataModule3,   modelDataModule4,
-    modelDataModule5,   modelDataModule6,   modelDataModule7,
+void *initialize_kernel_binary() {
+  void *module_addresses[] = {
+    userland_code_module, game_logo_data_module, model_data_module_1,
+    model_data_module_2,  model_data_module_3,   model_data_module_4,
+    model_data_module_5,  model_data_module_6,   model_data_module_7,
   };
-  loadModules(&endOfKernelBinary, moduleAddresses);
+  load_modules(&end_of_kernel_binary, module_addresses);
 
-  clearBSS(&bss, &endOfKernel - &bss);
+  clear_bss(&bss, &end_of_kernel - &bss);
 
-  return getStackBase();
+  return get_stack_base();
 }
 
 int main() {
   // Initialize interrupts and syscalls
-  initSyscalls();
-  initInterrupts();
-  loadIDT();
+  init_syscalls();
+  init_interrupts();
+  load_idt();
 
   // Init timer
   timer_init();
@@ -72,10 +75,10 @@ int main() {
   gfx_init();
 
   // Enable status bar
-  status_setEnabled(1);
+  status_set_enabled(1);
 
   while (1) {
-    int ret = ((entrypoint_t) userlandCodeModule)();
+    int ret = ((entrypoint_t) userland_code_module)();
     printf(
       "\x1A 195,248,132;[Kernel] \x1A R;"
       "Userland module exited with code \x1A 255,197,96;%#08x\n"
@@ -85,7 +88,7 @@ int main() {
     );
 
     int key = 0;
-    while (!key) { key = kbd_getKeyEvent().key; }
+    while (!key) { key = kbd_get_key_event().key; }
   }
 
   return 0;
