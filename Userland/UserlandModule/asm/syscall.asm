@@ -13,7 +13,7 @@ _syscall:
 
     ret
 
-%macro defineSyscall 2
+%macro define_syscall 2
 global %1
 %1:
     mov rax, %2
@@ -21,45 +21,45 @@ global %1
     ret
 %endmacro
 
-defineSyscall kbd_pollEvents, 0x10
-defineSyscall kbd_keydown, 0x11
-defineSyscall kbd_keypressed, 0x12
-defineSyscall kbd_keyreleased, 0x13
-defineSyscall kbd_getKeyEvent, 0x14
-defineSyscall kbd_getchar, 0x15
+define_syscall kbd_poll_events, 0x10
+define_syscall kbd_keydown, 0x11
+define_syscall kbd_keypressed, 0x12
+define_syscall kbd_keyreleased, 0x13
+define_syscall kbd_get_key_event, 0x14
+define_syscall kbd_getchar, 0x15
 
-defineSyscall vga_clear, 0x20
-defineSyscall vga_pixel, 0x21
-defineSyscall vga_line, 0x22
-defineSyscall vga_rect, 0x23
-defineSyscall vga_frame, 0x24
-defineSyscall vga_shade, 0x25
-defineSyscall vga_gradient, 0x26
-defineSyscall vga_font, 0x27
-defineSyscall vga_text, 0x28
-defineSyscall vga_textWrap, 0x29
-defineSyscall vga_present, 0x2A
-defineSyscall vga_setFramebuffer, 0x2B
-defineSyscall vga_copy, 0x2C
-defineSyscall vga_copy2x, 0x2D
-defineSyscall vga_bitmap, 0x2E
-defineSyscall vga_getVBEInfo, 0x2F
+define_syscall vga_clear, 0x20
+define_syscall vga_pixel, 0x21
+define_syscall vga_line, 0x22
+define_syscall vga_rect, 0x23
+define_syscall vga_frame, 0x24
+define_syscall vga_shade, 0x25
+define_syscall vga_gradient, 0x26
+define_syscall vga_font, 0x27
+define_syscall vga_text, 0x28
+define_syscall vga_text_wrap, 0x29
+define_syscall vga_present, 0x2A
+define_syscall vga_set_framebuffer, 0x2B
+define_syscall vga_copy, 0x2C
+define_syscall vga_copy2x, 0x2D
+define_syscall vga_bitmap, 0x2E
+define_syscall vga_get_vbe_info, 0x2F
 
-defineSyscall gfx_clear, 0xA0
-defineSyscall gfx_drawPrimitives, 0xA1
-defineSyscall gfx_drawPrimitivesIndexed, 0xA2
-defineSyscall gfx_drawWireframe, 0xA3
-defineSyscall gfx_drawWireframeIndexed, 0xA4
-defineSyscall gfx_setBuffers, 0xA5
-defineSyscall gfx_copy, 0xA6
-defineSyscall gfx_depthcopy, 0xA7
-defineSyscall gfx_loadModel, 0xA8
-defineSyscall gfx_setLight, 0xAA
-defineSyscall gfx_setLightType, 0xAB
-defineSyscall gfx_setMatrix, 0xAC
-defineSyscall gfx_setFlag, 0xAD
-defineSyscall gfx_getFramebuffer, 0xAE
-defineSyscall gfx_present, 0xAF
+define_syscall gfx_clear, 0xA0
+define_syscall gfx_draw_primitives, 0xA1
+define_syscall gfx_draw_primitives_indexed, 0xA2
+define_syscall gfx_draw_wireframe, 0xA3
+define_syscall gfx_draw_wireframe_indexed, 0xA4
+define_syscall gfx_set_buffers, 0xA5
+define_syscall gfx_copy, 0xA6
+define_syscall gfx_depthcopy, 0xA7
+define_syscall gfx_load_model, 0xA8
+define_syscall gfx_set_light, 0xAA
+define_syscall gfx_set_light_type, 0xAB
+define_syscall gfx_set_matrix, 0xAC
+define_syscall gfx_set_flag, 0xAD
+define_syscall gfx_get_framebuffer, 0xAE
+define_syscall gfx_present, 0xAF
 
-defineSyscall audio_beep, 0x30
-defineSyscall audio_play_melody, 0x31
+define_syscall audio_beep, 0x30
+define_syscall audio_play_melody, 0x31

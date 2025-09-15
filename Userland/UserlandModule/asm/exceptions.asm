@@ -14,8 +14,8 @@ _throw_06:
 
 ; Note: this function will clobber *all* the registers
 ; we assume the kernel will restart immediately after, so we don't care
-global _regdumpTest
-_regdumpTest:
+global _regdump_test
+_regdump_test:
   ; Fill registers with known values we can look for in the dump
   mov rax, 0xaaaaaaaaaaaaaaaa
   mov rbx, 0xbbbbbbbbbbbbbbbb

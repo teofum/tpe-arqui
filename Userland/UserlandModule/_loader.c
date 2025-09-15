@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 extern char bss;
-extern char endOfBinary;
+extern char end_of_binary;
 
 int main();
 
@@ -10,7 +10,7 @@ void *memset(void *dst, int32_t c, uint64_t length);
 
 int _start() {
   //Clean BSS
-  memset(&bss, 0, &endOfBinary - &bss);
+  memset(&bss, 0, &end_of_binary - &bss);
 
   return main();
 }

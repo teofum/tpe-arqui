@@ -1,6 +1,6 @@
 #include <fpmath.h>
 
-float fitToPi(float x) {
+float fit_to_pi(float x) {
   while (x > M_PI) { x -= 2.0f * M_PI; }
   while (x < -M_PI) { x += 2.0f * M_PI; }
 

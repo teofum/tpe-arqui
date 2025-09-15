@@ -41,14 +41,14 @@ static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
     if (c == '%') {
       int done = 0;
       char padding = ' ';
-      uint8_t minLength = 0;
-      int printBase = 0, islong = 0;
+      uint8_t min_length = 0;
+      int print_base = 0, islong = 0;
 
       while (!done) {
         c = *fmt++;
 
         if (c == '#') {
-          printBase = 1;
+          print_base = 1;
           c = *fmt++;
         }
 
@@ -60,8 +60,8 @@ static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
 
         // Parse digits as minimum length
         while (c >= '0' && c <= '9') {
-          minLength *= 10;
-          minLength += c - '0';
+          min_length *= 10;
+          min_length += c - '0';
           c = *fmt++;
         }
 
@@ -91,14 +91,14 @@ static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
           case 'u':
           case 'x':
           case 'b':
-            if (printBase && (c == 'x' || c == 'b')) {
+            if (print_base && (c == 'x' || c == 'b')) {
               buf[len++] = '0';
               buf[len++] = c;
             }
 
             base = (c == 'x') ? 16 : (c == 'b') ? 2 : 10;
             t_u64 = islong ? va_arg(args, uint64_t) : va_arg(args, uint32_t);
-            t_u64 = utostr(buffer, t_u64, base, minLength, padding);
+            t_u64 = utostr(buffer, t_u64, base, min_length, padding);
             for (int i = 0; i < t_u64; i++) buf[len++] = buffer[i];
             done = 1;
             break;

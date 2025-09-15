@@ -10,6 +10,6 @@
 #define COL_MAGENTA "\x1A 187,123,215;"
 #define COL_GRAY "\x1A 160,160,160;"
 
-int startShell();
+int start_shell();
 
 #endif

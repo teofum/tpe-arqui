@@ -13,8 +13,8 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
-#define VGA_WIDTH VBEModeInfo.width
-#define VGA_HEIGHT VBEModeInfo.height
+#define VGA_WIDTH vbe_mode_info.width
+#define VGA_HEIGHT vbe_mode_info.height
 #define CENTER_X (VGA_WIDTH >> 1)
 #define CENTER_Y (VGA_HEIGHT >> 1)
 
@@ -88,13 +88,13 @@ typedef struct {
 
   float size;//pensado para ser un radio, se puede usar para suplantar masa
 
-  float mass;// para colisions y podria afectar el gama
+  float inv_mass;// para colisions y podria afectar el gama
   // si usamos la inversa de la masa nos ahoramos la division de float
 
   float drag;// friction/arraste // NO es exacto, es una idea mas simple
 
   float angle;
-} physicsObject_t;
+} physics_object_t;
 
 typedef struct {
   float3 v[TERRAIN_SIZE_X + 1][TERRAIN_SIZE_Y + 1];
@@ -111,11 +111,11 @@ typedef struct {
 } hole_t;
 
 typedef struct {
-  uint32_t nPlayers;
-  uint32_t nHoles;
+  uint32_t n_players;
+  uint32_t n_holes;
 
   uint32_t scores[MAX_PLAYERS][MAX_HOLES + 1];
-} gameSettings_t;
+} game_settings_t;
 
 typedef enum {
   GG_SCREEN_TITLE,
@@ -130,43 +130,43 @@ typedef enum {
   GG_SM_HOLESELECT = 0,
   GG_SM_START,
   GG_SM_BACK,
-} gg_menuOption_t;
+} gg_menu_option_t;
 
 typedef enum {
   GG_PAUSE_RESUME,
   GG_PAUSE_SKIP,
   GG_PAUSE_QUIT,
-} gg_pauseOption_t;
+} gg_pause_option_t;
 
 typedef enum {
   GG_GAME_RUNNING,
   GG_GAME_END,
   GG_GAME_SCOREBOARD,
-} gg_gameState_t;
+} gg_game_state_t;
 
 typedef enum {
   GG_ANIM_NONE,
   GG_ANIM_WIN,
   GG_ANIM_LOSE,
-} gg_playerAnim_t;
+} gg_player_anim_t;
 
 /*
  * Background framebuffers for optimized pre-rendering
  * These only need to be half size, rendering is half res
  * (half the buffers are still unused, this is a potential improvement)
  */
-static uint8_t bgFramebuffer[FRAMEBUFFER_SIZE >> 1];
-static float bgDepthbuffer[(VGA_MAX_WIDTH * VGA_MAX_HEIGHT) >> 1];
+static uint8_t bg_framebuffer[FRAMEBUFFER_SIZE >> 1];
+static float bg_depthbuffer[(VGA_MAX_WIDTH * VGA_MAX_HEIGHT) >> 1];
 
 /*
  * VGA info struct
  */
-static vbe_info_t VBEModeInfo;
+static vbe_info_t vbe_mode_info;
 
 /*
  * Bitmap image data
  */
-static uint8_t *titlescreenLogo = (uint8_t *) 0x3000000;
+static uint8_t *titlescreen_logo = (uint8_t *) 0x3000000;
 
 /*
  * OBJ strings for 3D models
@@ -238,8 +238,8 @@ static uint32_t pc_walls = sizeof(vi_walls) / sizeof(uint32_t);
  * Frametime counter
  */
 static uint64_t frametime = 0;
-static uint64_t totalTicks = 0;
-static int showFps = 0;
+static uint64_t total_ticks = 0;
+static int show_fps = 0;
 
 /*
  * Constant colors
@@ -259,10 +259,10 @@ static float3 color_ball[] = {
 /*
  * Score strings
  */
-static const char *scoreNames[] = {"Hole in ZERO!", "Hole in One!", "Eagle",
-                                   "Birdie",        "Par",          "Bogey",
-                                   "Double Bogey",  "over Par"};
-static const char *scoreTexts[] = {
+static const char *score_names[] = {"Hole in ZERO!", "Hole in One!", "Eagle",
+                                    "Birdie",        "Par",          "Bogey",
+                                    "Double Bogey",  "over Par"};
+static const char *score_texts[] = {
   "How??",        "YOU'RE WINNER",      "Great!",
   "Nicely done!", "Not bad, not great", "Almost there...",
   "git gud",      "Major Skill Issue",
@@ -271,12 +271,12 @@ static const char *scoreTexts[] = {
 /*
  * Helper functions
  */
-static inline void updateTimer() {
-  frametime = _syscall(SYS_TICKS) - totalTicks;
-  totalTicks += frametime;
+static inline void update_timer() {
+  frametime = _syscall(SYS_TICKS) - total_ticks;
+  total_ticks += frametime;
 }
 
-static inline void makeHoleMesh() {
+static inline void make_hole_mesh() {
   for (int i = 0; i < 7; i++) {
     float a = -M_PI + 2.0f * i / 7.0f * M_PI;
     float3 v = {cos(a), 0.0f, sin(a)};
@@ -284,7 +284,7 @@ static inline void makeHoleMesh() {
   }
 }
 
-static inline float randomFloat(pcg32_random_t *rng) {
+static inline float random_float(pcg32_random_t *rng) {
   // Convert a random integer to a float in the 0-1 range
   return (pcg32_rand(rng) >> 8) * 0x1p-24f;// funky hex float notation
 }
@@ -292,7 +292,7 @@ static inline float randomFloat(pcg32_random_t *rng) {
 /*
 * Aplica "aceleracion" y actualiza el estado
 */
-static void accelerateObject(physicsObject_t *obj, vector_t *dir) {
+static void accelerate_object(physics_object_t *obj, vector_t *dir) {
   // Add velocity
   obj->vx += dir->x;
   obj->vy += dir->y;
@@ -310,7 +310,7 @@ static void accelerateObject(physicsObject_t *obj, vector_t *dir) {
 /*
 * tank controls for player, accelerates it
 */
-static void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
+static void update_player(physics_object_t *obj, keycode_t keys[4]) {
   int up = kbd_keydown(keys[0]);
   int down = kbd_keydown(keys[1]);
   int right = kbd_keydown(keys[2]);
@@ -328,7 +328,7 @@ static void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
     vector_t dir;
     dir.x = ACCELERATION * frametime * cos(obj->angle);
     dir.y = ACCELERATION * frametime * sin(obj->angle);
-    accelerateObject(obj, &dir);
+    accelerate_object(obj, &dir);
   }
   if (down) {
     obj->vx *= BRAKING;
@@ -339,7 +339,7 @@ static void updatePlayerTank(physicsObject_t *obj, keycode_t keys[4]) {
 /*
 * Actualiza el estado sin aplicarle una aceleracion
 */
-static void updateObject(physicsObject_t *obj) {
+static void update_object(physics_object_t *obj) {
   float oldvx = obj->vx;// es para que no oscile dont worry about it
   float oldvy = obj->vy;
 
@@ -374,9 +374,9 @@ static void updateObject(physicsObject_t *obj) {
 /*
 * asumiendo que son circulos
 * retorna el vetor de 'a' a 'b'
-*/ //notalolo: final menos inicial
+*/
 static inline int
-checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
+check_collision(physics_object_t *a, physics_object_t *b, vector_t *dir) {
   float difx = b->x - a->x;
   float dify = b->y - a->y;
   float dist = sqrt(sqr(difx) + sqr(dify));
@@ -393,20 +393,20 @@ checkCollision(physicsObject_t *a, physicsObject_t *b, vector_t *dir) {
 /*
 * checks if a colition happens and applyes a repeling vel
 */
-static int doCollision(physicsObject_t *a, physicsObject_t *b) {
+static int do_collision(physics_object_t *a, physics_object_t *b) {
   float va = abs(a->vx) + abs(a->vy);
   float vb = abs(b->vx) + abs(b->vy);
 
   vector_t dir = {0};
-  if (checkCollision(a, b, &dir)) {
+  if (check_collision(a, b, &dir)) {
     vector_t dirb = dir;
-    dirb.x *= (b->mass * (va + vb));
-    dirb.y *= (b->mass * (va + vb));
-    accelerateObject(b, &dirb);
+    dirb.x *= (b->inv_mass * (va + vb));
+    dirb.y *= (b->inv_mass * (va + vb));
+    accelerate_object(b, &dirb);
 
-    dir.x *= -((a->mass * (va + vb)));
-    dir.y *= -((a->mass * (va + vb)));
-    accelerateObject(a, &dir);
+    dir.x *= -((a->inv_mass * (va + vb)));
+    dir.y *= -((a->inv_mass * (va + vb)));
+    accelerate_object(a, &dir);
 
     return 1;
   }
@@ -417,7 +417,7 @@ static int doCollision(physicsObject_t *a, physicsObject_t *b) {
 /*
 * checks if obj is in a hole or mount and applies a apropiate vel
 */
-static void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
+static void apply_gravity(terrain_t *terrain, physics_object_t *obj) {
   float fx = obj->x / TERRAIN_SIZE_UNITS_X;
   float fy = obj->y / TERRAIN_SIZE_UNITS_Y;
 
@@ -442,13 +442,13 @@ static void applyGravity(terrain_t *terrain, physicsObject_t *obj) {
     -GRAVITY * s.x * abs(s.x),
     -GRAVITY * s.y * abs(s.y),
   };
-  accelerateObject(obj, &a);
+  accelerate_object(obj, &a);
 }
 
 /*
 *   valida si la pelota entra en el agujero y gana
 */
-static int checkHole(physicsObject_t *obj, hole_t *hole) {
+static int check_hole(physics_object_t *obj, hole_t *hole) {
   float difx = hole->x - obj->x;
   float dify = hole->y - obj->y;
   float distsqr = sqr(difx) + sqr(dify);
@@ -461,7 +461,7 @@ static int checkHole(physicsObject_t *obj, hole_t *hole) {
 }
 
 
-float doHill(int curx, int cury, int x, int y, float size) {
+float do_hill(int curx, int cury, int x, int y, float size) {
   float difx = x - curx;
   float dify = y - cury;
   float dist = sqrt(sqr(difx) + sqr(dify));
@@ -473,7 +473,7 @@ float doHill(int curx, int cury, int x, int y, float size) {
   }
 }
 
-static void generateTerrain(terrain_t *terrain, pcg32_random_t *rng) {
+static void generate_terrain(terrain_t *terrain, pcg32_random_t *rng) {
   // Generate terrain vertices
 
   // frequency/ numero de armonico
@@ -507,39 +507,27 @@ static void generateTerrain(terrain_t *terrain, pcg32_random_t *rng) {
   // loop
   for (int y = 0; y <= TERRAIN_SIZE_Y; y++) {
     for (int x = 0; x <= TERRAIN_SIZE_X; x++) {
-      // test terrain gen ///////////////////////////////////////lolo tocar//
       float height = 0;
       for (int i = 0; i < TERRAIN_N_WAVES; ++i) {
         height +=
-          ((sin(fitToPi((x * TERRAIN_SIZE_UNITS_X) * fy[i] + offsety[i])) *
+          ((sin(fit_to_pi((x * TERRAIN_SIZE_UNITS_X) * fy[i] + offsety[i])) *
             TERRAIN_NOISE_MAX) +
-           (sin(fitToPi((y * TERRAIN_SIZE_UNITS_X) * fx[i] + offsetx[i])) *
+           (sin(fit_to_pi((y * TERRAIN_SIZE_UNITS_X) * fx[i] + offsetx[i])) *
             TERRAIN_NOISE_MAX)) /
           TERRAIN_N_WAVES;
       }
 
       // hill
-      height += doHill(x, y, hillx, hilly, TERRAIN_HILL_WIDTH);
+      height += do_hill(x, y, hillx, hilly, TERRAIN_HILL_WIDTH);
 
       // pit
-      height -= doHill(x, y, pitx, pity, TERRAIN_HILL_WIDTH);
+      height -= do_hill(x, y, pitx, pity, TERRAIN_HILL_WIDTH);
 
       // todos los bordes levantados
       if ((x == FIELD_WIDTH || x == 0) || (y == FIELD_HEIGHT || y == 0)) {
         height = max(height, 0.0f) + TERRAIN_NOISE_MAX / 2;
       }
 
-      // // solo las esquinas levantadas
-      // if ((x == FIELD_WIDTH || x == 0) && (y == FIELD_HEIGHT || y == 0)) {
-      //   height += TERRAIN_NOISE_MAX / 4;
-      // }
-
-      /////////////////////////
-      // ideas:
-      // hills y pozos
-      // algun ruido con trigs
-      //
-      ///////////////////////////////////////////////////////////////////////
       float3 vertex = {
         (float) x * TERRAIN_SIZE_UNITS_X - 0.5f * FIELD_WIDTH, height,
         (float) y * TERRAIN_SIZE_UNITS_Y - 0.5f * FIELD_HEIGHT
@@ -591,34 +579,34 @@ static void generateTerrain(terrain_t *terrain, pcg32_random_t *rng) {
   }
 }
 
-static void setupGameRender(float4x4 *view) {
+static void setup_game_render(float4x4 *view) {
   // Set half render resolution for the game for increased framerate
-  gfx_setFlag(GFX_HALFRES, 1);
+  gfx_set_flag(GFX_HALFRES, 1);
 
   // Set up view and projection matrices
-  gfx_setMatrix(GFX_MAT_VIEW, view);
+  gfx_set_matrix(GFX_MAT_VIEW, view);
 
-  float aspect = (float) VBEModeInfo.width / VBEModeInfo.height;
-  float fovDegrees = 75.0f;
+  float aspect = (float) vbe_mode_info.width / vbe_mode_info.height;
+  float fov_degrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 100.0f);
-  gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
+    mat_perspective(deg2rad(fov_degrees), aspect, 0.1f, 100.0f);
+  gfx_set_matrix(GFX_MAT_PROJECTION, &projection);
 
   // Set up lighting
   float3 light = {-2, 3, -2};
   float3 lightcolor = {1.80f, 1.75f, 1.60f};
   float3 ambient = vmuls(lightcolor, 0.5f);
 
-  gfx_light_t lightType = GFX_LIGHT_DIRECTIONAL;
-  gfx_setLightType(lightType);
-  gfx_setLight(GFX_LIGHT_POSITION, &light);
-  gfx_setLight(GFX_AMBIENT_LIGHT, &ambient);
-  gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
+  gfx_light_t light_type = GFX_LIGHT_DIRECTIONAL;
+  gfx_set_light_type(light_type);
+  gfx_set_light(GFX_LIGHT_POSITION, &light);
+  gfx_set_light(GFX_AMBIENT_LIGHT, &ambient);
+  gfx_set_light(GFX_LIGHT_COLOR, &lightcolor);
 }
 
-static void renderTerrain(terrain_t *terrain) {
+static void render_terrain(terrain_t *terrain) {
   // Draw background
-  vga_setFramebuffer(gfx_getFramebuffer());
+  vga_set_framebuffer(gfx_get_framebuffer());
   vga_gradient(
     0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
     colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
@@ -627,33 +615,33 @@ static void renderTerrain(terrain_t *terrain) {
     0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
     VGA_ALPHA_BLEND
   );
-  vga_setFramebuffer(NULL);
+  vga_set_framebuffer(NULL);
 
   // Set transform to identity
   float4x4 model = mat_scale(1, 1, 1);
-  gfx_setMatrix(GFX_MAT_MODEL, &model);
+  gfx_set_matrix(GFX_MAT_MODEL, &model);
 
-  float3 terrainColor = {0.18, 0.37, 0.05};
+  float3 terrain_color = {0.18, 0.37, 0.05};
 
   // Draw the terrain
-  gfx_drawPrimitivesIndexed(
+  gfx_draw_primitives_indexed(
     (float3 *) terrain->v, (float3 *) terrain->normals, terrain->indices,
-    terrain->indices, TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrainColor
+    terrain->indices, TERRAIN_SIZE_X * TERRAIN_SIZE_Y * 2, terrain_color
   );
 
   // Draw terrain bound walls
   float hmax = (TERRAIN_HILL_HEIGHT + TERRAIN_NOISE_MAX + 0.5f);
   model = mat_scale(FIELD_WIDTH * 0.5f, hmax * 0.5f, FIELD_HEIGHT * 0.5f);
   model = mmul(mat_translation(0.0f, hmax * 0.25f, 0.0f), model);
-  gfx_setMatrix(GFX_MAT_MODEL, &model);
+  gfx_set_matrix(GFX_MAT_MODEL, &model);
 
-  float3 wallColor = {0.37, 0.18, 0.05};
-  gfx_drawPrimitivesIndexed(
-    v_walls, n_walls, vi_walls, ni_walls, pc_walls, wallColor
+  float3 wall_color = {0.37, 0.18, 0.05};
+  gfx_draw_primitives_indexed(
+    v_walls, n_walls, vi_walls, ni_walls, pc_walls, wall_color
   );
 }
 
-static float getTerrainHeightAt(terrain_t *terrain, float fx, float fy) {
+static float get_terrain_height_at(terrain_t *terrain, float fx, float fy) {
   fx /= TERRAIN_SIZE_UNITS_X;
   fx /= TERRAIN_SIZE_UNITS_Y;
   uint32_t x = fx;
@@ -675,14 +663,14 @@ static float getTerrainHeightAt(terrain_t *terrain, float fx, float fy) {
   return lerp(h0, h1, fy - y);
 }
 
-static void renderPlayer(
-  physicsObject_t *player, uint32_t i, gg_playerAnim_t anim, float t,
+static void render_player(
+  physics_object_t *player, uint32_t i, gg_player_anim_t anim, float t,
   terrain_t *terrain
 ) {
   float angle = -player->angle - M_PI * 0.5f;
   if (angle < -M_PI) angle += M_PI * 2.0f;
 
-  float height = getTerrainHeightAt(terrain, player->x, player->y);
+  float height = get_terrain_height_at(terrain, player->x, player->y);
 
   float4x4 model = mat_rotationY(angle);
 
@@ -705,56 +693,57 @@ static void renderPlayer(
     ),
     model
   );
-  gfx_setMatrix(GFX_MAT_MODEL, &model);
+  gfx_set_matrix(GFX_MAT_MODEL, &model);
 
   // Draw the capybara
-  gfx_drawPrimitivesIndexed(
+  gfx_draw_primitives_indexed(
     v_face, n_face, vi_face, ni_face, pc_face, color_face
   );
-  gfx_drawPrimitivesIndexed(
+  gfx_draw_primitives_indexed(
     v_base, n_base, vi_base, ni_base, pc_base, color_base[i]
   );
-  gfx_drawPrimitivesIndexed(
+  gfx_draw_primitives_indexed(
     v_club, n_club, vi_club, ni_club, pc_club, color_club
   );
 }
 
-static void renderBall(physicsObject_t *ball, uint32_t i, terrain_t *terrain) {
-  float height = getTerrainHeightAt(terrain, ball->x, ball->y);
+static void
+render_ball(physics_object_t *ball, uint32_t i, terrain_t *terrain) {
+  float height = get_terrain_height_at(terrain, ball->x, ball->y);
 
   float4x4 model = mat_translation(
     ball->x - FIELD_WIDTH * 0.5f, height, ball->y - FIELD_HEIGHT * 0.5f
   );
-  gfx_setMatrix(GFX_MAT_MODEL, &model);
+  gfx_set_matrix(GFX_MAT_MODEL, &model);
 
-  gfx_drawPrimitivesIndexed(
+  gfx_draw_primitives_indexed(
     v_ball, n_ball, vi_ball, ni_ball, pc_ball, color_ball[i]
   );
 }
 
-static void renderHole(hole_t *hole, terrain_t *terrain) {
-  float height = getTerrainHeightAt(terrain, hole->x, hole->y);
+static void render_hole(hole_t *hole, terrain_t *terrain) {
+  float height = get_terrain_height_at(terrain, hole->x, hole->y);
   float4x4 translation = mat_translation(
     hole->x - FIELD_WIDTH * 0.5f, height, hole->y - FIELD_HEIGHT * 0.5f
   );
 
   float4x4 model = mmul(translation, mat_scale(hole->size, 1.0f, hole->size));
-  gfx_setMatrix(GFX_MAT_MODEL, &model);
+  gfx_set_matrix(GFX_MAT_MODEL, &model);
 
   float3 color_hole = {0.0f, 0.0f, 0.0f};
-  gfx_setFlag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 0);
-  gfx_drawPrimitivesIndexed(v_hole, NULL, vi_hole, vi_hole, 5, color_hole);
-  gfx_setFlag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 1);
+  gfx_set_flag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 0);
+  gfx_draw_primitives_indexed(v_hole, NULL, vi_hole, vi_hole, 5, color_hole);
+  gfx_set_flag(GFX_DEPTH_TEST | GFX_DEPTH_WRITE, 1);
 
   model = mmul(translation, mat_rotationY(M_PI * 0.75f));
-  gfx_setMatrix(GFX_MAT_MODEL, &model);
+  gfx_set_matrix(GFX_MAT_MODEL, &model);
 
   float3 color_pole = {0.80f, 0.80f, 0.80f};
   float3 color_flag = {0.92f, 0.20f, 0.24f};
-  gfx_drawPrimitivesIndexed(
+  gfx_draw_primitives_indexed(
     v_pole, n_pole, vi_pole, vi_pole, pc_pole, color_pole
   );
-  gfx_drawPrimitivesIndexed(
+  gfx_draw_primitives_indexed(
     v_flag, n_flag, vi_flag, vi_flag, pc_flag, color_flag
   );
 }
@@ -763,34 +752,34 @@ static void renderHole(hole_t *hole, terrain_t *terrain) {
  * Show the title screen/main menu and handle input.
  * Returns when the game should be started.
  */
-static int showTitleScreen(gameSettings_t *settings) {
+static int show_title_screen(game_settings_t *settings) {
   gg_screen_t screen = GG_SCREEN_TITLE;
-  float a = 0.0f, capyAngle = (M_PI * -0.75);
-  uint32_t textBlinkTimer = 0;
+  float a = 0.0f, capy_angle = (M_PI * -0.75);
+  uint32_t text_blink_timer = 0;
 
   /*
    * Menu state
    */
-  int menuItem = 0;
-  static const char *menuStrings[] = {
+  int menu_item = 0;
+  static const char *menu_strings[] = {
     "Play (1 player)",
     "Play (2 player)",
     " Quit to Shell ",
   };
-  static const char *setupStrings[] = {
+  static const char *setup_strings[] = {
     " Holes: X ",
     "Start Game",
     "   Back   ",
   };
-  uint32_t menuItemCount = sizeof(menuStrings) / sizeof(menuStrings[0]);
-  uint32_t setupItemCount = sizeof(setupStrings) / sizeof(setupStrings[0]);
+  uint32_t menu_item_count = sizeof(menu_strings) / sizeof(menu_strings[0]);
+  uint32_t setup_item_count = sizeof(setup_strings) / sizeof(setup_strings[0]);
 
   /*
    * Graphics setup
    */
 
   // Set full render resolution for the main menu, we're not rendering much
-  gfx_setFlag(GFX_HALFRES, 1);
+  gfx_set_flag(GFX_HALFRES, 1);
 
   // Set up view and projection matrices
   float3 pos = {0, 1, 3.5f};
@@ -798,13 +787,13 @@ static int showTitleScreen(gameSettings_t *settings) {
   float3 up = {0, 1, 0};
 
   float4x4 view = mat_lookat(pos, target, up);
-  gfx_setMatrix(GFX_MAT_VIEW, &view);
+  gfx_set_matrix(GFX_MAT_VIEW, &view);
 
-  float aspect = (float) VBEModeInfo.width / VBEModeInfo.height;
-  float fovDegrees = 75.0f;
+  float aspect = (float) vbe_mode_info.width / vbe_mode_info.height;
+  float fov_degrees = 75.0f;
   float4x4 projection =
-    mat_perspective(deg2rad(fovDegrees), aspect, 0.1f, 10.0f);
-  gfx_setMatrix(GFX_MAT_PROJECTION, &projection);
+    mat_perspective(deg2rad(fov_degrees), aspect, 0.1f, 10.0f);
+  gfx_set_matrix(GFX_MAT_PROJECTION, &projection);
 
   // Set up lighting
   float3 light = {-1, 3, -1};
@@ -812,10 +801,10 @@ static int showTitleScreen(gameSettings_t *settings) {
   float3 ambient = vmuls(lightcolor, 0.5f);
 
   gfx_light_t lightType = GFX_LIGHT_DIRECTIONAL;
-  gfx_setLightType(lightType);
-  gfx_setLight(GFX_LIGHT_POSITION, &light);
-  gfx_setLight(GFX_AMBIENT_LIGHT, &ambient);
-  gfx_setLight(GFX_LIGHT_COLOR, &lightcolor);
+  gfx_set_light_type(lightType);
+  gfx_set_light(GFX_LIGHT_POSITION, &light);
+  gfx_set_light(GFX_AMBIENT_LIGHT, &ambient);
+  gfx_set_light(GFX_LIGHT_COLOR, &lightcolor);
 
   /*
    * Draw loop
@@ -823,14 +812,14 @@ static int showTitleScreen(gameSettings_t *settings) {
   kbd_event_t ev = {0};
   while (1) {
     // Update the timer
-    updateTimer();
+    update_timer();
 
     // Clear graphics frame and depth buffers
     gfx_clear(0);
 
     // Pass the graphics framebuffer to the VGA driver for 2D drawing
     // This lets us draw shapes behind the 3d graphics
-    vga_setFramebuffer(gfx_getFramebuffer());
+    vga_set_framebuffer(gfx_get_framebuffer());
 
     // Draw a nice background
     // Sky
@@ -851,22 +840,22 @@ static int showTitleScreen(gameSettings_t *settings) {
 
     // 3D graphics
     // Create a model matrix and set it
-    uint32_t nCapybaras = menuItem == GG_MM_MULTIPLAYER ? 2 : 1;
-    if (screen == GG_SCREEN_SETUP) nCapybaras = settings->nPlayers;
-    for (int i = 0; i < nCapybaras; i++) {
-      float x = nCapybaras == 1 ? 0.0f : -1.5f + i * 3.0f;
-      float4x4 model = mat_rotationY(capyAngle);
+    uint32_t n_capybaras = menu_item == GG_MM_MULTIPLAYER ? 2 : 1;
+    if (screen == GG_SCREEN_SETUP) n_capybaras = settings->n_players;
+    for (int i = 0; i < n_capybaras; i++) {
+      float x = n_capybaras == 1 ? 0.0f : -1.5f + i * 3.0f;
+      float4x4 model = mat_rotationY(capy_angle);
       model = mmul(mat_translation(x, -1.3f, 0), model);
-      gfx_setMatrix(GFX_MAT_MODEL, &model);
+      gfx_set_matrix(GFX_MAT_MODEL, &model);
 
       // Draw the capybara
-      gfx_drawPrimitivesIndexed(
+      gfx_draw_primitives_indexed(
         v_face, n_face, vi_face, ni_face, pc_face, color_face
       );
-      gfx_drawPrimitivesIndexed(
+      gfx_draw_primitives_indexed(
         v_base, n_base, vi_base, ni_base, pc_base, color_base[i]
       );
-      gfx_drawPrimitivesIndexed(
+      gfx_draw_primitives_indexed(
         v_club, n_club, vi_club, ni_club, pc_club, color_club
       );
     }
@@ -875,17 +864,17 @@ static int showTitleScreen(gameSettings_t *settings) {
     gfx_present();
 
     // Restore the default VGA framebuffer to draw on top of the 3D graphics
-    vga_setFramebuffer(NULL);
+    vga_set_framebuffer(NULL);
 
     // Draw the title logo (it floats!)
     vga_bitmap(
-      CENTER_X - 256, CENTER_Y - 256 - 18 * sin(a), titlescreenLogo, 2,
+      CENTER_X - 256, CENTER_Y - 256 - 18 * sin(a), titlescreen_logo, 2,
       VGA_ALPHA_BLEND
     );
 
     // Draw UI text
     if (screen == GG_SCREEN_TITLE &&
-        textBlinkTimer > (TITLE_TEXT_BLINK_MS >> 1)) {
+        text_blink_timer > (TITLE_TEXT_BLINK_MS >> 1)) {
       vga_font_t oldfont = vga_font(VGA_FONT_ALT_BOLD);
       vga_text(
         CENTER_X - 88, CENTER_Y + 116, "Press any key to start", 0xffffff, 0,
@@ -906,8 +895,8 @@ static int showTitleScreen(gameSettings_t *settings) {
       vga_text(CENTER_X - 54, y0 + 16, "MAIN MENU", 0xffffff, 0, 0);
       vga_font(oldfont);
 
-      for (int i = 0; i < menuItemCount; i++) {
-        if (i == menuItem) {
+      for (int i = 0; i < menu_item_count; i++) {
+        if (i == menu_item) {
           vga_rect(
             CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
             y0 + 56 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
@@ -918,7 +907,7 @@ static int showTitleScreen(gameSettings_t *settings) {
           );
         }
         vga_text(
-          CENTER_X - 60, y0 + 56 + 24 * i, menuStrings[i], 0xffffff, 0, 0
+          CENTER_X - 60, y0 + 56 + 24 * i, menu_strings[i], 0xffffff, 0, 0
         );
       }
     }
@@ -935,8 +924,8 @@ static int showTitleScreen(gameSettings_t *settings) {
       vga_text(CENTER_X - 60, y0 + 16, "GAME SETUP", 0xffffff, 0, 0);
       vga_font(oldfont);
 
-      for (int i = 0; i < setupItemCount; i++) {
-        if (i == menuItem) {
+      for (int i = 0; i < setup_item_count; i++) {
+        if (i == menu_item) {
           vga_rect(
             CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
             y0 + 56 + 24 * i + 19, UI_GREEN_HIGHLIGHT, 0
@@ -948,11 +937,11 @@ static int showTitleScreen(gameSettings_t *settings) {
         }
         if (i == 0) {
           char buf[20];
-          sprintf(buf, " Holes: %u ", settings->nHoles);
+          sprintf(buf, " Holes: %u ", settings->n_holes);
           vga_text(CENTER_X - 40, y0 + 56, buf, 0xffffff, 0, 0);
         } else {
           vga_text(
-            CENTER_X - 40, y0 + 56 + 24 * i, setupStrings[i], 0xffffff, 0, 0
+            CENTER_X - 40, y0 + 56 + 24 * i, setup_strings[i], 0xffffff, 0, 0
           );
         }
       }
@@ -969,50 +958,50 @@ static int showTitleScreen(gameSettings_t *settings) {
     // Update vars
     a += 0.005f * frametime;
     if (a > M_PI) a -= 2.0f * M_PI;
-    capyAngle -= 0.5f * ANIM_SPEED * frametime;
-    if (capyAngle < -M_PI) capyAngle += 2.0f * M_PI;
-    textBlinkTimer = (textBlinkTimer + frametime) % TITLE_TEXT_BLINK_MS;
+    capy_angle -= 0.5f * ANIM_SPEED * frametime;
+    if (capy_angle < -M_PI) capy_angle += 2.0f * M_PI;
+    text_blink_timer = (text_blink_timer + frametime) % TITLE_TEXT_BLINK_MS;
 
     // Process input
-    ev = kbd_getKeyEvent();
+    ev = kbd_get_key_event();
     if (ev.key) {
       if (screen == GG_SCREEN_TITLE) {
         screen = GG_SCREEN_PLAYERSELECT;
       } else if (screen == GG_SCREEN_PLAYERSELECT) {
         switch (ev.key) {
           case KEY_ARROW_UP:
-            menuItem = menuItem == 0 ? menuItemCount - 1 : menuItem - 1;
+            menu_item = menu_item == 0 ? menu_item_count - 1 : menu_item - 1;
             break;
           case KEY_ARROW_DOWN:
-            menuItem = (menuItem + 1) % menuItemCount;
+            menu_item = (menu_item + 1) % menu_item_count;
             break;
           case KEY_RETURN: {
-            if (menuItem == GG_MM_QUIT) return 0;
+            if (menu_item == GG_MM_QUIT) return 0;
 
-            settings->nPlayers = menuItem + 1;
-            menuItem = 0;
+            settings->n_players = menu_item + 1;
+            menu_item = 0;
             screen = GG_SCREEN_SETUP;
           }
         }
       } else if (screen == GG_SCREEN_SETUP) {
         switch (ev.key) {
           case KEY_ARROW_UP:
-            menuItem = menuItem == 0 ? setupItemCount - 1 : menuItem - 1;
+            menu_item = menu_item == 0 ? setup_item_count - 1 : menu_item - 1;
             break;
           case KEY_ARROW_DOWN:
-            menuItem = (menuItem + 1) % setupItemCount;
+            menu_item = (menu_item + 1) % setup_item_count;
             break;
           case KEY_ARROW_LEFT:
-            settings->nHoles = max(1, settings->nHoles - 1);
+            settings->n_holes = max(1, settings->n_holes - 1);
             break;
           case KEY_ARROW_RIGHT:
-            settings->nHoles = min(MAX_HOLES, settings->nHoles + 1);
+            settings->n_holes = min(MAX_HOLES, settings->n_holes + 1);
             break;
           case KEY_RETURN: {
-            if (menuItem == GG_SM_BACK) {
-              menuItem = 0;
+            if (menu_item == GG_SM_BACK) {
+              menu_item = 0;
               screen = GG_SCREEN_PLAYERSELECT;
-            } else if (menuItem == GG_SM_START) {
+            } else if (menu_item == GG_SM_START) {
               return 1;
             }
           }
@@ -1022,20 +1011,20 @@ static int showTitleScreen(gameSettings_t *settings) {
   }
 }
 
-static gg_pauseOption_t showPauseMenu() {
+static gg_pause_option_t show_pause_menu() {
   int exit = 0;
-  gg_pauseOption_t selected = 0;
+  gg_pause_option_t selected = 0;
   kbd_event_t ev;
 
-  static const char *optionStrings[] = {
+  static const char *option_strings[] = {
     "   Resume game   ",
     "    Skip hole    ",
     "Quit to main menu",
   };
-  uint32_t optionCount = sizeof(optionStrings) / sizeof(optionStrings[0]);
+  uint32_t option_count = sizeof(option_strings) / sizeof(option_strings[0]);
 
   while (!exit) {
-    updateTimer();
+    update_timer();
 
     uint16_t x0 = CENTER_X - 128, x1 = x0 + 255;
     uint16_t y0 = CENTER_Y - 96, y1 = y0 + 191;
@@ -1054,7 +1043,7 @@ static gg_pauseOption_t showPauseMenu() {
     vga_font(oldfont);
 
     // Options
-    for (int i = 0; i < optionCount; i++) {
+    for (int i = 0; i < option_count; i++) {
       if (i == selected) {
         vga_rect(
           CENTER_X - 84, y0 + 56 + 24 * i - 4, CENTER_X + 83,
@@ -1066,21 +1055,21 @@ static gg_pauseOption_t showPauseMenu() {
         );
       }
       vga_text(
-        (VGA_WIDTH - 136) >> 1, y0 + 56 + 24 * i, optionStrings[i], 0xffffff, 0,
-        0
+        (VGA_WIDTH - 136) >> 1, y0 + 56 + 24 * i, option_strings[i], 0xffffff,
+        0, 0
       );
     }
 
     vga_present();
 
     // Keyboard input
-    ev = kbd_getKeyEvent();
+    ev = kbd_get_key_event();
     switch (ev.key) {
       case KEY_ARROW_UP:
-        selected = selected == 0 ? optionCount - 1 : selected - 1;
+        selected = selected == 0 ? option_count - 1 : selected - 1;
         break;
       case KEY_ARROW_DOWN:
-        selected = (selected + 1) % optionCount;
+        selected = (selected + 1) % option_count;
         break;
       case KEY_RETURN: {
         exit = 1;
@@ -1092,64 +1081,64 @@ static gg_pauseOption_t showPauseMenu() {
 }
 
 static int
-playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
+play_game(game_settings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
   // Keymaps per player
   static keycode_t keys[2][4] = {
     {KEY_W, KEY_S, KEY_D, KEY_A},
     {KEY_ARROW_UP, KEY_ARROW_DOWN, KEY_ARROW_RIGHT, KEY_ARROW_LEFT}
   };
 
-  gg_gameState_t gameState = GG_GAME_RUNNING;
+  gg_game_state_t game_state = GG_GAME_RUNNING;
 
   /*
    * Set up game objects
    */
   terrain_t terrain;
-  generateTerrain(&terrain, rng);
+  generate_terrain(&terrain, rng);
 
-  physicsObject_t players[MAX_PLAYERS];
-  physicsObject_t balls[MAX_PLAYERS];
-  int ballInPlay[MAX_PLAYERS];
+  physics_object_t players[MAX_PLAYERS];
+  physics_object_t balls[MAX_PLAYERS];
+  int ball_in_play[MAX_PLAYERS];
   uint32_t hits[MAX_PLAYERS];
   uint32_t iframes[MAX_PLAYERS];// Hit counter debounce timer
-  gg_playerAnim_t anim[MAX_PLAYERS];
+  gg_player_anim_t anim[MAX_PLAYERS];
 
-  for (int i = 0; i < settings->nPlayers; i++) {
-    players[i].x = FIELD_WIDTH * (randomFloat(rng) * 0.8f + 0.1f);
-    players[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
+  for (int i = 0; i < settings->n_players; i++) {
+    players[i].x = FIELD_WIDTH * (random_float(rng) * 0.8f + 0.1f);
+    players[i].y = FIELD_HEIGHT * (random_float(rng) * 0.8f + 0.1f);
     players[i].vx = 0.0f;
     players[i].vy = 0.0f;
     players[i].drag = 22.0f;
     players[i].size = 0.7f;
-    players[i].mass = 0.1f;
+    players[i].inv_mass = 0.1f;
     players[i].angle = 0.0f;
 
-    balls[i].x = FIELD_WIDTH * (randomFloat(rng) * 0.8f + 0.1f);
-    balls[i].y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
+    balls[i].x = FIELD_WIDTH * (random_float(rng) * 0.8f + 0.1f);
+    balls[i].y = FIELD_HEIGHT * (random_float(rng) * 0.8f + 0.1f);
     balls[i].vx = 0.0f;
     balls[i].vy = 0.0f;
     balls[i].drag = 12.0f;
     balls[i].size = 0.1f;
-    balls[i].mass = 1.0f;
+    balls[i].inv_mass = 1.0f;
 
     hits[i] = 0;
     iframes[i] = 0;
-    ballInPlay[i] = 1;
+    ball_in_play[i] = 1;
     anim[i] = GG_ANIM_NONE;
   }
 
   hole_t hole = {0};
-  hole.x = FIELD_WIDTH * (randomFloat(rng) * 0.8f + 0.1f);
-  hole.y = FIELD_HEIGHT * (randomFloat(rng) * 0.8f + 0.1f);
+  hole.x = FIELD_WIDTH * (random_float(rng) * 0.8f + 0.1f);
+  hole.y = FIELD_HEIGHT * (random_float(rng) * 0.8f + 0.1f);
   hole.size = 0.5f;
 
   // Setup game graphics
-  float3 viewPos = {0, 10.0f, 3.5f};
-  float3 viewTarget = {0, 0, 0};
-  float3 viewUp = {0, 1, 0};
+  float3 view_pos = {0, 10.0f, 3.5f};
+  float3 view_target = {0, 0, 0};
+  float3 view_up = {0, 1, 0};
 
-  float4x4 view = mat_lookat(viewPos, viewTarget, viewUp);
-  setupGameRender(&view);
+  float4x4 view = mat_lookat(view_pos, view_target, view_up);
+  setup_game_render(&view);
 
   /*
    * Pre-render the terrain to a separate frame and depth buffer
@@ -1158,10 +1147,10 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
    * terrain and reusing the frame and depth buffers.
    * This literally multiplies framerate five times!
    */
-  gfx_setBuffers(bgFramebuffer, bgDepthbuffer);
+  gfx_set_buffers(bg_framebuffer, bg_depthbuffer);
   gfx_clear(0);
-  renderTerrain(&terrain);
-  gfx_setBuffers(NULL, NULL);
+  render_terrain(&terrain);
+  gfx_set_buffers(NULL, NULL);
 
   /*
    * Game loop
@@ -1171,34 +1160,34 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
   float t = 0;// Timer for win/lose animation
   while (loop) {
     // Update the timer
-    updateTimer();
+    update_timer();
 
     // Process input and physics only when the game is running
-    if (gameState == GG_GAME_RUNNING) {
+    if (game_state == GG_GAME_RUNNING) {
       // Update keyboard input
-      kbd_pollEvents();
-      if (kbd_keypressed(KEY_F12)) showFps = !showFps;
+      kbd_poll_events();
+      if (kbd_keypressed(KEY_F12)) show_fps = !show_fps;
 
       /*
        * Physics and gameplay update
        */
-      for (int i = 0; i < settings->nPlayers; i++) {
+      for (int i = 0; i < settings->n_players; i++) {
         // Apply inputs and update player physics
-        updatePlayerTank(&players[i], keys[i]);
-        updateObject(&players[i]);
+        update_player(&players[i], keys[i]);
+        update_object(&players[i]);
 
         // Apply gravity and update ball physics
-        if (ballInPlay[i]) {
-          applyGravity(&terrain, &balls[i]);
-          updateObject(&balls[i]);
+        if (ball_in_play[i]) {
+          apply_gravity(&terrain, &balls[i]);
+          update_object(&balls[i]);
         }
 
         // Collisions
         // Number of collisions scales with N^2, this is fine with just two players
-        for (int j = 0; j < settings->nPlayers; j++) {
+        for (int j = 0; j < settings->n_players; j++) {
           // Player-ball collisions
-          if (ballInPlay[j]) {
-            int hit = doCollision(&players[i], &balls[j]);
+          if (ball_in_play[j]) {
+            int hit = do_collision(&players[i], &balls[j]);
 
             // Increase hit counter only when player hits their own ball
             if (hit && i == j && iframes[i] == 0) {
@@ -1212,37 +1201,37 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
 
           // Player-player and ball-ball collisions
           if (i != j) {
-            doCollision(&players[i], &players[j]);
-            if (ballInPlay[i] && ballInPlay[j])
-              doCollision(&balls[i], &balls[j]);
+            do_collision(&players[i], &players[j]);
+            if (ball_in_play[i] && ball_in_play[j])
+              do_collision(&balls[i], &balls[j]);
           }
         }
 
         // Check win condition
-        if (ballInPlay[i] && checkHole(&balls[i], &hole)) {
+        if (ball_in_play[i] && check_hole(&balls[i], &hole)) {
           // Remove the ball from the playfield
-          ballInPlay[i] = 0;
+          ball_in_play[i] = 0;
 
           // If no balls are left, end the game
-          int endGame = 1;
-          for (int j = 0; j < settings->nPlayers; j++) {
-            if (ballInPlay[j]) endGame = 0;
+          int end_game = 1;
+          for (int j = 0; j < settings->n_players; j++) {
+            if (ball_in_play[j]) end_game = 0;
           }
 
-          if (endGame) {
-            gameState = GG_GAME_END;
+          if (end_game) {
+            game_state = GG_GAME_END;
 
             // Calculate scores
-            for (int j = 0; j < settings->nPlayers; j++) {
+            for (int j = 0; j < settings->n_players; j++) {
               settings->scores[j][nHole] =
                 (hits[j] > PAR + 2) ? 0 : (PAR + 3 - hits[j]);
               settings->scores[j][MAX_HOLES] += settings->scores[j][nHole];
             }
 
             // Set game end player animations
-            if (settings->nPlayers == 1) {
+            if (settings->n_players == 1) {
               anim[0] = hits[0] > PAR ? GG_ANIM_LOSE : GG_ANIM_WIN;
-            } else if (settings->nPlayers == 2) {
+            } else if (settings->n_players == 2) {
               anim[0] = hits[0] > hits[1] ? GG_ANIM_LOSE : GG_ANIM_WIN;
               anim[1] = hits[1] > hits[0] ? GG_ANIM_LOSE : GG_ANIM_WIN;
             }
@@ -1256,12 +1245,12 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       }
 
       if (kbd_keypressed(KEY_ESCAPE)) {
-        gg_pauseOption_t option = showPauseMenu();
+        gg_pause_option_t option = show_pause_menu();
         if (option == GG_PAUSE_SKIP) {
-          gameState = GG_GAME_END;
+          game_state = GG_GAME_END;
 
           // Set scores to zero for this hole
-          for (int j = 0; j < settings->nPlayers; j++) {
+          for (int j = 0; j < settings->n_players; j++) {
             settings->scores[j][nHole] = 0;
           }
           break;
@@ -1274,22 +1263,22 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     /*
      * Render graphics
      */
-    if (gameState != GG_GAME_RUNNING) {
+    if (game_state != GG_GAME_RUNNING) {
       // On endgame the camera *does* move, so we need to actually render the terrain
       gfx_clear(0);
-      renderTerrain(&terrain);
+      render_terrain(&terrain);
     } else {
       // While playing, we can reuse the background we pre-rendered at the start
-      gfx_copy(NULL, bgFramebuffer);
-      gfx_depthcopy(NULL, bgDepthbuffer);
+      gfx_copy(NULL, bg_framebuffer);
+      gfx_depthcopy(NULL, bg_depthbuffer);
     }
 
-    renderHole(&hole, &terrain);
+    render_hole(&hole, &terrain);
 
-    for (int i = 0; i < settings->nPlayers; i++) {
-      renderPlayer(&players[i], i, anim[i], t, &terrain);
-      if (ballInPlay[i])
-        renderBall(&balls[i], settings->nPlayers == 1 ? 0 : i + 1, &terrain);
+    for (int i = 0; i < settings->n_players; i++) {
+      render_player(&players[i], i, anim[i], t, &terrain);
+      if (ball_in_play[i])
+        render_ball(&balls[i], settings->n_players == 1 ? 0 : i + 1, &terrain);
     }
 
     gfx_present();
@@ -1325,14 +1314,14 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     vga_text(104, 16, " Hole", 0xffffff, 0x000000, 0);
     vga_text(104, 32, "Score", 0xffffff, 0x000000, 0);
 
-    for (uint32_t h = 0; h < settings->nHoles; h++) {
+    for (uint32_t h = 0; h < settings->n_holes; h++) {
       sprintf(buf, "%u", h + 1);
       vga_text(152 + h * 16, 16, buf, 0xffffff, 0, 0);
       sprintf(buf, "%u", settings->scores[0][h]);
       vga_text(152 + h * 16, 32, h >= nHole ? "-" : buf, 0xffffff, 0, 0);
     }
 
-    if (settings->nPlayers > 1) {
+    if (settings->n_players > 1) {
       vga_text(CENTER_X + 56, 16, "PLAYER 2", 0xffffff, 0x000000, 0);
       sprintf(buf, "Hits: %u", hits[1]);
       vga_text(CENTER_X + 56, 32, buf, 0xffffff, 0x000000, 0);
@@ -1340,7 +1329,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       vga_text(CENTER_X + 136, 16, " Hole", 0xffffff, 0x000000, 0);
       vga_text(CENTER_X + 136, 32, "Score", 0xffffff, 0x000000, 0);
 
-      for (uint32_t h = 0; h < settings->nHoles; h++) {
+      for (uint32_t h = 0; h < settings->n_holes; h++) {
         sprintf(buf, "%u", h + 1);
         vga_text(CENTER_X + 194 + h * 16, 16, buf, 0xffffff, 0, 0);
         sprintf(buf, "%u", settings->scores[1][h]);
@@ -1353,7 +1342,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
     /*
      * Display game end screen
      */
-    if (gameState == GG_GAME_END) {
+    if (game_state == GG_GAME_END) {
       uint16_t x0 = CENTER_X - 128, x1 = x0 + 255;
       uint16_t y0 = CENTER_Y - 96, y1 = y0 + 191;
 
@@ -1363,39 +1352,39 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       vga_frame(x0, y0, x1, y1, 0xffffff, 0);
 
       // Score counter (common to 1P-2P)
-      uint16_t scoreX = (VGA_WIDTH - 184) >> 1;
-      uint16_t scoreY = y0 + 96;
-      vga_text(scoreX, scoreY, " Hole", 0xffffff, 0x000000, 0);
+      uint16_t score_x = (VGA_WIDTH - 184) >> 1;
+      uint16_t score_y = y0 + 96;
+      vga_text(score_x, score_y, " Hole", 0xffffff, 0x000000, 0);
 
-      for (uint32_t h = 0; h < settings->nHoles; h++) {
+      for (uint32_t h = 0; h < settings->n_holes; h++) {
         sprintf(buf, "%u", h + 1);
-        vga_text(scoreX + 48 + h * 16, scoreY, buf, 0xffffff, 0, 0);
+        vga_text(score_x + 48 + h * 16, score_y, buf, 0xffffff, 0, 0);
         sprintf(buf, "%u", settings->scores[0][h]);
         vga_text(
-          scoreX + 48 + h * 16, scoreY + 16, h > nHole ? "-" : buf, 0xffffff, 0,
-          0
+          score_x + 48 + h * 16, score_y + 16, h > nHole ? "-" : buf, 0xffffff,
+          0, 0
         );
       }
 
-      if (settings->nPlayers == 1) {
+      if (settings->n_players == 1) {
         // Display score screen for singleplayer
         uint32_t score = min(hits[0], 7);
-        if (score < 7) sprintf(buf, "%s", scoreNames[score]);
+        if (score < 7) sprintf(buf, "%s", score_names[score]);
         else
-          sprintf(buf, "%u %s", hits[0] - PAR, scoreNames[score]);
-        uint32_t textWidth = strlen(buf) * 12;
+          sprintf(buf, "%u %s", hits[0] - PAR, score_names[score]);
+        uint32_t text_width = strlen(buf) * 12;
 
         oldfont = vga_font(VGA_FONT_LARGE);
-        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
+        vga_text((VGA_WIDTH - text_width) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
         vga_font(oldfont);
 
-        sprintf(buf, "%s", scoreTexts[score]);
-        textWidth = strlen(buf) * 8;
-        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
+        sprintf(buf, "%s", score_texts[score]);
+        text_width = strlen(buf) * 8;
+        vga_text((VGA_WIDTH - text_width) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
 
         // Single player score
-        vga_text(scoreX, scoreY + 16, "Score", 0xffffff, 0x000000, 0);
-      } else if (settings->nPlayers == 2) {
+        vga_text(score_x, score_y + 16, "Score", 0xffffff, 0x000000, 0);
+      } else if (settings->n_players == 2) {
         // Display score screen for multiplayer
         if (hits[0] == hits[1]) {
           sprintf(buf, "     Draw     ");
@@ -1408,21 +1397,23 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
         vga_font(oldfont);
 
         uint32_t score = min(min(hits[0], hits[1]), 7);
-        if (score < 7) sprintf(buf, "%s", scoreNames[score]);
+        if (score < 7) sprintf(buf, "%s", score_names[score]);
         else
-          sprintf(buf, "%u %s", min(hits[0], hits[1]) - PAR, scoreNames[score]);
-        uint32_t textWidth = strlen(buf) * 8;
-        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
+          sprintf(
+            buf, "%u %s", min(hits[0], hits[1]) - PAR, score_names[score]
+          );
+        uint32_t text_width = strlen(buf) * 8;
+        vga_text((VGA_WIDTH - text_width) >> 1, y0 + 64, buf, 0xffffff, 0, 0);
 
         // Multiplayer scores
-        vga_text(scoreX, scoreY + 16, "   P1", 0xffffff, 0x000000, 0);
-        vga_text(scoreX, scoreY + 32, "   P2", 0xffffff, 0x000000, 0);
+        vga_text(score_x, score_y + 16, "   P1", 0xffffff, 0x000000, 0);
+        vga_text(score_x, score_y + 32, "   P2", 0xffffff, 0x000000, 0);
 
-        for (uint32_t h = 0; h < settings->nHoles; h++) {
+        for (uint32_t h = 0; h < settings->n_holes; h++) {
           sprintf(buf, "%u", settings->scores[1][h]);
           vga_text(
-            scoreX + 48 + h * 16, scoreY + 32, h > nHole ? "-" : buf, 0xffffff,
-            0, 0
+            score_x + 48 + h * 16, score_y + 32, h > nHole ? "-" : buf,
+            0xffffff, 0, 0
           );
         }
       }
@@ -1436,18 +1427,18 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       vga_font(oldfont);
 
       // Process input
-      ev = kbd_getKeyEvent();
+      ev = kbd_get_key_event();
       switch (ev.key) {
         case KEY_RETURN:
           // Show scoreboard for last hole
-          if (nHole == settings->nHoles - 1) {
-            gameState = GG_GAME_SCOREBOARD;
+          if (nHole == settings->n_holes - 1) {
+            game_state = GG_GAME_SCOREBOARD;
           } else {
             loop = 0;
           }
           break;
       }
-    } else if (gameState == GG_GAME_SCOREBOARD) {
+    } else if (game_state == GG_GAME_SCOREBOARD) {
       uint16_t x0 = CENTER_X - 192, x1 = x0 + 383;
       uint16_t y0 = CENTER_Y - 96, y1 = y0 + 191;
 
@@ -1457,36 +1448,36 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       vga_frame(x0, y0, x1, y1, 0xffffff, 0);
 
       // Score counter (common to 1P-2P)
-      uint16_t scoreX = (VGA_WIDTH - 232) >> 1;
-      uint16_t scoreY = y0 + 96;
-      vga_text(scoreX, scoreY, " Hole", 0xffffff, 0x000000, 0);
-      vga_text(scoreX + 192, scoreY, "Total", 0xffffff, 0x000000, 0);
+      uint16_t score_x = (VGA_WIDTH - 232) >> 1;
+      uint16_t score_y = y0 + 96;
+      vga_text(score_x, score_y, " Hole", 0xffffff, 0x000000, 0);
+      vga_text(score_x + 192, score_y, "Total", 0xffffff, 0x000000, 0);
 
-      for (uint32_t h = 0; h < settings->nHoles; h++) {
+      for (uint32_t h = 0; h < settings->n_holes; h++) {
         sprintf(buf, "%u", h + 1);
-        vga_text(scoreX + 48 + h * 16, scoreY, buf, 0xffffff, 0, 0);
+        vga_text(score_x + 48 + h * 16, score_y, buf, 0xffffff, 0, 0);
         sprintf(buf, "%u", settings->scores[0][h]);
         vga_text(
-          scoreX + 48 + h * 16, scoreY + 16, h > nHole ? "-" : buf, 0xffffff, 0,
-          0
+          score_x + 48 + h * 16, score_y + 16, h > nHole ? "-" : buf, 0xffffff,
+          0, 0
         );
       }
 
       sprintf(buf, "%u", settings->scores[0][MAX_HOLES]);
-      vga_text(scoreX + 192, scoreY + 16, buf, 0xffffff, 0, 0);
+      vga_text(score_x + 192, score_y + 16, buf, 0xffffff, 0, 0);
 
-      if (settings->nPlayers == 1) {
+      if (settings->n_players == 1) {
         // Title
         sprintf(buf, "Your score: %u", settings->scores[0][MAX_HOLES]);
-        uint32_t textWidth = strlen(buf) * 12;
+        uint32_t text_width = strlen(buf) * 12;
 
         oldfont = vga_font(VGA_FONT_LARGE);
-        vga_text((VGA_WIDTH - textWidth) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
+        vga_text((VGA_WIDTH - text_width) >> 1, y0 + 16, buf, 0xffffff, 0, 0);
         vga_font(oldfont);
 
         // Single player score
-        vga_text(scoreX, scoreY + 16, "Score", 0xffffff, 0x000000, 0);
-      } else if (settings->nPlayers == 2) {
+        vga_text(score_x, score_y + 16, "Score", 0xffffff, 0x000000, 0);
+      } else if (settings->n_players == 2) {
         uint32_t winner =
           settings->scores[0][MAX_HOLES] > settings->scores[1][MAX_HOLES] ? 1
                                                                           : 2;
@@ -1504,19 +1495,19 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
         vga_font(oldfont);
 
         // Multiplayer scores
-        vga_text(scoreX, scoreY + 16, "   P1", 0xffffff, 0x000000, 0);
-        vga_text(scoreX, scoreY + 32, "   P2", 0xffffff, 0x000000, 0);
+        vga_text(score_x, score_y + 16, "   P1", 0xffffff, 0x000000, 0);
+        vga_text(score_x, score_y + 32, "   P2", 0xffffff, 0x000000, 0);
 
-        for (uint32_t h = 0; h < settings->nHoles; h++) {
+        for (uint32_t h = 0; h < settings->n_holes; h++) {
           sprintf(buf, "%u", settings->scores[1][h]);
           vga_text(
-            scoreX + 48 + h * 16, scoreY + 32, h > nHole ? "-" : buf, 0xffffff,
-            0, 0
+            score_x + 48 + h * 16, score_y + 32, h > nHole ? "-" : buf,
+            0xffffff, 0, 0
           );
         }
 
         sprintf(buf, "%u", settings->scores[1][MAX_HOLES]);
-        vga_text(scoreX + 192, scoreY + 32, buf, 0xffffff, 0, 0);
+        vga_text(score_x + 192, score_y + 32, buf, 0xffffff, 0, 0);
       }
 
       // Prompt
@@ -1527,7 +1518,7 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       vga_font(oldfont);
 
       // Process input
-      ev = kbd_getKeyEvent();
+      ev = kbd_get_key_event();
       switch (ev.key) {
         case KEY_RETURN:
           loop = 0;
@@ -1535,31 +1526,32 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
       }
     }
 
-    if (gameState != GG_GAME_RUNNING) {
+    if (game_state != GG_GAME_RUNNING) {
       // Increment endgame animation timer
       t += ANIM_SPEED * frametime;
 
       // Move camera after endgame
-      float tView = min(t * 0.004f, 1.0f);
+      float t_view = min(t * 0.004f, 1.0f);
       float angle = t * 0.003;
       while (angle > M_PI) angle -= 2.0f * M_PI;
-      viewPos.y = lerp(10.0f, 6.0f, tView);
-      viewPos.z = lerp(3.5f, 8.0f, tView);
+      view_pos.y = lerp(10.0f, 6.0f, t_view);
+      view_pos.z = lerp(3.5f, 8.0f, t_view);
 
-      float4x4 view = mat_lookat(viewPos, viewTarget, viewUp);
+      float4x4 view = mat_lookat(view_pos, view_target, view_up);
       view = mmul(view, mat_rotationY(angle));
 
-      gfx_setMatrix(GFX_MAT_VIEW, &view);
+      gfx_set_matrix(GFX_MAT_VIEW, &view);
     }
 
     // Draw the frametime counter
-    if (showFps) {
-      uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
-      uint64_t fps = fpsTimes100 / 100;
-      fpsTimes100 %= 100;
+    if (show_fps) {
+      uint64_t fps_times_100 = frametime == 0 ? 0 : 100000 / frametime;
+      uint64_t fps = fps_times_100 / 100;
+      fps_times_100 %= 100;
 
       sprintf(
-        buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
+        buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps,
+        fps_times_100
       );
       vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
     }
@@ -1573,31 +1565,31 @@ playGame(gameSettings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
 /*
  * Entry point for game
  */
-int gg_startGame() {
+int gg_start_game() {
   // Disable status bar drawing while application is active
-  uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
+  uint8_t is_status_enabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
   // Get VGA info
-  VBEModeInfo = vga_getVBEInfo();
+  vbe_mode_info = vga_get_vbe_info();
 
   // Initialize RNG
   pcg32_random_t rng;
   pcg32_srand(&rng, _syscall(SYS_TICKS), 1);
 
   // Make vertices for the hole mesh
-  makeHoleMesh();
+  make_hole_mesh();
 
   // Load the capybara models
-  pc_base = gfx_loadModel(obj_capybase, &v_base, &n_base, &vi_base, &ni_base);
-  pc_face = gfx_loadModel(obj_capyface, &v_face, &n_face, &vi_face, &ni_face);
-  pc_club = gfx_loadModel(obj_capyclub, &v_club, &n_club, &vi_club, &ni_club);
-  pc_flag = gfx_loadModel(obj_flag, &v_flag, &n_flag, &vi_flag, &ni_flag);
-  pc_pole = gfx_loadModel(obj_flagpole, &v_pole, &n_pole, &vi_pole, &ni_pole);
-  pc_ball = gfx_loadModel(obj_ball, &v_ball, &n_ball, &vi_ball, &ni_ball);
+  pc_base = gfx_load_model(obj_capybase, &v_base, &n_base, &vi_base, &ni_base);
+  pc_face = gfx_load_model(obj_capyface, &v_face, &n_face, &vi_face, &ni_face);
+  pc_club = gfx_load_model(obj_capyclub, &v_club, &n_club, &vi_club, &ni_club);
+  pc_flag = gfx_load_model(obj_flag, &v_flag, &n_flag, &vi_flag, &ni_flag);
+  pc_pole = gfx_load_model(obj_flagpole, &v_pole, &n_pole, &vi_pole, &ni_pole);
+  pc_ball = gfx_load_model(obj_ball, &v_ball, &n_ball, &vi_ball, &ni_ball);
 
   // Init deltatime timer
-  totalTicks = _syscall(SYS_TICKS);
+  total_ticks = _syscall(SYS_TICKS);
 
   // Set "alt" as the default font for the application
   vga_font_t oldfont = vga_font(VGA_FONT_ALT);
@@ -1605,18 +1597,18 @@ int gg_startGame() {
   // Main application loop
   while (1) {
     // Display the title screen
-    gameSettings_t settings;
-    settings.nPlayers = 1;
-    settings.nHoles = DEFAULT_HOLES;
-    for (int i = 0; i < settings.nPlayers; i++) {
+    game_settings_t settings;
+    settings.n_players = 1;
+    settings.n_holes = DEFAULT_HOLES;
+    for (int i = 0; i < settings.n_players; i++) {
       settings.scores[i][MAX_HOLES] = 0;
     }
 
-    int play = showTitleScreen(&settings);
+    int play = show_title_screen(&settings);
     if (!play) break;
 
-    for (uint32_t hole = 0; hole < settings.nHoles; hole++) {
-      int quit = playGame(&settings, hole, &rng);
+    for (uint32_t hole = 0; hole < settings.n_holes; hole++) {
+      int quit = play_game(&settings, hole, &rng);
       if (quit) break;
     }
   }
@@ -1625,7 +1617,7 @@ int gg_startGame() {
   vga_font(oldfont);
 
   // Restore status bar enabled state
-  _syscall(SYS_STATUS_SET_ENABLED, statusEnabled);
+  _syscall(SYS_STATUS_SET_ENABLED, is_status_enabled);
 
   return 0;
 }

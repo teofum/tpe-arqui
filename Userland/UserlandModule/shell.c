@@ -23,9 +23,9 @@ typedef struct {
   int (*entryPoint)(const char *args);
 } command_t;
 
-char commandHistory[HISTORY_SIZE][CMD_BUF_LEN];
-uint32_t historyPointer = 0;
-uint32_t promptLength = 2;
+char command_history[HISTORY_SIZE][CMD_BUF_LEN];
+uint32_t history_pointer = 0;
+uint32_t prompt_length = 2;
 
 static int echo(const char *args) {
   printf("%s\n", args != NULL ? args : "");
@@ -56,7 +56,7 @@ font_entry_t fonts[] = {
   {"future", VGA_FONT_FUTURE},
   {"old", VGA_FONT_OLD},
 };
-size_t nFonts = sizeof(fonts) / sizeof(font_entry_t);
+size_t n_fonts = sizeof(fonts) / sizeof(font_entry_t);
 
 static int setfont(const char *name) {
   if (name == NULL) {
@@ -69,11 +69,13 @@ static int setfont(const char *name) {
   }
 
   if (strcmp(name, "ls") == 0) {
-    for (int i = 0; i < nFonts; i++) { printf(COL_BLUE "%s\n", fonts[i].name); }
+    for (int i = 0; i < n_fonts; i++) {
+      printf(COL_BLUE "%s\n", fonts[i].name);
+    }
     return 0;
   }
 
-  for (int i = 0; i < nFonts; i++) {
+  for (int i = 0; i < n_fonts; i++) {
     if (strcmp(name, fonts[i].name) == 0) {
       _syscall(SYS_FONT, fonts[i].id);
       return 0;
@@ -90,8 +92,8 @@ static int setfont(const char *name) {
 }
 
 static int history() {
-  for (int i = 0; i < historyPointer; i++) {
-    printf("%s\n", commandHistory[i]);
+  for (int i = 0; i < history_pointer; i++) {
+    printf("%s\n", command_history[i]);
   }
   return 0;
 }
@@ -122,14 +124,14 @@ static int status(const char *param) {
 
 extern void _throw_00();
 extern void _throw_06();
-extern void _regdumpTest();
-int exceptionTest(const char *param) {
+extern void _regdump_test();
+int exception_test(const char *param) {
   if (!strcmp(param, "0")) {
     _throw_00();
   } else if (!strcmp(param, "6")) {
     _throw_06();
   } else if (!strcmp(param, "test_regdump")) {
-    _regdumpTest();
+    _regdump_test();
   } else {
     printf(
       COL_RED "Invalid exception type '%s'\n" COL_RESET
@@ -138,11 +140,6 @@ int exceptionTest(const char *param) {
     );
   }
 
-  return 0;
-}
-
-int throw06() {
-  _throw_06();
   return 0;
 }
 
@@ -156,7 +153,7 @@ static int music() {
   return 0;
 }
 
-static int printMascot() {
+static int print_mascot() {
   _syscall(SYS_WRITES, mascot);
   return 0;
 }
@@ -174,11 +171,11 @@ command_t commands[] = {
   {"status", "Turn the system status bar on or off", status},
   {"beep", "Plays a short beep", beep},
   {"music", "Plays Tetris music", music},
-  {"except", "Test exceptions", exceptionTest},
-  {"golf", "Play Golf", gg_startGame},
-  {"capy", "Print our cute mascot", printMascot},
+  {"except", "Test exceptions", exception_test},
+  {"golf", "Play Golf", gg_start_game},
+  {"capy", "Print our cute mascot", print_mascot},
 };
-size_t nCommands = sizeof(commands) / sizeof(command_t);
+size_t n_commands = sizeof(commands) / sizeof(command_t);
 
 static int help() {
   printf(
@@ -186,7 +183,7 @@ static int help() {
     "Available commands:\n\n"
   );
 
-  for (int i = 0; i < nCommands; i++) {
+  for (int i = 0; i < n_commands; i++) {
     printf(
       COL_BLUE "%s" COL_RESET "\t- %s\n", commands[i].cmd, commands[i].desc
     );
@@ -198,15 +195,15 @@ static int help() {
   return 0;
 }
 
-static void writePrompt() { printf("> "); }
+static void write_prompt() { printf("> "); }
 
-static void readCommand(char *cmd) {
-  int inputEnd = 0;
-  uint32_t localHistoryPointer = historyPointer;
+static void read_command(char *cmd) {
+  int input_end = 0;
+  uint32_t local_history_pointer = history_pointer;
   uint32_t write = 0, back = 0;
   char temp[CMD_BUF_LEN];
 
-  while (!inputEnd) {
+  while (!input_end) {
     // Wait for input on stdin
     int len;
     do {
@@ -221,7 +218,7 @@ static void readCommand(char *cmd) {
 
       if (c == '\n') {
         // Newline: end input
-        inputEnd = 1;
+        input_end = 1;
         break;
       } else if (c == '\b') {
         // Backspace: delete last char from buffer
@@ -234,15 +231,15 @@ static void readCommand(char *cmd) {
         switch (c) {
           case 'A':
             // Up arrow
-            if (localHistoryPointer > 0) {
-              char *last = commandHistory[--localHistoryPointer];
+            if (local_history_pointer > 0) {
+              char *last = command_history[--local_history_pointer];
               write = strcpy(cmd, last);
             }
             break;
           case 'B':
             // Down arrow
-            if (localHistoryPointer < historyPointer - 1) {
-              char *last = commandHistory[++localHistoryPointer];
+            if (local_history_pointer < history_pointer - 1) {
+              char *last = command_history[++local_history_pointer];
               write = strcpy(cmd, last);
             }
             break;
@@ -273,7 +270,7 @@ static void readCommand(char *cmd) {
     }
 
     // Reset the cursor position and print the command so far to stdout
-    _syscall(SYS_BLANKLINE, promptLength);
+    _syscall(SYS_BLANKLINE, prompt_length);
     _syscall(SYS_WRITES, cmd);
     _syscall(SYS_CURSOR, back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
     _syscall(SYS_CURMOVE, -back);
@@ -284,32 +281,32 @@ static void readCommand(char *cmd) {
   _syscall(SYS_CURSOR, IO_CURSOR_UNDER);
 
   // Store the entered command in history, if it is different from the most recent one
-  if (historyPointer == 0 ||
-      strcmp(commandHistory[historyPointer - 1], cmd) != 0) {
-    if (historyPointer == HISTORY_SIZE) {
+  if (history_pointer == 0 ||
+      strcmp(command_history[history_pointer - 1], cmd) != 0) {
+    if (history_pointer == HISTORY_SIZE) {
       // If we reached the maximum history size, shift everything back
       // deleting the oldest command
       memcpy(
-        commandHistory[0], commandHistory[1], (HISTORY_SIZE - 1) * CMD_BUF_LEN
+        command_history[0], command_history[1], (HISTORY_SIZE - 1) * CMD_BUF_LEN
       );
-      historyPointer--;
+      history_pointer--;
     }
 
-    strcpy(commandHistory[historyPointer++], cmd);
+    strcpy(command_history[history_pointer++], cmd);
   }
 }
 
-static int runCommand(const char *cmd) {
-  char cmdName[CMD_BUF_LEN];
-  cmd = strsplit(cmdName, cmd, ' ');
+static int run_command(const char *cmd) {
+  char cmd_name[CMD_BUF_LEN];
+  cmd = strsplit(cmd_name, cmd, ' ');
 
-  if (cmdName[0] == 0) return 0;
+  if (cmd_name[0] == 0) return 0;
 
   // Linear search all commands. Not super efficient, but the number of
   // commands is quite small so we don't need to worry too much.
   int retcode = RET_UNKNOWN_CMD;
-  for (int i = 0; i < nCommands; i++) {
-    if (strcmp(cmdName, commands[i].cmd) == 0) {
+  for (int i = 0; i < n_commands; i++) {
+    if (strcmp(cmd_name, commands[i].cmd) == 0) {
       retcode = commands[i].entryPoint(cmd);
       break;
     }
@@ -318,29 +315,29 @@ static int runCommand(const char *cmd) {
     printf(
       COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
-      cmdName
+      cmd_name
     );
   } else if (retcode == RET_EXIT) {
     return 1;
   } else if (retcode != 0) {
-    promptLength = 2 + printf("[" COL_RED "%u" COL_RESET "] ", retcode);
+    prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", retcode);
   } else {
-    promptLength = 2;
+    prompt_length = 2;
   }
 
 
   return 0;
 }
 
-int startShell() {
-  char cmdBuf[CMD_BUF_LEN];
+int start_shell() {
+  char cmd_buf[CMD_BUF_LEN];
 
   // Run the shell
   int exit = 0;
   while (!exit) {
-    writePrompt();
-    readCommand(cmdBuf);
-    exit = runCommand(cmdBuf);
+    write_prompt();
+    read_command(cmd_buf);
+    exit = run_command(cmd_buf);
   }
 
   // Return to kernel

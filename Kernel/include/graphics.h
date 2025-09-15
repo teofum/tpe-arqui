@@ -65,8 +65,8 @@ void gfx_draw_primitives(
  * Set normal array to NULL for flat shading (fullbright).
  */
 void gfx_draw_primitives_indexed(
-  float3 *vertices, float3 *normals, uint32_t *indices, uint32_t *normalIndices,
-  uint64_t n, float3 color
+  float3 *vertices, float3 *normals, uint32_t *indices,
+  uint32_t *normal_indices, uint64_t n, float3 color
 );
 
 /*

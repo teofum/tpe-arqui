@@ -133,7 +133,7 @@ typedef enum {
 
 typedef struct {
   uint8_t key;
-  uint8_t isReleased;
+  uint8_t is_released;
 
   uint8_t shift : 1;
   uint8_t shift_r : 1;
@@ -146,7 +146,7 @@ typedef struct {
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */
-extern void kbd_pollEvents();
+extern void kbd_poll_events();
 
 /*
  * Returns 1 if key is pressed, 0 if not.
@@ -166,7 +166,7 @@ extern int kbd_keyreleased(uint8_t key);
 /*
  * Returns the next keyboard event.
  */
-extern kbd_event_t kbd_getKeyEvent();
+extern kbd_event_t kbd_get_key_event();
 
 /*
  * Returns the ASCII character corresponding to the next keyboard event.

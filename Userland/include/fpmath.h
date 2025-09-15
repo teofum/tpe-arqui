@@ -39,7 +39,7 @@ extern float sqrt(float x);
 /*
  * Fits an angle to [-pi;+pi]
  */
-float fitToPi(float x);
+float fit_to_pi(float x);
 
 /*
  * Fast sine approximation, input in radians.

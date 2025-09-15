@@ -98,7 +98,7 @@ typedef enum {
  * with another call to vga_setFramebuffer. If the previous framebuffer was the
  * default buffer, returns NULL. 
  */
-extern vga_framebuffer_t vga_setFramebuffer(vga_framebuffer_t fb);
+extern vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb);
 
 /*
  * Clear VRAM with a single solid color.
@@ -172,7 +172,7 @@ extern vga_font_t vga_font(vga_font_t font);
  * screen bounds.
  */
 extern void vga_char(
-  uint16_t x0, uint16_t y0, char c, color_t color, color_t bgColor,
+  uint16_t x0, uint16_t y0, char c, color_t color, color_t bg_color,
   uint8_t flags
 );
 
@@ -183,7 +183,7 @@ extern void vga_char(
  * overflow the screen bounds.
  */
 extern void vga_text(
-  uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bgColor,
+  uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bg_color,
   uint8_t flags
 );
 
@@ -195,7 +195,7 @@ extern void vga_text(
  * overflow the screen bounds.
  * The 'colors' parameter takes two colors in the high and low dwords.
  */
-extern void vga_textWrap(
+extern void vga_text_wrap(
   uint16_t x0, uint16_t y0, int16_t maxw, const char *string, uint64_t colors,
   uint8_t flags
 );
@@ -230,6 +230,6 @@ extern void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src);
 /*
  * Return information about the display device.
  */
-vbe_info_t vga_getVBEInfo();
+vbe_info_t vga_get_vbe_info();
 
 #endif

@@ -1,4 +1,4 @@
-#include "shell.h"
+#include <shell.h>
 #include <syscall.h>
 
 char *v = (char *) 0xB8000 + 79 * 2;
@@ -40,7 +40,7 @@ int main() {
   _syscall(
     SYS_WRITES, "\n\n\x1A R;Welcome to \x1A 195,248,132;carpinchOS\x1A R;!\n"
   );
-  startShell();
+  start_shell();
 
   return 0xDEADBEEF;
 }

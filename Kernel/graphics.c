@@ -298,8 +298,8 @@ void gfx_draw_primitives(
 }
 
 void gfx_draw_primitives_indexed(
-  float3 *vertices, float3 *normals, uint32_t *indices, uint32_t *normalIndices,
-  uint64_t n, float3 color
+  float3 *vertices, float3 *normals, uint32_t *indices,
+  uint32_t *normal_indices, uint64_t n, float3 color
 ) {
   if (normals == NULL) {
     for (uint64_t i = 0; i < n; i++) {
@@ -308,9 +308,9 @@ void gfx_draw_primitives_indexed(
     }
   } else {
     for (uint64_t i = 0; i < n; i++) {
-      draw_primitive(vertices, normals, indices, normalIndices, color);
+      draw_primitive(vertices, normals, indices, normal_indices, color);
       indices += 3;
-      normalIndices += 3;
+      normal_indices += 3;
     }
   }
 }

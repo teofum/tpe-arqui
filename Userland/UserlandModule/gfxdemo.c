@@ -6,10 +6,10 @@
 
 int gfxdemo() {
   // Disable status bar drawing while application is active
-  uint8_t statusEnabled = _syscall(SYS_STATUS_GET_ENABLED);
+  uint8_t is_status_enabled = _syscall(SYS_STATUS_GET_ENABLED);
   _syscall(SYS_STATUS_SET_ENABLED, 0);
 
-  uint64_t frametime = 0, ticksTotal = _syscall(SYS_TICKS);
+  uint64_t frametime = 0, ticks_total = _syscall(SYS_TICKS);
   uint8_t green = 0;
   int d = 1;
   int key = 0;
@@ -70,32 +70,32 @@ int gfxdemo() {
       "veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea "
       "commodo consequat.";
 
-    vga_textWrap(700, 400, 200, longtext, colors(0xffffff, 0), VGA_WRAP_WORD);
+    vga_text_wrap(700, 400, 200, longtext, colors(0xffffff, 0), VGA_WRAP_WORD);
 
     vga_rect(700, 400, 800, 600, 0x80ff80ff, VGA_ALPHA_BLEND);
 
     vga_text(420, 700, " Press any key to exit ", 0, 0xffffff, VGA_TEXT_INV);
 
     // Draw the frametime counter
-    uint64_t fpsTimes100 = frametime == 0 ? 0 : 100000 / frametime;
-    uint64_t fps = fpsTimes100 / 100;
-    fpsTimes100 %= 100;
+    uint64_t fps_times_100 = frametime == 0 ? 0 : 100000 / frametime;
+    uint64_t fps = fps_times_100 / 100;
+    fps_times_100 %= 100;
 
     char buf[50];
     sprintf(
-      buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fpsTimes100
+      buf, "Frametime: %llums (%llu.%02llu fps)", frametime, fps, fps_times_100
     );
     vga_text(0, 0, buf, 0xffffff, 0, VGA_TEXT_BG);
 
     vga_present();
 
-    key = kbd_getKeyEvent().key;
-    frametime = _syscall(SYS_TICKS) - ticksTotal;
-    ticksTotal += frametime;
+    key = kbd_get_key_event().key;
+    frametime = _syscall(SYS_TICKS) - ticks_total;
+    ticks_total += frametime;
   }
 
   // Restore status bar enabled state
-  _syscall(SYS_STATUS_SET_ENABLED, statusEnabled);
+  _syscall(SYS_STATUS_SET_ENABLED, is_status_enabled);
 
   return 0;
 }

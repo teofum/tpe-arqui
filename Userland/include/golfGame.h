@@ -7,6 +7,6 @@
 #include <stdint.h>
 #include <vga.h>
 
-int gg_startGame();
+int gg_start_game();
 
 #endif
