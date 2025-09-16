@@ -203,9 +203,6 @@ void init_syscalls() {
   register_syscall(0xAD, gfx_set_flag);
   register_syscall(0xAE, gfx_get_framebuffer);
   register_syscall(0xAF, gfx_present);
-
-  /* Special */
-  register_syscall(0xFF, _hlt);
 }
 
 // Información de excepción

@@ -8,12 +8,6 @@
 #define STATUS_PADDING_Y 4
 
 /*
- * Draw a system-wide status bar, showing the system clock.
- * Can be used for other useful information in future.
- */
-void status_draw_statusbar();
-
-/*
  * Return whether the status bar is enabled.
  */
 uint8_t status_enabled();

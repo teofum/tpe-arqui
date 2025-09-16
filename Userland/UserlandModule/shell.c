@@ -1,5 +1,6 @@
 #include <gfxdemo.h>
 #include <golf_game.h>
+#include <io.h>
 #include <print.h>
 #include <shell.h>
 #include <sound.h>
@@ -206,10 +207,7 @@ static void read_command(char *cmd) {
   while (!input_end) {
     // Wait for input on stdin
     int len;
-    do {
-      len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
-      if (!len) _syscall(SYS_HALT);
-    } while (!len);
+    do { len = _syscall(SYS_READ, temp, CMD_BUF_LEN); } while (!len);
 
     // Iterate the input and add to internal buffer, handling special characters
     char c;
