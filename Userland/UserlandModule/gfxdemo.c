@@ -1,15 +1,16 @@
 #include <gfxdemo.h>
 #include <kbd.h>
 #include <print.h>
-#include <syscall.h>
+#include <status.h>
+#include <time.h>
 #include <vga.h>
 
 int gfxdemo() {
   // Disable status bar drawing while application is active
-  uint8_t is_status_enabled = _syscall(SYS_STATUS_GET_ENABLED);
-  _syscall(SYS_STATUS_SET_ENABLED, 0);
+  uint8_t is_status_enabled = status_enabled();
+  status_set_enabled(0);
 
-  uint64_t frametime = 0, ticks_total = _syscall(SYS_TICKS);
+  uint64_t frametime = 0, ticks_total = time();
   uint8_t green = 0;
   int d = 1;
   int key = 0;
@@ -90,12 +91,12 @@ int gfxdemo() {
     vga_present();
 
     key = kbd_get_key_event().key;
-    frametime = _syscall(SYS_TICKS) - ticks_total;
+    frametime = time() - ticks_total;
     ticks_total += frametime;
   }
 
   // Restore status bar enabled state
-  _syscall(SYS_STATUS_SET_ENABLED, is_status_enabled);
+  status_set_enabled(is_status_enabled);
 
   return 0;
 }

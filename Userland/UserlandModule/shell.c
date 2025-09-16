@@ -4,9 +4,9 @@
 #include <print.h>
 #include <shell.h>
 #include <sound.h>
+#include <status.h>
 #include <stdint.h>
 #include <strings.h>
-#include <syscall.h>
 
 #define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
@@ -37,7 +37,7 @@ static int echo(const char *args) {
 static int exit() { return RET_EXIT; }
 
 static int clear() {
-  _syscall(SYS_CLEAR);
+  io_clear();
   return 0;
 }
 
@@ -78,7 +78,7 @@ static int setfont(const char *name) {
 
   for (int i = 0; i < n_fonts; i++) {
     if (strcmp(name, fonts[i].name) == 0) {
-      _syscall(SYS_FONT, fonts[i].id);
+      io_setfont(fonts[i].id);
       return 0;
     }
   }
@@ -106,12 +106,12 @@ static int status(const char *param) {
   }
 
   if (!strcmp(param, "off")) {
-    _syscall(SYS_STATUS_SET_ENABLED, 0);
-    _syscall(SYS_CLEAR);
+    status_set_enabled(0);
+    io_clear();
     return 0;
   } else if (!strcmp(param, "on")) {
-    _syscall(SYS_STATUS_SET_ENABLED, 1);
-    _syscall(SYS_CLEAR);
+    status_set_enabled(1);
+    io_clear();
     return 0;
   }
 
@@ -155,7 +155,7 @@ static int music() {
 }
 
 static int print_mascot() {
-  _syscall(SYS_WRITES, mascot);
+  writes(mascot);
   return 0;
 }
 
@@ -207,7 +207,7 @@ static void read_command(char *cmd) {
   while (!input_end) {
     // Wait for input on stdin
     int len;
-    do { len = _syscall(SYS_READ, temp, CMD_BUF_LEN); } while (!len);
+    do { len = read(temp, CMD_BUF_LEN); } while (!len);
 
     // Iterate the input and add to internal buffer, handling special characters
     char c;
@@ -268,15 +268,15 @@ static void read_command(char *cmd) {
     }
 
     // Reset the cursor position and print the command so far to stdout
-    _syscall(SYS_BLANKLINE, prompt_length);
-    _syscall(SYS_WRITES, cmd);
-    _syscall(SYS_CURSOR, back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
-    _syscall(SYS_CURMOVE, -back);
+    io_blank_from(prompt_length);
+    writes(cmd);
+    io_setcursor(back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
+    io_movecursor(-back);
   }
 
   // Insert a newline and reset the cursor
-  _syscall(SYS_PUTC, '\n');
-  _syscall(SYS_CURSOR, IO_CURSOR_UNDER);
+  putc('\n');
+  io_setcursor(IO_CURSOR_UNDER);
 
   // Store the entered command in history, if it is different from the most recent one
   if (history_pointer == 0 ||

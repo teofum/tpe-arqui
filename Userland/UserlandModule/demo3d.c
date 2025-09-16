@@ -2,7 +2,8 @@
 #include <graphics.h>
 #include <kbd.h>
 #include <print.h>
-#include <syscall.h>
+#include <status.h>
+#include <time.h>
 #include <vga.h>
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
@@ -16,10 +17,10 @@ uint32_t *demo3d_ni;
 
 int demo3d() {
   // Disable status bar drawing while application is active
-  uint8_t is_status_enabled = _syscall(SYS_STATUS_GET_ENABLED);
-  _syscall(SYS_STATUS_SET_ENABLED, 0);
+  uint8_t is_status_enabled = status_enabled();
+  status_set_enabled(0);
 
-  uint64_t frametime = 0, ticks_total = _syscall(SYS_TICKS);
+  uint64_t frametime = 0, ticks_total = time();
   float angle = 0;
   int wireframe = 0;
 
@@ -208,13 +209,13 @@ int demo3d() {
     angle += 0.01;
     if (angle > M_PI) angle -= 2.0f * M_PI;
 
-    uint64_t ticks = _syscall(SYS_TICKS);
+    uint64_t ticks = time();
     frametime = ticks - ticks_total;
     ticks_total = ticks;
   }
 
   // Restore status bar enabled state
-  _syscall(SYS_STATUS_SET_ENABLED, is_status_enabled);
+  status_set_enabled(is_status_enabled);
 
   return 0;
 }

@@ -1,6 +1,6 @@
+#include <io.h>
 #include <print.h>
 #include <stddef.h>
-#include <syscall.h>
 
 int utostr(
   char *buf, uint64_t n, uint8_t base, uint8_t minLength, char padding
@@ -129,7 +129,7 @@ int32_t printf(const char *fmt, ...) {
 
   static char buf[512];
   int32_t len = vsprintf(buf, fmt, args);
-  len = _syscall(SYS_WRITE, buf, len);
+  len = write(buf, len);
 
   va_end(args);
   return len;
