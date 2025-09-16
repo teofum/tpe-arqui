@@ -201,7 +201,7 @@ static void write_prompt() { printf("> "); }
 static void read_command(char *cmd) {
   int input_end = 0;
   uint32_t local_history_pointer = history_pointer;
-  uint32_t write = 0, back = 0;
+  uint32_t write_pos = 0, back = 0;
   char temp[CMD_BUF_LEN];
 
   while (!input_end) {
@@ -220,8 +220,8 @@ static void read_command(char *cmd) {
         break;
       } else if (c == '\b') {
         // Backspace: delete last char from buffer
-        if (write > 0) write--;
-        cmd[write] = 0;
+        if (write_pos > 0) write_pos--;
+        cmd[write_pos] = 0;
       } else if (c == '\x1B') {
         // Escape char: handle escape sequences
         read += 2;     // All existing escape sequences are of the form "\x1B[X"
@@ -231,39 +231,39 @@ static void read_command(char *cmd) {
             // Up arrow
             if (local_history_pointer > 0) {
               char *last = command_history[--local_history_pointer];
-              write = strcpy(cmd, last);
+              write_pos = strcpy(cmd, last);
             }
             break;
           case 'B':
             // Down arrow
             if (local_history_pointer < history_pointer - 1) {
               char *last = command_history[++local_history_pointer];
-              write = strcpy(cmd, last);
+              write_pos = strcpy(cmd, last);
             }
             break;
           case 'C':
             // Right
             if (back > 0) {
-              write++;
+              write_pos++;
               back--;
             }
             break;
           case 'D':
             // Left
-            if (write > 0) {
-              write--;
+            if (write_pos > 0) {
+              write_pos--;
               back++;
             }
             break;
         }
-      } else if (write < CMD_BUF_LEN - 1) {
+      } else if (write_pos < CMD_BUF_LEN - 1) {
         // For any other char just add to internal buffer and advance write pointer
         // If we reached the end of the buffer, ignore any further input
-        cmd[write++] = c;
+        cmd[write_pos++] = c;
         if (back > 0) back--;
 
         // Make sure the command string is null-terminated
-        cmd[write + back] = 0;
+        cmd[write_pos + back] = 0;
       }
     }
 
@@ -275,7 +275,8 @@ static void read_command(char *cmd) {
   }
 
   // Insert a newline and reset the cursor
-  putc('\n');
+  static char newline = '\n';
+  write(&newline, 1);
   io_setcursor(IO_CURSOR_UNDER);
 
   // Store the entered command in history, if it is different from the most recent one

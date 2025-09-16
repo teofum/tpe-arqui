@@ -126,20 +126,6 @@ void io_blank_from(uint32_t x) {
   vga_set_framebuffer(current_fb);
 }
 
-void io_putc(char c) {
-  vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
-  vga_font_t last_font = vga_font(io_text_font);
-
-  putc_impl(c);
-
-  vga_font(last_font);
-  copy_to_main_fb();
-  vga_set_framebuffer(NULL);
-  draw_cursor();
-  vga_present();
-  vga_set_framebuffer(current_fb);
-}
-
 static const char *parse_color_escape(const char *str) {
   char c;
 

@@ -15,8 +15,6 @@ uint32_t read(char *buf, uint32_t len);
 uint32_t writes(const char *str);
 uint32_t write(const char *str, uint32_t len);
 
-void putc(char c);
-
 void io_clear();
 
 void io_setfont(vga_font_t font);

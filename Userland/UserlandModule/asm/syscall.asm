@@ -12,7 +12,6 @@ global %1
 define_syscall read, 0x03
 define_syscall write, 0x04
 define_syscall writes, 0x07
-define_syscall putc, 0x08
 define_syscall io_clear, 0x09
 define_syscall io_setfont, 0x0A
 define_syscall io_blank_from, 0x0B
