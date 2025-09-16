@@ -143,7 +143,6 @@ void init_syscalls() {
   register_syscall(0x04, io_write);
   // 0x05, 0x06 reserved for future syscalls (open, close)
   register_syscall(0x07, io_writes);
-  register_syscall(0x08, io_putc);
   register_syscall(0x09, io_clear);
   register_syscall(0x0A, io_setfont);
   register_syscall(0x0B, io_blank_from);
@@ -203,9 +202,6 @@ void init_syscalls() {
   register_syscall(0xAD, gfx_set_flag);
   register_syscall(0xAE, gfx_get_framebuffer);
   register_syscall(0xAF, gfx_present);
-
-  /* Special */
-  register_syscall(0xFF, _hlt);
 }
 
 // Información de excepción

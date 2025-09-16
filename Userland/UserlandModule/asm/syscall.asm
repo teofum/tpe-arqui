@@ -1,18 +1,5 @@
 section .text
 
-global _syscall
-_syscall:
-    mov rax, rdi
-    mov rdi, rsi
-    mov rsi, rdx
-    mov rdx, rcx
-    mov rcx, r8
-    mov r8, r9
-
-    int 0x80
-
-    ret
-
 %macro define_syscall 2
 global %1
 %1:
@@ -21,6 +8,17 @@ global %1
     ret
 %endmacro
 
+; I/O system calls
+define_syscall read, 0x03
+define_syscall write, 0x04
+define_syscall writes, 0x07
+define_syscall io_clear, 0x09
+define_syscall io_setfont, 0x0A
+define_syscall io_blank_from, 0x0B
+define_syscall io_setcursor, 0x0C
+define_syscall io_movecursor, 0x0D
+
+; Keyboard system calls
 define_syscall kbd_poll_events, 0x10
 define_syscall kbd_keydown, 0x11
 define_syscall kbd_keypressed, 0x12
@@ -28,6 +26,7 @@ define_syscall kbd_keyreleased, 0x13
 define_syscall kbd_get_key_event, 0x14
 define_syscall kbd_getchar, 0x15
 
+; VGA system calls
 define_syscall vga_clear, 0x20
 define_syscall vga_pixel, 0x21
 define_syscall vga_line, 0x22
@@ -45,6 +44,18 @@ define_syscall vga_copy2x, 0x2D
 define_syscall vga_bitmap, 0x2E
 define_syscall vga_get_vbe_info, 0x2F
 
+; Audio system calls
+define_syscall audio_beep, 0x30
+define_syscall audio_play_melody, 0x31
+
+; Statusbar system calls
+define_syscall status_enabled, 0x40
+define_syscall status_set_enabled, 0x41
+
+; Timer/RTC system calls
+define_syscall time, 0x50
+
+; Graphics system calls
 define_syscall gfx_clear, 0xA0
 define_syscall gfx_draw_primitives, 0xA1
 define_syscall gfx_draw_primitives_indexed, 0xA2
@@ -60,6 +71,3 @@ define_syscall gfx_set_matrix, 0xAC
 define_syscall gfx_set_flag, 0xAD
 define_syscall gfx_get_framebuffer, 0xAE
 define_syscall gfx_present, 0xAF
-
-define_syscall audio_beep, 0x30
-define_syscall audio_play_melody, 0x31

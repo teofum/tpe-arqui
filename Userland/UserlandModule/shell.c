@@ -1,11 +1,12 @@
 #include <gfxdemo.h>
-#include <golfGame.h>
+#include <golf_game.h>
+#include <io.h>
 #include <print.h>
 #include <shell.h>
 #include <sound.h>
+#include <status.h>
 #include <stdint.h>
 #include <strings.h>
-#include <syscall.h>
 
 #define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
@@ -36,7 +37,7 @@ static int echo(const char *args) {
 static int exit() { return RET_EXIT; }
 
 static int clear() {
-  _syscall(SYS_CLEAR);
+  io_clear();
   return 0;
 }
 
@@ -77,7 +78,7 @@ static int setfont(const char *name) {
 
   for (int i = 0; i < n_fonts; i++) {
     if (strcmp(name, fonts[i].name) == 0) {
-      _syscall(SYS_FONT, fonts[i].id);
+      io_setfont(fonts[i].id);
       return 0;
     }
   }
@@ -105,12 +106,12 @@ static int status(const char *param) {
   }
 
   if (!strcmp(param, "off")) {
-    _syscall(SYS_STATUS_SET_ENABLED, 0);
-    _syscall(SYS_CLEAR);
+    status_set_enabled(0);
+    io_clear();
     return 0;
   } else if (!strcmp(param, "on")) {
-    _syscall(SYS_STATUS_SET_ENABLED, 1);
-    _syscall(SYS_CLEAR);
+    status_set_enabled(1);
+    io_clear();
     return 0;
   }
 
@@ -154,7 +155,7 @@ static int music() {
 }
 
 static int print_mascot() {
-  _syscall(SYS_WRITES, mascot);
+  writes(mascot);
   return 0;
 }
 
@@ -200,16 +201,13 @@ static void write_prompt() { printf("> "); }
 static void read_command(char *cmd) {
   int input_end = 0;
   uint32_t local_history_pointer = history_pointer;
-  uint32_t write = 0, back = 0;
+  uint32_t write_pos = 0, back = 0;
   char temp[CMD_BUF_LEN];
 
   while (!input_end) {
     // Wait for input on stdin
     int len;
-    do {
-      len = _syscall(SYS_READ, temp, CMD_BUF_LEN);
-      if (!len) _syscall(SYS_HALT);
-    } while (!len);
+    do { len = read(temp, CMD_BUF_LEN); } while (!len);
 
     // Iterate the input and add to internal buffer, handling special characters
     char c;
@@ -222,8 +220,8 @@ static void read_command(char *cmd) {
         break;
       } else if (c == '\b') {
         // Backspace: delete last char from buffer
-        if (write > 0) write--;
-        cmd[write] = 0;
+        if (write_pos > 0) write_pos--;
+        cmd[write_pos] = 0;
       } else if (c == '\x1B') {
         // Escape char: handle escape sequences
         read += 2;     // All existing escape sequences are of the form "\x1B[X"
@@ -233,52 +231,53 @@ static void read_command(char *cmd) {
             // Up arrow
             if (local_history_pointer > 0) {
               char *last = command_history[--local_history_pointer];
-              write = strcpy(cmd, last);
+              write_pos = strcpy(cmd, last);
             }
             break;
           case 'B':
             // Down arrow
             if (local_history_pointer < history_pointer - 1) {
               char *last = command_history[++local_history_pointer];
-              write = strcpy(cmd, last);
+              write_pos = strcpy(cmd, last);
             }
             break;
           case 'C':
             // Right
             if (back > 0) {
-              write++;
+              write_pos++;
               back--;
             }
             break;
           case 'D':
             // Left
-            if (write > 0) {
-              write--;
+            if (write_pos > 0) {
+              write_pos--;
               back++;
             }
             break;
         }
-      } else if (write < CMD_BUF_LEN - 1) {
+      } else if (write_pos < CMD_BUF_LEN - 1) {
         // For any other char just add to internal buffer and advance write pointer
         // If we reached the end of the buffer, ignore any further input
-        cmd[write++] = c;
+        cmd[write_pos++] = c;
         if (back > 0) back--;
 
         // Make sure the command string is null-terminated
-        cmd[write + back] = 0;
+        cmd[write_pos + back] = 0;
       }
     }
 
     // Reset the cursor position and print the command so far to stdout
-    _syscall(SYS_BLANKLINE, prompt_length);
-    _syscall(SYS_WRITES, cmd);
-    _syscall(SYS_CURSOR, back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
-    _syscall(SYS_CURMOVE, -back);
+    io_blank_from(prompt_length);
+    writes(cmd);
+    io_setcursor(back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
+    io_movecursor(-back);
   }
 
   // Insert a newline and reset the cursor
-  _syscall(SYS_PUTC, '\n');
-  _syscall(SYS_CURSOR, IO_CURSOR_UNDER);
+  static char newline = '\n';
+  write(&newline, 1);
+  io_setcursor(IO_CURSOR_UNDER);
 
   // Store the entered command in history, if it is different from the most recent one
   if (history_pointer == 0 ||

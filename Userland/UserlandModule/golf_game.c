@@ -1,14 +1,15 @@
 #include <fpmath.h>
-#include <golfGame.h>
+#include <golf_game.h>
 #include <graphics.h>
 #include <kbd.h>
 #include <print.h>
 #include <rng.h>
 #include <sound.h>
+#include <status.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
-#include <syscall.h>
+#include <time.h>
 #include <vga.h>
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
@@ -272,7 +273,7 @@ static const char *score_texts[] = {
  * Helper functions
  */
 static inline void update_timer() {
-  frametime = _syscall(SYS_TICKS) - total_ticks;
+  frametime = time() - total_ticks;
   total_ticks += frametime;
 }
 
@@ -1567,15 +1568,15 @@ play_game(game_settings_t *settings, uint32_t nHole, pcg32_random_t *rng) {
  */
 int gg_start_game() {
   // Disable status bar drawing while application is active
-  uint8_t is_status_enabled = _syscall(SYS_STATUS_GET_ENABLED);
-  _syscall(SYS_STATUS_SET_ENABLED, 0);
+  uint8_t is_status_enabled = status_enabled();
+  status_set_enabled(0);
 
   // Get VGA info
   vbe_mode_info = vga_get_vbe_info();
 
   // Initialize RNG
   pcg32_random_t rng;
-  pcg32_srand(&rng, _syscall(SYS_TICKS), 1);
+  pcg32_srand(&rng, time(), 1);
 
   // Make vertices for the hole mesh
   make_hole_mesh();
@@ -1589,7 +1590,7 @@ int gg_start_game() {
   pc_ball = gfx_load_model(obj_ball, &v_ball, &n_ball, &vi_ball, &ni_ball);
 
   // Init deltatime timer
-  total_ticks = _syscall(SYS_TICKS);
+  total_ticks = time();
 
   // Set "alt" as the default font for the application
   vga_font_t oldfont = vga_font(VGA_FONT_ALT);
@@ -1617,7 +1618,7 @@ int gg_start_game() {
   vga_font(oldfont);
 
   // Restore status bar enabled state
-  _syscall(SYS_STATUS_SET_ENABLED, is_status_enabled);
+  status_set_enabled(is_status_enabled);
 
   return 0;
 }

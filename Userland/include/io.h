@@ -11,16 +11,15 @@ typedef enum {
   IO_CURSOR_BLOCK,
 } io_cursor_t;
 
-void io_blank_from(uint32_t x);
-
-uint32_t io_writes(const char *str);
-uint32_t io_write(const char *str, uint32_t len);
+uint32_t read(char *buf, uint32_t len);
+uint32_t writes(const char *str);
+uint32_t write(const char *str, uint32_t len);
 
 void io_clear();
 
-uint32_t io_read(char *buf, uint32_t len);
-
 void io_setfont(vga_font_t font);
+
+void io_blank_from(uint32_t x);
 
 void io_setcursor(io_cursor_t cursor);
 
