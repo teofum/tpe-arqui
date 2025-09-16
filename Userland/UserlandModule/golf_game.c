@@ -1,5 +1,5 @@
 #include <fpmath.h>
-#include <golfGame.h>
+#include <golf_game.h>
 #include <graphics.h>
 #include <kbd.h>
 #include <print.h>

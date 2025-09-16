@@ -1,5 +1,5 @@
 #include <gfxdemo.h>
-#include <golfGame.h>
+#include <golf_game.h>
 #include <print.h>
 #include <shell.h>
 #include <sound.h>
