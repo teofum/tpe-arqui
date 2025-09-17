@@ -1,3 +1,6 @@
+#ifndef MEM_H
+#define MEM_H
+
 #include <stddef.h>
 
 typedef struct mem_manager_cdt_t *mem_manager_t;
@@ -31,3 +34,5 @@ void mem_free(void *mem);
  * TODO: define this API better
  */
 int mem_check(void *mem);
+
+#endif
