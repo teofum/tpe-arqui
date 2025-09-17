@@ -1,6 +1,7 @@
 #include <gfxdemo.h>
 #include <golf_game.h>
 #include <io.h>
+#include <mem.h>
 #include <print.h>
 #include <shell.h>
 #include <sound.h>
@@ -159,6 +160,12 @@ static int print_mascot() {
   return 0;
 }
 
+static int test_alloc() {
+  void *mem = mem_alloc(1024);
+  printf("Allocated 1024 bytes at address %#016lx\n", (size_t) mem);
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -175,6 +182,7 @@ command_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
+  {"test_alloc", "Test alloc syscall", test_alloc},
 };
 size_t n_commands = sizeof(commands) / sizeof(command_t);
 

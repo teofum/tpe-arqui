@@ -2,6 +2,7 @@
 #include <interrupts.h>
 #include <kbd.h>
 #include <lib.h>
+#include <mem.h>
 #include <module_loader.h>
 #include <print.h>
 #include <status.h>
@@ -76,6 +77,10 @@ int main() {
 
   // Enable status bar
   status_set_enabled(1);
+
+  // Initialize memory manager
+  mem_default_mgr =
+    mem_manager_create((void *) 0x3FFF000, (void *) 0x4000000, 0);
 
   while (1) {
     int ret = ((entrypoint_t) userland_code_module)();
