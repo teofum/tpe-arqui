@@ -49,11 +49,10 @@ int main() {
       "%u test failures\n" COL_RESET,
       test_result
     );
-    writes("Returning to kernel\n");
-    return test_result;
+  } else {
+    writes("[" COL_GREEN "SST OK" COL_RESET "] All tests passed!\n");
   }
 
-  writes("[" COL_GREEN "SST OK" COL_RESET "] All tests passed!\n");
   writes("Press any key to continue\n");
 
   int key = 0;
