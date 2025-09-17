@@ -78,6 +78,8 @@ int main() {
   // Enable status bar
   status_set_enabled(1);
 
+  printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
+
   // Initialize memory manager
   mem_default_mgr =
     mem_manager_create((void *) 0x3FFF000, (void *) 0x4000000, 0);
