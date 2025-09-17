@@ -78,6 +78,7 @@ int main() {
   // Enable status bar
   status_set_enabled(1);
 
+  // Initialize memory manager
   mem_default_mgr =
     mem_manager_create((void *) 0x3FFF000, (void *) 0x4000000, 0);
 
