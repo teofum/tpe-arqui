@@ -11,6 +11,10 @@
  */
 typedef int (*test_fn_t)();
 
+/* ========================================================================= *
+ * Tests start here                                                          *
+ * ========================================================================= */
+
 /*
  * Sanity check, should always run and pass
  */
@@ -79,6 +83,10 @@ int test_mem_exclusive() {
   for (int i = 0; i < 4; i++) mem_free(mem[i]);
   return 0;
 }
+
+/* ========================================================================= *
+ * Tests end here                                                            *
+ * ========================================================================= */
 
 test_fn_t tests[] = {test_sanity_check, test_mem_alloc, test_mem_exclusive};
 
