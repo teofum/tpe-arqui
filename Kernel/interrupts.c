@@ -4,6 +4,7 @@
 #include <io.h>
 #include <kbd.h>
 #include <lib.h>
+#include <mem.h>
 #include <print.h>
 #include <status.h>
 #include <stdint.h>
@@ -185,6 +186,11 @@ void init_syscalls() {
 
   /* Time/RTC */
   register_syscall(0x50, ticks_elapsed);
+
+  /* Memory allocation */
+  register_syscall(0x60, mem_alloc);
+  register_syscall(0x61, mem_free);
+  register_syscall(0x62, mem_check);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);

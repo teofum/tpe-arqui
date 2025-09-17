@@ -55,6 +55,11 @@ define_syscall status_set_enabled, 0x41
 ; Timer/RTC system calls
 define_syscall time, 0x50
 
+; Memory system calls
+define_syscall mem_alloc, 0x60
+define_syscall mem_free, 0x61
+define_syscall mem_check, 0x62
+
 ; Graphics system calls
 define_syscall gfx_clear, 0xA0
 define_syscall gfx_draw_primitives, 0xA1
