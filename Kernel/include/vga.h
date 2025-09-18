@@ -295,10 +295,9 @@ void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset_y);
  * Copy contents between two framebuffers with additional options.
  * Set either framebuffer to NULL to use the default framebuffer.
  */
-// void vga_copy_ex(
-//   vga_framebuffer_t dst, vga_framebuffer_t src, vga_copy_ex_opts_t options
-// );
-void vga_copy2x(vga_framebuffer_t dst_fb, vga_framebuffer_t src_fb);
+void vga_copy_ex(
+  vga_framebuffer_t dst, vga_framebuffer_t src, vga_copy_ex_opts_t options
+);
 
 /*
  * Return information about the display device.

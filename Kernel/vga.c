@@ -677,36 +677,51 @@ void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset_y) {
 }
 
 void vga_copy_ex(
-  vga_framebuffer_t dst_fb, vga_framebuffer_t src_fb, vga_copy_ex_opts_t options
+  vga_framebuffer_t dst_fb, vga_framebuffer_t src_fb, vga_copy_ex_opts_t opt
 ) {
   if (dst_fb == NULL) dst_fb = default_framebuffer;
   if (src_fb == NULL) src_fb = default_framebuffer;
 
   uint8_t *dst = dst_fb->data;
   uint8_t *src = src_fb->data;
-}
-void vga_copy2x(vga_framebuffer_t dst_fb, vga_framebuffer_t src_fb) {
-  if (dst_fb == NULL) dst_fb = default_framebuffer;
-  if (src_fb == NULL) src_fb = default_framebuffer;
 
-  uint8_t *src = src_fb->data;
-  uint8_t *dst1 = dst_fb->data;
-  uint8_t *dst2 = dst_fb->data + OFFSET_Y;
-  uint64_t width = VGA_WIDTH >> 1;
-  uint64_t height = VGA_HEIGHT >> 1;
-  for (uint64_t y = 0; y < height; y++) {
-    for (uint64_t x = 0; x < width; x++) {
-      dst1[0] = dst1[OFFSET_X + 0] = dst2[0] = dst2[OFFSET_X + 0] = src[0];
-      dst1[1] = dst1[OFFSET_X + 1] = dst2[1] = dst2[OFFSET_X + 1] = src[1];
-      dst1[2] = dst1[OFFSET_X + 2] = dst2[2] = dst2[OFFSET_X + 2] = src[2];
+  if (opt.dx < 0) opt.dx += dst_fb->width;
+  if (opt.dy < 0) opt.dy += dst_fb->height;
+  if (opt.sx < 0) opt.sx += src_fb->width;
+  if (opt.sy < 0) opt.sy += src_fb->height;
+  if (opt.sw <= 0) opt.sw += src_fb->width;
+  if (opt.sh <= 0) opt.sh += src_fb->height;
+  if (opt.scale == 0) opt.scale = 1;
 
-      src += OFFSET_X;
-      dst1 += (OFFSET_X << 1);
-      dst2 += (OFFSET_X << 1);
+  size_t copy_width =
+    min(opt.sw, min(src_fb->width - opt.sx, dst_fb->width - opt.dx));
+  size_t copy_height =
+    min(opt.sh, min(src_fb->height - opt.sy, dst_fb->height - opt.dy));
+
+  size_t step_sy = (src_fb->width - (opt.sx + copy_width)) * OFFSET_X;
+  size_t step_sx = OFFSET_X;
+  size_t step_dy =
+    (dst_fb->width - (opt.dx + copy_width)) * opt.scale * OFFSET_X;
+  size_t step_dx = opt.scale * OFFSET_X;
+
+  src += opt.sy * src_fb->width * OFFSET_X;
+  for (uint64_t y = 0; y < copy_height; y++) {
+    src += opt.sx * OFFSET_X;
+    for (uint64_t x = 0; x < copy_width; x++) {
+      for (uint64_t ly = 0; ly < opt.scale; ly++) {
+        for (uint64_t lx = 0; lx < opt.scale; lx++) {
+          size_t lo = (ly * dst_fb->width + lx) * OFFSET_X;
+          dst[lo + 0] = src[0];
+          dst[lo + 1] = src[1];
+          dst[lo + 2] = src[2];
+        }
+      }
+
+      src += step_sx;
+      dst += step_dx;
     }
-    src += (OFFSET_Y >> 1);
-    dst1 += OFFSET_Y;
-    dst2 += OFFSET_Y;
+    src += step_sy;
+    dst += step_dy;
   }
 }
 

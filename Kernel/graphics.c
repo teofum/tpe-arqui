@@ -86,8 +86,8 @@ void gfx_init() {
   gfx_render_width = VGA_WIDTH;
   gfx_render_height = VGA_HEIGHT;
 
-  gfx_default_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO);
   gfx_default_depthbuffer = gfx_create_depthbuffer(VGA_AUTO, VGA_AUTO);
+  gfx_default_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO);
 
   _gfx_framebuffer = gfx_default_framebuffer;
   _depthbuffer = gfx_default_depthbuffer;
@@ -465,7 +465,10 @@ void gfx_set_flag(gfx_flags_t flag, uint8_t value) {
  */
 void gfx_present() {
   if (gfx_flags & GFX_HALFRES) {
-    vga_copy2x(NULL, _gfx_framebuffer);
+    vga_copy_ex(
+      NULL, _gfx_framebuffer,
+      (vga_copy_ex_opts_t) {0, 0, 0, 0, gfx_render_width, gfx_render_height, 2}
+    );
   } else {
     vga_copy(NULL, _gfx_framebuffer, 0);
   }

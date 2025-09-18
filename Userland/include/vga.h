@@ -87,6 +87,20 @@ typedef enum {
 } vga_drawflags_t;
 
 /*
+ * Options for vga_copy_ex
+ * We can pass a struct up to 16 bytes by registers, according to the C ABI
+ */
+typedef struct {
+  int16_t dx;    // Destination X offset
+  int16_t dy;    // Destination Y offset
+  int16_t sx;    // Source X offset
+  int16_t sy;    // Source Y offset
+  int16_t sw;    // Source width, 0 for full width
+  int16_t sh;    // Source height, 0 for full width
+  uint16_t scale;// Scale, min 1
+} vga_copy_ex_opts_t;
+
+/*
  * Set the active framebuffer. Call with NULL to set the default framebuffer.
  * Applications may wish to use a separate framebuffer, for example to preserve
  * its contents even if other things are drawn to the screen.
@@ -214,16 +228,19 @@ void vga_bitmap(
 void vga_present();
 
 /*
- * Copy contents between two framebuffers.
+ * Copy contents between two framebuffers. Much faster than vga_copy_ex, use
+ * this unless you need the additional options.
  * Set either framebuffer to NULL to use the default framebuffer.
  */
 void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint64_t offset_y);
 
 /*
- * Copy the top-left corner of a framebuffer to a different framebuffer,
- * multiplying size by two.
+ * Copy contents between two framebuffers with additional options.
+ * Set either framebuffer to NULL to use the default framebuffer.
  */
-void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src);
+void vga_copy_ex(
+  vga_framebuffer_t dst, vga_framebuffer_t src, vga_copy_ex_opts_t options
+);
 
 /*
  * Return information about the display device.
