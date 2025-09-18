@@ -86,8 +86,8 @@ void gfx_init() {
   gfx_render_width = VGA_WIDTH;
   gfx_render_height = VGA_HEIGHT;
 
-  gfx_default_depthbuffer = gfx_create_depthbuffer(VGA_AUTO, VGA_AUTO);
   gfx_default_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO);
+  gfx_default_depthbuffer = gfx_create_depthbuffer(VGA_AUTO, VGA_AUTO);
 
   _gfx_framebuffer = gfx_default_framebuffer;
   _depthbuffer = gfx_default_depthbuffer;
@@ -220,20 +220,25 @@ void gfx_clear(color_t color) {
   uint64_t *fb = (uint64_t *) _gfx_framebuffer->data;
   uint64_t size = (OFFSET_Y >> 3) * gfx_render_height;
 
-  uint64_t c = color & 0xffffff;
-  uint64_t data[] = {
-    (c << 48) | (c << 24) | c,
-    (c << 56) | (c << 32) | (c << 8) | (c >> 16),
-    (c << 40) | (c << 16) | (c >> 8),
-  };
+  if (vbe_mode_info->bpp == 24) {
+    uint64_t c = color & 0xffffff;
+    uint64_t data[] = {
+      (c << 48) | (c << 24) | c,
+      (c << 56) | (c << 32) | (c << 8) | (c >> 16),
+      (c << 40) | (c << 16) | (c >> 8),
+    };
 
-  for (uint64_t offset = 0; offset < size; offset += 3) {
-    fb[offset + 0] = data[0];
-    fb[offset + 1] = data[1];
-    fb[offset + 2] = data[2];
+    for (uint64_t offset = 0; offset < size; offset += 3) {
+      fb[offset + 0] = data[0];
+      fb[offset + 1] = data[1];
+      fb[offset + 2] = data[2];
+    }
+  } else {
+    uint64_t data = color | ((uint64_t) color) << 32;
+    for (uint64_t offset = 0; offset < size; offset++) { fb[offset] = data; }
   }
 
-  uint64_t depthSize = VGA_WIDTH * gfx_render_height;
+  uint64_t depthSize = VGA_WIDTH * VGA_HEIGHT;
   for (uint64_t offset = 0; offset < depthSize; offset++) {
     _depthbuffer->data[offset] = 999.0f;
   }
@@ -533,7 +538,7 @@ gfx_depthbuffer_t gfx_create_depthbuffer(int32_t width, int32_t height) {
   if (width <= 0) width += VGA_WIDTH;
   if (height <= 0) height += VGA_HEIGHT;
 
-  gfx_depthbuffer_t db = mem_alloc(width * height * sizeof(float));
+  gfx_depthbuffer_t db = mem_alloc(width * height * sizeof(float) + 8);
   db->width = width;
   db->height = height;
 

@@ -15,7 +15,7 @@ vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height) {
   if (width <= 0) width += info.width;
   if (height <= 0) height += info.height;
 
-  vga_framebuffer_t fb = mem_alloc(width * height * (info.bpp >> 3));
+  vga_framebuffer_t fb = mem_alloc(width * height * (info.bpp >> 3) + 8);
   fb->width = width;
   fb->height = height;
 

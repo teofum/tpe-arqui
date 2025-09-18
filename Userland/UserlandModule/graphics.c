@@ -16,7 +16,7 @@ gfx_depthbuffer_t gfx_create_depthbuffer(int32_t width, int32_t height) {
   if (width <= 0) width += info.width;
   if (height <= 0) height += info.height;
 
-  gfx_depthbuffer_t db = mem_alloc(width * height * sizeof(float));
+  gfx_depthbuffer_t db = mem_alloc(width * height * sizeof(float) + 8);
   db->width = width;
   db->height = height;
 

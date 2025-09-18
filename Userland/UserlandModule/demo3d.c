@@ -8,7 +8,7 @@
 
 #define deg2rad(x) ((x) / 180.0f * M_PI)
 
-static void *obj_utah = (void *) 0x3007800;
+static void *obj_utah = (void *) 0x807800;
 
 float3 *demo3d_v;
 float3 *demo3d_n;

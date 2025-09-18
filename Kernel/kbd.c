@@ -300,7 +300,6 @@ kbd_event_t kbd_get_key_event() {
   event.key = 0;
 
   while (kbd_buffer.read_pos != kbd_buffer.write_pos) {
-    uint8_t key;
     if (kbd_next_event(&event)) return event;
   }
 

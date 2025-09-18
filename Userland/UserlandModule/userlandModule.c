@@ -8,9 +8,6 @@
 
 char *v = (char *) 0xB8000 + 79 * 2;
 
-static int var1 = 0;
-static int var2 = 5;
-
 const char *mascot =
   "\x1A 187,111,68;"
   "                     .%-%@.                                         \n"

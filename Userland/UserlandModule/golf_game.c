@@ -168,17 +168,17 @@ static vbe_info_t vbe_mode_info;
 /*
  * Bitmap image data
  */
-static uint8_t *titlescreen_logo = (uint8_t *) 0x3000000;
+static uint8_t *titlescreen_logo = (uint8_t *) 0x800000;
 
 /*
  * OBJ strings for 3D models
  */
-static void *obj_capybase = (void *) 0x3003000;
-static void *obj_capyface = (void *) 0x3006000;
-static void *obj_capyclub = (void *) 0x3006800;
-static void *obj_flag = (void *) 0x3006C00;
-static void *obj_flagpole = (void *) 0x3006E00;
-static void *obj_ball = (void *) 0x3007000;
+static void *obj_capybase = (void *) 0x803000;
+static void *obj_capyface = (void *) 0x806000;
+static void *obj_capyclub = (void *) 0x806800;
+static void *obj_flag = (void *) 0x806C00;
+static void *obj_flagpole = (void *) 0x806E00;
+static void *obj_ball = (void *) 0x807000;
 
 /*
  * 3D model data
