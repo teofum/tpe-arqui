@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <mem.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vga.h>
@@ -21,7 +21,8 @@
 #define rgba(r, g, b, a) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
 
 #define putpixel(fb, offset, color)                                            \
-  fb[offset] = b(color), fb[offset + 1] = g(color), fb[offset + 2] = r(color)
+  fb->data[offset] = b(color), fb->data[offset + 1] = g(color),                \
+  fb->data[offset + 2] = r(color)
 
 #define ACTIVE_FONT vga_fonts[vga_active_font]
 
@@ -31,6 +32,9 @@
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
+/*
+ * Color modes for bitmap drawing.
+ */
 typedef enum {
   VGA_BMP_TRUECOLOR = 0x0,
   VGA_BMP_256,
@@ -40,16 +44,22 @@ typedef enum {
 vbe_info_ptr vbe_mode_info = (vbe_info_ptr) 0x0000000000005C00;
 
 /*
+ * Internal implementation of framebuffer type.
+ */
+struct vga_framebuffer_cdt_t {
+  uint32_t width;
+  uint32_t height;
+  uint8_t data[];
+};
+
+/*
  * Default framebuffer.
  * This is the main framebuffer used by the video driver, unless a different
  * one is requested.
  * Applications may wish to use a separate framebuffer, for example to preserve
  * its contents even if other things are drawn to the screen.
- * Because of a lack of dynamic memory allocation, the driver is not able to
- * provide new framebuffers. Instead, the application must reserve enough
- * memory for its own framebuffer.
  */
-uint8_t _framebuffer[FRAMEBUFFER_SIZE];
+static vga_framebuffer_t default_framebuffer;
 
 /*
  * Pointer to the active framebuffer. This is the framebuffer being drawn to
@@ -57,7 +67,7 @@ uint8_t _framebuffer[FRAMEBUFFER_SIZE];
  * Applications that use their own framebuffer may either present it to the
  * screen directly, or copy it to the main framebuffer using vga_copy.
  */
-vga_framebuffer_t active_framebuffer;
+static vga_framebuffer_t active_framebuffer;
 
 /*
  * Font data
@@ -174,7 +184,7 @@ static inline void blendpixel(
   vga_framebuffer_t fb, uint64_t offset, color_t color, uint8_t flags
 ) {
   if (flags & VGA_ALPHA_BLEND) {
-    uint8_t *c = &fb[offset];
+    uint8_t *c = &fb->data[offset];
     uint32_t current = rgba(c[2], c[1], c[0], 0xff - (color >> 24));
 
     uint32_t blended = fast_premul(current) + fast_premul(color);
@@ -282,17 +292,20 @@ static void vga_line_hi(
   }
 }
 
-void vga_init() { active_framebuffer = _framebuffer; }
+void vga_init() {
+  default_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO);
+  active_framebuffer = default_framebuffer;
+}
 
 vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb) {
   vga_framebuffer_t last = active_framebuffer;
-  active_framebuffer = fb == NULL ? _framebuffer : fb;
+  active_framebuffer = fb == NULL ? default_framebuffer : fb;
 
-  return last == _framebuffer ? NULL : last;
+  return last == default_framebuffer ? NULL : last;
 }
 
 void vga_clear(color_t color) {
-  uint64_t *fb = (uint64_t *) VGA_FRAMEBUFFER;
+  uint64_t *fb = (uint64_t *) VGA_FRAMEBUFFER->data;
   uint64_t size = (OFFSET_Y >> 3) * vbe_mode_info->height;
 
   if (vbe_mode_info->bpp == 24) {
@@ -644,42 +657,83 @@ static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
 
 void vga_present() {
   memcpy64(
-    (uint64_t *) VGA_PHYSICAL_FRAMEBUFFER, (uint64_t *) VGA_FRAMEBUFFER,
+    (uint64_t *) VGA_PHYSICAL_FRAMEBUFFER, (uint64_t *) VGA_FRAMEBUFFER->data,
     VGA_HEIGHT * (OFFSET_Y >> 3)
   );
 }
 
-void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset) {
-  if (dst == NULL) dst = _framebuffer;
-  if (src == NULL) src = _framebuffer;
+void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset_y) {
+  if (dst == NULL) dst = default_framebuffer;
+  if (src == NULL) src = default_framebuffer;
+
+  size_t copy_width = min(dst->width, src->width);
+  size_t copy_height = min(dst->height, src->height);
+  size_t size = (copy_width * (copy_height - offset_y)) / 2;
 
   memcpy64(
-    (uint64_t *) (dst + offset * OFFSET_Y), (uint64_t *) src,
-    (OFFSET_Y >> 3) * (VGA_HEIGHT - offset)
+    (uint64_t *) (dst->data + offset_y * copy_width * OFFSET_X),
+    (uint64_t *) src->data, size
   );
 }
 
-void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src) {
-  if (dst == NULL) dst = _framebuffer;
-  if (src == NULL) src = _framebuffer;
+void vga_copy_ex(
+  vga_framebuffer_t dst_fb, vga_framebuffer_t src_fb, vga_copy_ex_opts_t opt
+) {
+  if (dst_fb == NULL) dst_fb = default_framebuffer;
+  if (src_fb == NULL) src_fb = default_framebuffer;
 
-  vga_framebuffer_t dst2 = dst + OFFSET_Y;
-  uint64_t width = VGA_WIDTH >> 1;
-  uint64_t height = VGA_HEIGHT >> 1;
-  for (uint64_t y = 0; y < height; y++) {
-    for (uint64_t x = 0; x < width; x++) {
-      dst[0] = dst[OFFSET_X + 0] = dst2[0] = dst2[OFFSET_X + 0] = src[0];
-      dst[1] = dst[OFFSET_X + 1] = dst2[1] = dst2[OFFSET_X + 1] = src[1];
-      dst[2] = dst[OFFSET_X + 2] = dst2[2] = dst2[OFFSET_X + 2] = src[2];
+  uint8_t *dst = dst_fb->data;
+  uint8_t *src = src_fb->data;
 
-      src += OFFSET_X;
-      dst += (OFFSET_X << 1);
-      dst2 += (OFFSET_X << 1);
+  if (opt.dx < 0) opt.dx += dst_fb->width;
+  if (opt.dy < 0) opt.dy += dst_fb->height;
+  if (opt.sx < 0) opt.sx += src_fb->width;
+  if (opt.sy < 0) opt.sy += src_fb->height;
+  if (opt.sw <= 0) opt.sw += src_fb->width;
+  if (opt.sh <= 0) opt.sh += src_fb->height;
+  if (opt.scale == 0) opt.scale = 1;
+
+  size_t copy_width =
+    min(opt.sw, min(src_fb->width - opt.sx, dst_fb->width - opt.dx));
+  size_t copy_height =
+    min(opt.sh, min(src_fb->height - opt.sy, dst_fb->height - opt.dy));
+
+  size_t step_sy = (src_fb->width - (opt.sx + copy_width)) * OFFSET_X;
+  size_t step_sx = OFFSET_X;
+  size_t step_dy =
+    (dst_fb->width - (opt.dx + copy_width)) * opt.scale * OFFSET_X;
+  size_t step_dx = opt.scale * OFFSET_X;
+
+  src += opt.sy * src_fb->width * OFFSET_X;
+  for (uint64_t y = 0; y < copy_height; y++) {
+    src += opt.sx * OFFSET_X;
+    for (uint64_t x = 0; x < copy_width; x++) {
+      for (uint64_t ly = 0; ly < opt.scale; ly++) {
+        for (uint64_t lx = 0; lx < opt.scale; lx++) {
+          size_t lo = (ly * dst_fb->width + lx) * OFFSET_X;
+          dst[lo + 0] = src[0];
+          dst[lo + 1] = src[1];
+          dst[lo + 2] = src[2];
+        }
+      }
+
+      src += step_sx;
+      dst += step_dx;
     }
-    src += (OFFSET_Y >> 1);
-    dst += OFFSET_Y;
-    dst2 += OFFSET_Y;
+    src += step_sy;
+    dst += step_dy;
   }
 }
 
 vbe_info_t vga_get_vbe_info() { return *vbe_mode_info; }
+
+vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height) {
+  if (width <= 0) width += VGA_WIDTH;
+  if (height <= 0) height += VGA_HEIGHT;
+
+  vga_framebuffer_t fb = mem_alloc(width * height * OFFSET_X + 8);
+  fb->width = width;
+  fb->height = height;
+
+  return fb;
+}

@@ -40,7 +40,7 @@ define_syscall vga_text_wrap, 0x29
 define_syscall vga_present, 0x2A
 define_syscall vga_set_framebuffer, 0x2B
 define_syscall vga_copy, 0x2C
-define_syscall vga_copy2x, 0x2D
+define_syscall vga_copy_ex, 0x2D
 define_syscall vga_bitmap, 0x2E
 define_syscall vga_get_vbe_info, 0x2F
 

@@ -247,4 +247,4 @@ _regdump:
 
 section .rodata
 kernel      equ 0x100000
-userland    equ 0x2000000
+userland    equ 0x400000

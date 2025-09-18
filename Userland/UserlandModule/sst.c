@@ -34,7 +34,7 @@ int test_mem_alloc() {
   printf("    Got 1024 bytes at %#016lx\n", (size_t) mem);
 
   // Hardcoded heap memory start address, guaranteed to clear kernel and userland data
-  if ((size_t) mem < 0x4000000) {
+  if ((size_t) mem < 0x1000000) {
     printf(
       COL_RED "    Address %#016lx is in reserved memory zone (0x0 - "
               "0x3FFFFFF)\n" COL_RESET,

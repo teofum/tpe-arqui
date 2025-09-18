@@ -172,7 +172,7 @@ void init_syscalls() {
   register_syscall(0x2A, vga_present);
   register_syscall(0x2B, vga_set_framebuffer);
   register_syscall(0x2C, vga_copy);
-  register_syscall(0x2D, vga_copy2x);
+  register_syscall(0x2D, vga_copy_ex);
   register_syscall(0x2E, vga_bitmap);
   register_syscall(0x2F, vga_get_vbe_info);
 
