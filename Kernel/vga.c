@@ -662,16 +662,29 @@ void vga_present() {
   );
 }
 
-void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset) {
+void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset_y) {
   if (dst == NULL) dst = default_framebuffer;
   if (src == NULL) src = default_framebuffer;
 
+  size_t copy_width = min(dst->width, src->width);
+  size_t copy_height = min(dst->height, src->height);
+  size_t size = (copy_width * (copy_height - offset_y)) / 2;
+
   memcpy64(
-    (uint64_t *) (dst->data + offset * OFFSET_Y), (uint64_t *) src->data,
-    (OFFSET_Y >> 3) * (VGA_HEIGHT - offset)
+    (uint64_t *) (dst->data + offset_y * copy_width * OFFSET_X),
+    (uint64_t *) src->data, size
   );
 }
 
+void vga_copy_ex(
+  vga_framebuffer_t dst_fb, vga_framebuffer_t src_fb, vga_copy_ex_opts_t options
+) {
+  if (dst_fb == NULL) dst_fb = default_framebuffer;
+  if (src_fb == NULL) src_fb = default_framebuffer;
+
+  uint8_t *dst = dst_fb->data;
+  uint8_t *src = src_fb->data;
+}
 void vga_copy2x(vga_framebuffer_t dst_fb, vga_framebuffer_t src_fb) {
   if (dst_fb == NULL) dst_fb = default_framebuffer;
   if (src_fb == NULL) src_fb = default_framebuffer;
