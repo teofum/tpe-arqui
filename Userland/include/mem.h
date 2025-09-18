@@ -1,3 +1,6 @@
+#ifndef MEM_H
+#define MEM_H
+
 #include <stddef.h>
 
 /*
@@ -17,3 +20,5 @@ void mem_free(void *mem);
  * TODO: define this API better
  */
 int mem_check(void *mem);
+
+#endif
