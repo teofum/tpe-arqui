@@ -2,6 +2,7 @@
 #include <golf_game.h>
 #include <graphics.h>
 #include <kbd.h>
+#include <mem.h>
 #include <print.h>
 #include <rng.h>
 #include <sound.h>
@@ -156,8 +157,8 @@ typedef enum {
  * These only need to be half size, rendering is half res
  * (half the buffers are still unused, this is a potential improvement)
  */
-static uint8_t bg_framebuffer[FRAMEBUFFER_SIZE >> 1];
-static float bg_depthbuffer[(VGA_MAX_WIDTH * VGA_MAX_HEIGHT) >> 1];
+static gfx_framebuffer_t bg_framebuffer;
+static gfx_depthbuffer_t bg_depthbuffer;
 
 /*
  * VGA info struct
@@ -1574,6 +1575,12 @@ int gg_start_game() {
   // Get VGA info
   vbe_mode_info = vga_get_vbe_info();
 
+  // Initialize background framebuffers
+  bg_framebuffer =
+    vga_create_framebuffer(vbe_mode_info.width, vbe_mode_info.height >> 1);
+  bg_depthbuffer =
+    gfx_create_depthbuffer(vbe_mode_info.width, vbe_mode_info.height >> 1);
+
   // Initialize RNG
   pcg32_random_t rng;
   pcg32_srand(&rng, time(), 1);
@@ -1613,6 +1620,10 @@ int gg_start_game() {
       if (quit) break;
     }
   }
+
+  // Free framebuffers
+  mem_free(bg_framebuffer);
+  mem_free(bg_depthbuffer);
 
   // Restore font
   vga_font(oldfont);

@@ -1,5 +1,6 @@
 #include <fpmath.h>
 #include <graphics.h>
+#include <mem.h>
 #include <print.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -14,23 +15,41 @@
 #define rgba(r, g, b, a) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
 
 #define putpixel(fb, offset, color)                                            \
-  fb[offset] = b(color), fb[offset + 1] = g(color), fb[offset + 2] = r(color)
+  fb->data[offset] = b(color), fb->data[offset + 1] = g(color),                \
+  fb->data[offset + 2] = r(color)
+
+/*
+ * Internal implementation of depthbuffer type.
+ */
+struct gfx_depthbuffer_cdt_t {
+  uint32_t width;
+  uint32_t height;
+  float data[];
+};
+
+// TODO REMOVE THIS FROM HERE!!!!!!
+// IO module should not be doing direct fb manipulation!!!!!!!
+struct vga_framebuffer_cdt_t {
+  uint32_t width;
+  uint32_t height;
+  uint8_t data[];
+};
 
 /*
  * Default buffers
  */
-static uint8_t gfx_default_framebuffer[FRAMEBUFFER_SIZE];
-static float gfx_default_depthbuffer[VGA_MAX_WIDTH * VGA_MAX_HEIGHT];
+static gfx_framebuffer_t gfx_default_framebuffer;
+static gfx_depthbuffer_t gfx_default_depthbuffer;
 
 /*
  * Framebuffer for the graphics subsystem
  */
-static uint8_t *_gfx_framebuffer = gfx_default_framebuffer;
+static gfx_framebuffer_t _gfx_framebuffer;
 
 /*
  * Depth buffer for 3d graphics functions.
  */
-static float *_depthbuffer = gfx_default_depthbuffer;
+static gfx_depthbuffer_t _depthbuffer;
 
 /*
  * Render resolution settings.
@@ -66,6 +85,12 @@ static gfx_flags_t gfx_flags = GFX_DEPTH_TEST | GFX_DEPTH_WRITE;
 void gfx_init() {
   gfx_render_width = VGA_WIDTH;
   gfx_render_height = VGA_HEIGHT;
+
+  gfx_default_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO);
+  gfx_default_depthbuffer = gfx_create_depthbuffer(VGA_AUTO, VGA_AUTO);
+
+  _gfx_framebuffer = gfx_default_framebuffer;
+  _depthbuffer = gfx_default_depthbuffer;
 }
 
 /*
@@ -149,8 +174,8 @@ static void draw_triangle(
         float z = v0.z * u + v1.z * v + v2.z * t;
         if (z >= 0.0f && z <= 1.0f &&
             (!(gfx_flags & GFX_DEPTH_TEST) ||
-             (z + 0.0001f) < _depthbuffer[depth_offset])) {
-          if (gfx_flags & GFX_DEPTH_WRITE) _depthbuffer[depth_offset] = z;
+             (z + 0.0001f) < _depthbuffer->data[depth_offset])) {
+          if (gfx_flags & GFX_DEPTH_WRITE) _depthbuffer->data[depth_offset] = z;
 
           float r = c0.x * u + c1.x * v + c2.x * t;
           float g = c0.y * u + c1.y * v + c2.y * t;
@@ -192,7 +217,7 @@ static void draw_triangle(
 }
 
 void gfx_clear(color_t color) {
-  uint64_t *fb = (uint64_t *) _gfx_framebuffer;
+  uint64_t *fb = (uint64_t *) _gfx_framebuffer->data;
   uint64_t size = (OFFSET_Y >> 3) * gfx_render_height;
 
   uint64_t c = color & 0xffffff;
@@ -210,7 +235,7 @@ void gfx_clear(color_t color) {
 
   uint64_t depthSize = VGA_WIDTH * gfx_render_height;
   for (uint64_t offset = 0; offset < depthSize; offset++) {
-    _depthbuffer[offset] = 999.0f;
+    _depthbuffer->data[offset] = 999.0f;
   }
 }
 
@@ -467,7 +492,9 @@ uint32_t gfx_load_model(
   return n_faces;
 }
 
-void gfx_set_buffers(uint8_t *framebuffer, float *depthbuffer) {
+void gfx_set_buffers(
+  gfx_framebuffer_t framebuffer, gfx_depthbuffer_t depthbuffer
+) {
   _gfx_framebuffer =
     framebuffer == NULL ? gfx_default_framebuffer : framebuffer;
   _depthbuffer = depthbuffer == NULL ? gfx_default_depthbuffer : depthbuffer;
@@ -477,22 +504,35 @@ static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
   for (uint64_t i = 0; i < len; i++) { *dst++ = *src++; }
 }
 
-void gfx_copy(uint8_t *dst, uint8_t *src) {
+void gfx_copy(gfx_framebuffer_t dst, gfx_framebuffer_t src) {
   if (dst == NULL) dst = gfx_default_framebuffer;
   if (src == NULL) src = gfx_default_framebuffer;
 
   memcpy64(
-    (uint64_t *) dst, (uint64_t *) src, (OFFSET_Y >> 3) * gfx_render_height
+    (uint64_t *) dst->data, (uint64_t *) src->data,
+    (OFFSET_Y >> 3) * gfx_render_height
   );
 }
 
-void gfx_depthcopy(float *dst, float *src) {
+void gfx_depthcopy(gfx_depthbuffer_t dst, gfx_depthbuffer_t src) {
   if (dst == NULL) dst = gfx_default_depthbuffer;
   if (src == NULL) src = gfx_default_depthbuffer;
 
   memcpy64(
-    (uint64_t *) dst, (uint64_t *) src, (VGA_WIDTH >> 1) * gfx_render_height
+    (uint64_t *) dst->data, (uint64_t *) src->data,
+    (VGA_WIDTH >> 1) * gfx_render_height
   );
 }
 
-uint8_t *gfx_get_framebuffer() { return _gfx_framebuffer; }
+gfx_framebuffer_t gfx_get_framebuffer() { return _gfx_framebuffer; }
+
+gfx_depthbuffer_t gfx_create_depthbuffer(int32_t width, int32_t height) {
+  if (width <= 0) width += VGA_WIDTH;
+  if (height <= 0) height += VGA_HEIGHT;
+
+  gfx_depthbuffer_t db = mem_alloc(width * height * sizeof(float));
+  db->width = width;
+  db->height = height;
+
+  return db;
+}

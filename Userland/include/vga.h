@@ -3,18 +3,20 @@
 
 #include <stdint.h>
 
-// Without dynamic allocation, framebuffer size is determined by
-// the maximum supported resolution, in our case this is 1280x1024
-#define VGA_MAX_WIDTH 1280
-#define VGA_MAX_HEIGHT 1024
-#define FRAMEBUFFER_SIZE (VGA_MAX_WIDTH * VGA_MAX_HEIGHT * 4)
+#define VGA_AUTO 0
 
 #define colors(x, y) (((uint64_t) (x) << 32) | (y))
 
 typedef uint32_t color_t;
 
-typedef uint8_t *vga_framebuffer_t;
+/*
+ * Opaque framebuffer type.
+ */
+typedef struct vga_framebuffer_cdt_t *vga_framebuffer_t;
 
+/*
+ * VBE mode info struct, used to query display hardware capabilities
+ */
 struct vbe_mode_info_t {
   uint16_t attributes; // deprecated
   uint8_t window_a;    // deprecated
@@ -88,22 +90,19 @@ typedef enum {
  * Set the active framebuffer. Call with NULL to set the default framebuffer.
  * Applications may wish to use a separate framebuffer, for example to preserve
  * its contents even if other things are drawn to the screen.
- * Because of a lack of dynamic memory allocation, the driver is not able to
- * provide new framebuffers. Instead, the application must reserve enough
- * memory for its own framebuffer.
  * Applications that use their own framebuffer may either present it to the
  * screen directly, or copy it to the main framebuffer using vga_copy.
  *
- * Returns a pointer to the previous framebuffer, so it can be restored after
- * with another call to vga_setFramebuffer. If the previous framebuffer was the
+ * Returns the previous framebuffer, so it can be restored afterwards with
+ * another call to vga_setFramebuffer. If the previous framebuffer was the
  * default buffer, returns NULL. 
  */
-extern vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb);
+vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb);
 
 /*
  * Clear VRAM with a single solid color.
  */
-extern void vga_clear(color_t color);
+void vga_clear(color_t color);
 
 /*
  * Plot a single pixel to VRAM.
@@ -112,14 +111,14 @@ extern void vga_clear(color_t color);
  * Plotting individual pixels is quite slow; using provided driver functions
  * for primitives where available is recommended.
  */
-extern void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags);
+void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags);
 
 /*
  * Draw a line between two points.
  * Uses optimized drawing for horizontal and vertical lines, otherwise draws
  * with Bresenham's algorithm.
  */
-extern void vga_line(
+void vga_line(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
   uint8_t flags
 );
@@ -127,7 +126,7 @@ extern void vga_line(
 /*
  * Draw a filled rectangle.
  */
-extern void vga_rect(
+void vga_rect(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
   uint8_t flags
 );
@@ -135,7 +134,7 @@ extern void vga_rect(
 /*
  * Draw a stroked rectangle.
  */
-extern void vga_frame(
+void vga_frame(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
   uint8_t flags
 );
@@ -143,7 +142,7 @@ extern void vga_frame(
 /*
  * Draw a shaded rectangle.
  */
-extern void vga_shade(
+void vga_shade(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
   uint8_t flags
 );
@@ -153,7 +152,7 @@ extern void vga_shade(
  * The 'colors' parameter takes two colors in the high and low dwords.
  * Set direction using the VGA_GRAD_X flags.
  */
-extern void vga_gradient(
+void vga_gradient(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint64_t colors,
   uint8_t flags
 );
@@ -163,7 +162,7 @@ extern void vga_gradient(
  * Returns the previous font used, so it can be restored with
  * another call to vga_font.
  */
-extern vga_font_t vga_font(vga_font_t font);
+vga_font_t vga_font(vga_font_t font);
 
 /*
  * Draw a single character to VRAM at the specified position using the current
@@ -171,7 +170,7 @@ extern vga_font_t vga_font(vga_font_t font);
  * This function does no bounds checking, use must ensure the character is in
  * screen bounds.
  */
-extern void vga_char(
+void vga_char(
   uint16_t x0, uint16_t y0, char c, color_t color, color_t bg_color,
   uint8_t flags
 );
@@ -182,7 +181,7 @@ extern void vga_char(
  * This function does no bounds checking, the user must ensure the text doesn't
  * overflow the screen bounds.
  */
-extern void vga_text(
+void vga_text(
   uint16_t x0, uint16_t y0, const char *string, color_t color, color_t bg_color,
   uint8_t flags
 );
@@ -195,7 +194,7 @@ extern void vga_text(
  * overflow the screen bounds.
  * The 'colors' parameter takes two colors in the high and low dwords.
  */
-extern void vga_text_wrap(
+void vga_text_wrap(
   uint16_t x0, uint16_t y0, int16_t maxw, const char *string, uint64_t colors,
   uint8_t flags
 );
@@ -205,31 +204,40 @@ extern void vga_text_wrap(
  * Bitmaps are stored in 8bpc RGB format, with a header encoding image size.
  * Flags are currently unused, parameter is reserved.
  */
-extern void vga_bitmap(
+void vga_bitmap(
   uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
 );
 
 /*
  * Present the current framebuffer to the screen. 
  */
-extern void vga_present();
+void vga_present();
 
 /*
  * Copy contents between two framebuffers.
  * Set either framebuffer to NULL to use the default framebuffer.
  */
-extern void
-vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint64_t offset);
+void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint64_t offset_y);
 
 /*
  * Copy the top-left corner of a framebuffer to a different framebuffer,
  * multiplying size by two.
  */
-extern void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src);
+void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src);
 
 /*
  * Return information about the display device.
  */
 vbe_info_t vga_get_vbe_info();
+
+/*
+ * Allocate and return a new framebuffer to be used for drawing.
+ * Width and height parameters define the size of the framebuffer in pixels.
+ * A value of zero, or a negative value, is interpreted as an offset from the
+ * display dimensions. Use zero or VGA_AUTO to get a display-sized framebuffer.
+ *
+ * The created framebuffer can be destroyed by simply freeing it.
+ */
+vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height);
 
 #endif

@@ -20,7 +20,7 @@
  * This takes up a bunch of memory (3 MB), but it allows us to both draw
  * text very efficiently and preserve it when an application uses graphics mode.
  */
-static uint8_t io_framebuffer[FRAMEBUFFER_SIZE] = {0};
+static vga_framebuffer_t io_framebuffer;
 static vga_font_t io_text_font;
 
 /*
@@ -37,6 +37,14 @@ static uint32_t io_foreground = DEFAULT_FG;
 
 static uint8_t io_cursor_style = IO_CURSOR_UNDER;
 
+// TODO REMOVE THIS FROM HERE!!!!!!
+// IO module should not be doing direct fb manipulation!!!!!!!
+struct vga_framebuffer_cdt_t {
+  uint32_t width;
+  uint32_t height;
+  uint8_t data[];
+};
+
 static void nextline() {
   vga_font_ptr_t font = vga_getfont(io_text_font);
 
@@ -50,7 +58,8 @@ static void nextline() {
 
     uint32_t offset = offset_lines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
+      io_framebuffer->data, io_framebuffer->data + offset,
+      OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(
@@ -162,6 +171,8 @@ static const char *parse_color_escape(const char *str) {
 
   return str;
 }
+
+void io_init() { io_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO); }
 
 uint32_t io_writes(const char *str) {
   vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
@@ -287,7 +298,8 @@ void io_setfont(vga_font_t font) {
 
     uint32_t offset = offset_lines * OFFSET_Y;
     memcpy(
-      io_framebuffer, io_framebuffer + offset, OFFSET_Y * VGA_HEIGHT - offset
+      io_framebuffer->data, io_framebuffer->data + offset,
+      OFFSET_Y * VGA_HEIGHT - offset
     );
 
     vga_rect(

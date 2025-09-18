@@ -1,5 +1,6 @@
 #include <graphics.h>
 #include <interrupts.h>
+#include <io.h>
 #include <kbd.h>
 #include <lib.h>
 #include <mem.h>
@@ -71,18 +72,21 @@ int main() {
   // Init timer
   timer_init();
 
+  // Initialize memory manager
+  mem_default_mgr =
+    mem_manager_create((void *) 0x3FFF000, (void *) 0x4000000, 0);
+
   // Initialize video driver and graphics
   vga_init();
   gfx_init();
+
+  // Initialize IO
+  io_init();
 
   // Enable status bar
   status_set_enabled(1);
 
   printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
-
-  // Initialize memory manager
-  mem_default_mgr =
-    mem_manager_create((void *) 0x3FFF000, (void *) 0x4000000, 0);
 
   while (1) {
     int ret = ((entrypoint_t) userland_code_module)();

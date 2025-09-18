@@ -11,20 +11,22 @@
 #define CENTER_X (VGA_WIDTH >> 1)
 #define CENTER_Y (VGA_HEIGHT >> 1)
 
-// Without dynamic allocation, framebuffer size is determined by
-// the maximum supported resolution, in our case this is 1280x1024
-#define VGA_MAX_WIDTH 1280
-#define VGA_MAX_HEIGHT 1024
-#define FRAMEBUFFER_SIZE (VGA_MAX_WIDTH * VGA_MAX_HEIGHT * 4)
-
 #define VGA_FONT_MAX_HEIGHT 24
+
+#define VGA_AUTO 0
 
 #define colors(x, y) (((uint64_t) (x) << 32) | (y))
 
 typedef uint32_t color_t;
 
-typedef uint8_t *vga_framebuffer_t;
+/*
+ * Opaque framebuffer type.
+ */
+typedef struct vga_framebuffer_cdt_t *vga_framebuffer_t;
 
+/*
+ * VBE mode info struct, used to query display hardware capabilities
+ */
 struct vbe_mode_info_t {
   uint16_t attributes; // deprecated
   uint8_t window_a;    // deprecated
@@ -272,7 +274,7 @@ void vga_present();
  * Copy contents between two framebuffers.
  * Set either framebuffer to NULL to use the default framebuffer.
  */
-void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset);
+void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset_y);
 
 /*
  * Copy the top-left corner of a framebuffer to a different framebuffer,
@@ -284,5 +286,15 @@ void vga_copy2x(vga_framebuffer_t dst, vga_framebuffer_t src);
  * Return information about the display device.
  */
 vbe_info_t vga_get_vbe_info();
+
+/*
+ * Allocate and return a new framebuffer to be used for drawing.
+ * Width and height parameters define the size of the framebuffer in pixels.
+ * A value of zero, or a negative value, is interpreted as an offset from the
+ * display dimensions. Use zero or VGA_AUTO to get a display-sized framebuffer.
+ *
+ * The created framebuffer can be destroyed by simply freeing it.
+ */
+vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height);
 
 #endif

@@ -6,6 +6,12 @@
 #include <vga.h>
 
 /*
+ * Framebuffer types
+ */
+typedef vga_framebuffer_t gfx_framebuffer_t;
+typedef struct gfx_depthbuffer_cdt_t *gfx_depthbuffer_t;
+
+/*
  * Light types
  */
 typedef enum {
@@ -129,23 +135,30 @@ uint32_t gfx_load_model(
  * Simlar to vga_setFramebuffer, this function lets the user draw to an auxiliary
  * framebuffer for advanced composition effects.
  */
-void gfx_set_buffers(uint8_t *framebuffer, float *depthbuffer);
+void gfx_set_buffers(
+  gfx_framebuffer_t framebuffer, gfx_depthbuffer_t depthbuffer
+);
 
 /*
  * Copy the contents of one framebuffer to another. Similar to vga_copy, but
  * accounting for half-res mode.
  */
-void gfx_copy(uint8_t *dst, uint8_t *src);
+void gfx_copy(gfx_framebuffer_t dst, gfx_framebuffer_t src);
 
 /*
  * Copy the contents of one depthbuffer to another.
  */
-void gfx_depthcopy(float *dst, float *src);
+void gfx_depthcopy(gfx_depthbuffer_t dst, gfx_depthbuffer_t src);
 
 /*
  * Get a pointer to the internal framebuffer. Useful if we want to draw on the
  * framebuffer directly, for example to combine 2D and 3D graphics.
  */
-uint8_t *gfx_get_framebuffer();
+gfx_framebuffer_t gfx_get_framebuffer();
+
+/*
+ * Create a depthbuffer
+ */
+gfx_depthbuffer_t gfx_create_depthbuffer(int32_t width, int32_t height);
 
 #endif
