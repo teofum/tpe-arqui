@@ -6,6 +6,7 @@
 #include <mem.h>
 #include <module_loader.h>
 #include <print.h>
+#include <process.h>
 #include <status.h>
 #include <stdint.h>
 #include <string.h>
@@ -62,17 +63,14 @@ void *initialize_kernel_binary() {
 }
 
 int main() {
-  // Initialize interrupts and syscalls
-  init_syscalls();
-  init_interrupts();
-  load_idt();
-
-  // Init timer
-  timer_init();
-
   // Initialize memory manager
   mem_default_mgr =
     mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0);
+
+  proc_kernel_stack = mem_alloc(4096);
+
+  // Init timer
+  timer_init();
 
   // Initialize video driver and graphics
   vga_init();
@@ -83,6 +81,11 @@ int main() {
 
   // Enable status bar
   status_set_enabled(1);
+
+  // Initialize interrupts and syscalls
+  init_syscalls();
+  init_interrupts();
+  load_idt();
 
   printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
 

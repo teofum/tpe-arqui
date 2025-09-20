@@ -115,8 +115,92 @@ _pic_slave_mask:
 ;------------------------------------------------------------------------------
 
 global _irq_00_handler
+extern proc_kernel_stack
+extern proc_get_registers_addr_for_current_process
 _irq_00_handler:
-	irq_handler_master 0
+  push rbx                                              ; backup rbx
+  pushall                                               ; backup regs that a c function can clobber
+  call proc_get_registers_addr_for_current_process
+  mov rbx, rax                                          ; mov regs addr to rbx so we can store rax
+  popall                                                ; restore all regs (not rbx)
+
+  mov [rbx], rax                                        ; store rax in regs struct pcb
+  mov rax, rbx                                          ; mov regs addr to rax
+  pop rbx                                               ; restore rbx
+
+  ; Fill out the rest of pcb registers
+  mov [rax + 0x08], rbx
+  mov [rax + 0x10], rcx
+  mov [rax + 0x18], rdx
+  mov [rax + 0x20], rsi
+  mov [rax + 0x28], rdi
+
+  mov [rax + 0x30], r8
+  mov [rax + 0x38], r9
+  mov [rax + 0x40], r10
+  mov [rax + 0x48], r11
+  mov [rax + 0x50], r12
+  mov [rax + 0x58], r13
+  mov [rax + 0x60], r14
+  mov [rax + 0x68], r15
+
+  pop qword [rax + 0x70] ; RIP
+  pop qword [rax + 0x78] ; CS
+  pop qword [rax + 0x80] ; RFLAGS
+  pop qword [rax + 0x88] ; RSP
+  pop qword [rax + 0x90] ; SS
+
+  mov [rax + 0x98], rbp
+  mov [rax + 0xA0], ds
+  mov [rax + 0xA8], es
+  mov [rax + 0xB0], fs
+  mov [rax + 0xB8], gs
+
+  ; Move to kernel stack for interrupt handler
+  mov rsp, proc_kernel_stack
+
+  mov rdi, 0
+  call irq_dispatcher
+
+  call proc_get_registers_addr_for_current_process
+
+  ; Restore register and interrupt frame from PCB
+  mov rbx, [rax + 0x08]
+  mov rcx, [rax + 0x10]
+  mov rdx, [rax + 0x18]
+  mov rsi, [rax + 0x20]
+  mov rdi, [rax + 0x28]
+
+  mov r8, [rax + 0x30]
+  mov r9, [rax + 0x38]
+  mov r10, [rax + 0x40]
+  mov r11, [rax + 0x48]
+  mov r12, [rax + 0x50]
+  mov r13, [rax + 0x58]
+  mov r14, [rax + 0x60]
+  mov r15, [rax + 0x68]
+
+  push qword [rax + 0x90] ; SS
+  push qword [rax + 0x88] ; RSP
+  push qword [rax + 0x80] ; RFLAGS
+  push qword [rax + 0x78] ; CS
+  push qword [rax + 0x70] ; RIP
+
+  mov rbp, [rax + 0x98]
+  mov ds, [rax + 0xA0]
+  mov es, [rax + 0xA8]
+  mov fs, [rax + 0xB0]
+  mov gs, [rax + 0xB8]
+
+  mov rax, [rax + 0x00]
+
+  ; Signal PIC EOI (End of Interrupt)
+  push rax
+  mov al, 0x20
+  out 0x20, al
+  pop rax
+
+  iretq
 
 ;------------------------------------------------------------------------------
 ; Keyboard handler
