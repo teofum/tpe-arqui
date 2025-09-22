@@ -236,8 +236,11 @@ _irq_01_handler:
 ;------------------------------------------------------------------------------
 
 global _irq_80_handler
+extern last_iretq_frame
 extern syscall_dispatch_table
 _irq_80_handler:
+  mov [last_iretq_frame], rsp
+
   push rbp
   mov rbp, rsp
 

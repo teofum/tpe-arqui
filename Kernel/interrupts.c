@@ -6,6 +6,7 @@
 #include <lib.h>
 #include <mem.h>
 #include <print.h>
+#include <process.h>
 #include <status.h>
 #include <stdint.h>
 #include <time.h>
@@ -191,6 +192,9 @@ void init_syscalls() {
   register_syscall(0x60, mem_alloc);
   register_syscall(0x61, mem_free);
   register_syscall(0x62, mem_check);
+
+  /* Processes */
+  register_syscall(0x70, proc_spawn);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);

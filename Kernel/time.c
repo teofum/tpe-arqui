@@ -1,6 +1,8 @@
 #include <audio.h>
 #include <lib.h>
 #include <print.h>
+#include <process.h>
+#include <scheduler.h>
 #include <status.h>
 #include <time.h>
 #include <vga.h>
@@ -27,6 +29,12 @@ void timer_handler() {
   if (!(timer_ticks % (TICKS_PER_SECOND >> 3))) { status_draw_statusbar(); }
 
   audio_timer_tick();
+
+  // Run scheduler every 50 ticks (about 20hz)
+  if (!(timer_ticks % 50)) {
+    scheduler_enqueue(proc_running_pid);
+    proc_running_pid = scheduler_next();
+  }
 }
 
 unsigned int ticks_elapsed() { return timer_ticks; }

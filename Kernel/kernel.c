@@ -61,27 +61,12 @@ void *initialize_kernel_binary() {
   return get_stack_base();
 }
 
-void test_b() {
-  while (1) { io_write("B", 1); }
-}
-
-void test_a() {
-  for (int i = 0; i < 10; i++) { io_write("A", 1); }
-  proc_spawn(test_b);
-  while (1) { io_write("A", 1); }
-}
-
-void init() {
-  proc_spawn(test_a);
-  proc_spawn(test_b);
-}
-
 int main() {
   // Initialize memory manager
   mem_default_mgr =
     mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0);
 
-  proc_kernel_stack = mem_alloc(4096);
+  proc_kernel_stack = mem_alloc(1024 * 64);
 
   // Init timer
   timer_init();
@@ -104,8 +89,7 @@ int main() {
   printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
 
   while (1) {
-    proc_init(test_a);
-    // int ret = ((entrypoint_t) userland_code_module)();
+    proc_init((proc_entrypoint_t) userland_code_module);
     // printf(
     //   "\x1A 195,248,132;[Kernel] \x1A R;"
     //   "Userland module exited with code \x1A 255,197,96;%#08x\n"

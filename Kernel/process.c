@@ -1,5 +1,6 @@
 #include <mem.h>
 #include <process.h>
+#include <scheduler.h>
 
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
 
@@ -23,7 +24,9 @@ static pid_t get_first_unused_pid() {
   return pid;
 }
 
-extern void _proc_jump_to_spawned(proc_entrypoint_t entry_point, void *stack);
+extern void _proc_jump_to_spawned(
+  proc_entrypoint_t entry_point, void *stack, proc_registers_t *spawner_regs
+);
 
 void proc_spawn(proc_entrypoint_t entry_point) {
   pid_t new_pid = get_first_unused_pid();
@@ -33,8 +36,11 @@ void proc_spawn(proc_entrypoint_t entry_point) {
   void *stack_begin = mem_alloc(STACK_SIZE);
   pcb->stack = stack_begin + STACK_SIZE - 8;
 
+  proc_registers_t *spawner_regs =
+    proc_get_registers_addr_for_current_process();
+  scheduler_enqueue(proc_running_pid);
   proc_running_pid = new_pid;
-  _proc_jump_to_spawned(entry_point, pcb->stack);
+  _proc_jump_to_spawned(entry_point, pcb->stack, spawner_regs);
 }
 
 extern void _proc_init(proc_entrypoint_t entry_point, void *stack);
