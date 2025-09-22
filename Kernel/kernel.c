@@ -9,7 +9,6 @@
 #include <process.h>
 #include <status.h>
 #include <stdint.h>
-#include <string.h>
 #include <time.h>
 #include <vga.h>
 
@@ -62,6 +61,21 @@ void *initialize_kernel_binary() {
   return get_stack_base();
 }
 
+void test_b() {
+  while (1) { io_write("B", 1); }
+}
+
+void test_a() {
+  for (int i = 0; i < 10; i++) { io_write("A", 1); }
+  proc_spawn(test_b);
+  while (1) { io_write("A", 1); }
+}
+
+void init() {
+  proc_spawn(test_a);
+  proc_spawn(test_b);
+}
+
 int main() {
   // Initialize memory manager
   mem_default_mgr =
@@ -90,14 +104,15 @@ int main() {
   printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
 
   while (1) {
-    int ret = ((entrypoint_t) userland_code_module)();
-    printf(
-      "\x1A 195,248,132;[Kernel] \x1A R;"
-      "Userland module exited with code \x1A 255,197,96;%#08x\n"
-      "\x1A 195,248,132;[Kernel] \x1A R;"
-      "Press any key to restart shell\n",
-      ret
-    );
+    proc_init(test_a);
+    // int ret = ((entrypoint_t) userland_code_module)();
+    // printf(
+    //   "\x1A 195,248,132;[Kernel] \x1A R;"
+    //   "Userland module exited with code \x1A 255,197,96;%#08x\n"
+    //   "\x1A 195,248,132;[Kernel] \x1A R;"
+    //   "Press any key to restart shell\n",
+    //   ret
+    // );
 
     int key = 0;
     while (!key) { key = kbd_get_key_event().key; }

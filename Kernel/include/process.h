@@ -10,7 +10,7 @@
 #define MAX_PID 0xfff
 
 typedef int16_t pid_t;
-typedef int (*proc_entrypoint_t)();
+typedef void (*proc_entrypoint_t)();
 
 typedef struct {
   uint64_t rax, rbx, rcx, rdx, rsi, rdi;
@@ -24,7 +24,6 @@ typedef struct {
 
 typedef struct {
   void *stack;
-  size_t stack_size;
 
   proc_registers_t registers;
 } proc_control_block_t;
@@ -35,13 +34,11 @@ extern pid_t proc_running_pid;
 
 extern void *proc_kernel_stack;
 
-proc_registers_t *proc_get_registers_addr_for_current_process();
+void proc_init(proc_entrypoint_t entry_point);
 
-void proc_spawn(void *entry_point);
+void proc_spawn(proc_entrypoint_t entry_point);
 
 void proc_kill(pid_t pid);
-
-void proc_switch(pid_t pid);
 
 /*
  * 1.  Some process A is running
