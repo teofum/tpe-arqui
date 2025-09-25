@@ -34,9 +34,21 @@ extern pid_t proc_running_pid;
 
 extern void *proc_kernel_stack;
 
+/*
+ * Kernel-only function. Spawns a process from kernel, without the usual plumbing
+ * to keep the calling process running. Used to start the first "init" process.
+ */
 void proc_init(proc_entrypoint_t entry_point);
 
+/*
+ * Spawn a process.
+ */
 void proc_spawn(proc_entrypoint_t entry_point);
+
+/*
+ * Terminate the current process.
+ */
+void proc_exit(int return_code);
 
 void proc_kill(pid_t pid);
 

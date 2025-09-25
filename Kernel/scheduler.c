@@ -1,3 +1,4 @@
+#include "process.h"
 #include <scheduler.h>
 
 #define next(x) x = (x + 1) % (MAX_PID + 1)
@@ -17,6 +18,7 @@ pid_t scheduler_next() {
   pid_t next_pid = scheduler_queue.data[scheduler_queue.read_pos];
   next(scheduler_queue.read_pos);
 
+  proc_running_pid = next_pid;
   return next_pid;
 }
 

@@ -39,7 +39,8 @@ const char *mascot =
 
 
 void test_b() {
-  while (1) { writes(COL_GREEN "B"); }
+  for (int i = 0; i < 100; i++) { writes(COL_GREEN "B"); }
+  proc_exit(0);
 }
 
 void main() {

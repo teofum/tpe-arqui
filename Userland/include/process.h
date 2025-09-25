@@ -12,6 +12,14 @@
 typedef int16_t pid_t;
 typedef void (*proc_entrypoint_t)();
 
+/*
+ * Spawn a process.
+ */
 void proc_spawn(proc_entrypoint_t entry_point);
+
+/*
+ * Terminate the current process.
+ */
+void proc_exit(int return_code);
 
 #endif

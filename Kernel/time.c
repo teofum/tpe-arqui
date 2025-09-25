@@ -33,7 +33,7 @@ void timer_handler() {
   // Run scheduler every 50 ticks (about 20hz)
   if (!(timer_ticks % 50)) {
     scheduler_enqueue(proc_running_pid);
-    proc_running_pid = scheduler_next();
+    scheduler_next();
   }
 }
 

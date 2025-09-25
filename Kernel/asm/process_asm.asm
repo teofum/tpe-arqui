@@ -72,8 +72,53 @@ _proc_jump_to_spawned:
   mov rsp, rsi ; Move rsp to process stack
   jmp rdi ; Jump to process entry point
 
+global _proc_jump_to_next
+extern proc_get_registers_addr_for_current_process
+_proc_jump_to_next:
+  call proc_get_registers_addr_for_current_process
+
+  ; Restore register and interrupt frame from PCB
+  mov rbx, [rax + 0x08]
+  mov rcx, [rax + 0x10]
+  mov rdx, [rax + 0x18]
+  mov rsi, [rax + 0x20]
+  mov rdi, [rax + 0x28]
+
+  mov r8, [rax + 0x30]
+  mov r9, [rax + 0x38]
+  mov r10, [rax + 0x40]
+  mov r11, [rax + 0x48]
+  mov r12, [rax + 0x50]
+  mov r13, [rax + 0x58]
+  mov r14, [rax + 0x60]
+  mov r15, [rax + 0x68]
+
+  push qword [rax + 0x90] ; SS
+  push qword [rax + 0x88] ; RSP
+  push qword [rax + 0x80] ; RFLAGS
+  push qword [rax + 0x78] ; CS
+  push qword [rax + 0x70] ; RIP
+
+  mov rbp, [rax + 0x98]
+  mov ds, [rax + 0xA0]
+  mov es, [rax + 0xA8]
+  mov fs, [rax + 0xB0]
+  mov gs, [rax + 0xB8]
+
+  mov rax, [rax + 0x00]
+
+  iretq
+
 global _proc_init
 _proc_init:
   mov rbp, rsi ; Reset rbp
   mov rsp, rsi ; Move rsp to process stack
   jmp rdi ; Jump to process entry point
+
+global _proc_use_kernel_stack
+extern proc_kernel_stack
+_proc_use_kernel_stack:
+  pop rax
+  mov rsp, proc_kernel_stack
+  push rax
+  ret
