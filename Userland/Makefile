@@ -1,13 +1,16 @@
 include Makefile.inc
 
-all: userlandModule 
+all: out/userlandModule.bin
 
-userlandModule:
-	cd UserlandModule; make
+out/userlandModule.bin: | out
+	make -C UserlandModule
+	ln UserlandModule/out/userlandModule.bin out/userlandModule.bin
+
+out:
+	mkdir -p out
 
 clean:
-	cd UserlandModule; make clean
-	rm -rf *.bin
+	make clean -C UserlandModule
+	rm -rf out
 
-
-.PHONY: userlandModule all clean
+.PHONY: clean

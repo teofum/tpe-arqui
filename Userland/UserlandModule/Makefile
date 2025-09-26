@@ -1,6 +1,7 @@
 include ../Makefile.inc
 
-MODULE=0000-userlandModule.bin
+MODULE=out/userlandModule.bin
+DEBUG_ELF=$(MODULE:.bin=.elf)
 SOURCES=$(wildcard [^_]*.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 OBJECTS=$(foreach I,$(SOURCES:.c=.o),build/$I)
@@ -9,31 +10,30 @@ LOADERSRC=_loader.c
 
 LOADEROBJECT=$(foreach I,$(LOADERSRC:.c=.o),build/$I)
 
-all: $(MODULE) 0000-userlandModule.elf
+all: $(MODULE) $(DEBUG_ELF)
 
-$(MODULE): out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
-	$(LD) $(LDFLAGS) -T userlandModule.ld -o ../$(MODULE) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
+$(MODULE): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM) | out
+	$(LD) $(LDFLAGS) -T userlandModule.ld -o $(MODULE) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
 
-0000-userlandModule.elf: out $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
-	$(LD) $(LDFLAGS) -T userlandModule.ld --oformat=elf64-x86-64 -o ../0000-userlandModule.elf $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
+$(DEBUG_ELF): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM) | out
+	$(LD) $(LDFLAGS) -T userlandModule.ld --oformat=elf64-x86-64 -o $(DEBUG_ELF) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM)
 
-
-build/%.o: %.c
+build/%.o: %.c | build
 	$(GCC) $(GCCFLAGS) -I./include -I../include -c $< -o $@
 
-build/%.o: asm/%.asm
+build/%.o: asm/%.asm | build
 	$(ASM) $(ASMFLAGS) $< -o $@
 
-$(LOADEROBJECT): build
+$(LOADEROBJECT): | build
 	$(GCC) $(GCCFLAGS) -c $(LOADERSRC) -o $(LOADEROBJECT)
 
 build:
-	mkdir build
+	mkdir -p build
 
 out:
-	mkdir out
+	mkdir -p out
 
 clean:
-	rm -rf build out asm/*.o *.o *.bin
+	rm -rf build out
 
-.PHONY: all clean print
+.PHONY: clean
