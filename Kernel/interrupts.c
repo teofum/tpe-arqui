@@ -6,6 +6,7 @@
 #include <lib.h>
 #include <mem.h>
 #include <print.h>
+#include <process.h>
 #include <status.h>
 #include <stdint.h>
 #include <time.h>
@@ -41,6 +42,7 @@
 
 #define MEM_DUMP_SIZE 128
 
+;// empty statement, mutes warning from clangd bug (https://github.com/clangd/clangd/issues/1167)
 #pragma pack(push) /* Push de la alineación actual */
 #pragma pack(1)    /* Alinear las siguiente estructuras a 1 byte */
 
@@ -191,6 +193,10 @@ void init_syscalls() {
   register_syscall(0x60, mem_alloc);
   register_syscall(0x61, mem_free);
   register_syscall(0x62, mem_check);
+
+  /* Processes */
+  register_syscall(0x70, proc_spawn);
+  register_syscall(0x71, proc_exit);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);
