@@ -42,28 +42,16 @@ const char *mascot =
 
 extern size_t _getrsp();
 void test_b() {
-  printf("my rsp is at %#08lx\n", _getrsp());
   for (int i = 0; 1; i++) { writes(COL_GREEN "B"); }
   proc_exit(0);
 }
 
 void main() {
-  writes("hello world\n");
   writes(COL_BLUE "Spawning B\n");
-  printf("before vars %#08lx\n", _getrsp());
-  int test = 42;
-  printf("test variable at %#08lx\n", (size_t) &test);
-  pid_t pid = 99, pid2 = 98, pid3 = 97;
-  printf("before spawn %#08lx\n", _getrsp());
-  printf("test variable at %#08lx\n", (size_t) &test);
+  pid_t pid;
   proc_spawn(test_b, &pid);
-  printf("after spawn %#08lx\n", _getrsp());
-  printf("test variable at %#08lx\n", (size_t) &test);
   printf("spawned process with pid %u\n", (uint32_t) pid);
-  while (1) {
-    // writes(COL_RED "A");
-    printf(" %u", test++);
-  }
+  while (1) { writes(COL_RED "A"); }
 }
 
 // int main() {

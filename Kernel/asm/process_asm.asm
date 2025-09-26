@@ -135,9 +135,3 @@ _proc_use_kernel_stack:
   mov rsp, proc_kernel_stack
   push rax
   ret
-
-  ; debug shit DO NOT COMMIT
-  global _getrsp
-  _getrsp:
-    mov rax, rsp
-    ret

@@ -1,6 +1,5 @@
 #include <lib.h>
 #include <mem.h>
-#include <printf.h>
 #include <process.h>
 #include <scheduler.h>
 #include <stddef.h>
@@ -52,10 +51,6 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
   pcb->mode = PROC_MODE_USER;
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->kernel_stack = mem_alloc(STACK_SIZE);
-  printf(
-    "spawning process with pid %u, stack at %#08lx\n", (uint32_t) (*new_pid),
-    (size_t) pcb->stack
-  );
   uint8_t *stack_begin = (uint8_t *) pcb->stack + STACK_SIZE - 8;
 
   proc_registers_t *spawner_regs =
@@ -63,7 +58,6 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
 
   scheduler_enqueue(proc_running_pid);
   proc_running_pid = *new_pid;
-  printf("about to spawn %#08lx\n", _getrsp());
   _proc_jump_to_spawned(entry_point, stack_begin, spawner_regs);
 
   // Unreachable! _proc_jump_to_spawned actually sets the value of rax to
@@ -99,10 +93,6 @@ void proc_init(proc_entrypoint_t entry_point) {
 
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->kernel_stack = mem_alloc(STACK_SIZE);
-  printf(
-    "init process with pid %u, stack at %#08lx\n", (uint32_t) (new_pid),
-    (size_t) pcb->stack
-  );
   uint8_t *stack_begin = (uint8_t *) pcb->stack + STACK_SIZE - 8;
 
   proc_running_pid = new_pid;

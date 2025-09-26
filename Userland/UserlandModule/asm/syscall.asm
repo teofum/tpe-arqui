@@ -1,11 +1,5 @@
 section .text
 
-; debug shit DO NOT COMMIT
-global _getrsp
-_getrsp:
-  mov rax, rsp
-  ret
-
 %macro define_syscall 2
 global %1
 %1:
