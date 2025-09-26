@@ -42,7 +42,7 @@ const char *mascot =
 
 extern size_t _getrsp();
 void test_b() {
-  for (int i = 0; 1; i++) { writes(COL_GREEN "B"); }
+  for (int i = 0; i < 100; i++) { writes(COL_GREEN "B"); }
   proc_exit(0);
 }
 

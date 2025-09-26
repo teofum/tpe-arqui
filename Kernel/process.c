@@ -70,19 +70,16 @@ void proc_exit(int return_code) {
 
   _cli();// Critical region
 
-  _proc_use_kernel_stack();
+  // Call the scheduler and move on to next process
+  scheduler_next();
+
+  // TODO: unblock waiting process with return code...
 
   // Clean up PCB for the current process
   mem_free(pcb->stack);
   mem_free(pcb->kernel_stack);
   pcb->stack = NULL;
   pcb->kernel_stack = NULL;
-
-  // TODO: unblock waiting process with return code...
-
-  // Call the scheduler and move on to next process
-  scheduler_next();
-  _sti();
   _proc_jump_to_next();
 }
 

@@ -114,12 +114,13 @@ _proc_jump_to_next:
 
   mov rbp, [rax + 0x98]
   mov ds, [rax + 0xA0]
-  mov es, [rax + 0xA8]
-  mov fs, [rax + 0xB0]
-  mov gs, [rax + 0xB8]
+  mov es, [rax + 0xA2]
+  mov fs, [rax + 0xA4]
+  mov gs, [rax + 0xA6]
 
   mov rax, [rax + 0x00]
 
+  sti
   iretq
 
 global _proc_init
@@ -132,6 +133,7 @@ global _proc_use_kernel_stack
 extern proc_kernel_stack
 _proc_use_kernel_stack:
   pop rax
+  mov rbp, proc_kernel_stack
   mov rsp, proc_kernel_stack
   push rax
   ret
