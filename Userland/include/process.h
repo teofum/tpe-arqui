@@ -15,7 +15,7 @@ typedef void (*proc_entrypoint_t)();
 /*
  * Spawn a process.
  */
-void proc_spawn(proc_entrypoint_t entry_point);
+void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid);
 
 /*
  * Terminate the current process.

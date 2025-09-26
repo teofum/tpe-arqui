@@ -1,7 +1,11 @@
 #include <lib.h>
 #include <mem.h>
+#include <printf.h>
 #include <process.h>
 #include <scheduler.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
 
@@ -32,20 +36,39 @@ proc_registers_t *proc_get_registers_addr_for_current_process() {
   return &pcb->registers;
 }
 
-void proc_spawn(proc_entrypoint_t entry_point) {
-  pid_t new_pid = get_first_unused_pid();
+void *proc_get_kernel_stack() {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
 
-  proc_control_block_t *pcb = &proc_control_table[new_pid];
+  return (uint8_t *) pcb->kernel_stack + STACK_SIZE - 8;
+}
 
+extern size_t _getrsp();
+void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
+  *new_pid = get_first_unused_pid();
+
+  _cli();
+  proc_control_block_t *pcb = &proc_control_table[*new_pid];
+
+  pcb->mode = PROC_MODE_USER;
   pcb->stack = mem_alloc(STACK_SIZE);
-  void *stack_begin = pcb->stack + STACK_SIZE - 8;
+  pcb->kernel_stack = mem_alloc(STACK_SIZE);
+  printf(
+    "spawning process with pid %u, stack at %#08lx\n", (uint32_t) (*new_pid),
+    (size_t) pcb->stack
+  );
+  uint8_t *stack_begin = (uint8_t *) pcb->stack + STACK_SIZE - 8;
 
   proc_registers_t *spawner_regs =
     proc_get_registers_addr_for_current_process();
 
   scheduler_enqueue(proc_running_pid);
-  proc_running_pid = new_pid;
+  proc_running_pid = *new_pid;
+  printf("about to spawn %#08lx\n", _getrsp());
   _proc_jump_to_spawned(entry_point, stack_begin, spawner_regs);
+
+  // Unreachable! _proc_jump_to_spawned actually sets the value of rax to
+  // the spawned process PID, which has the same effect
+  // return new_pid;
 }
 
 void proc_exit(int return_code) {
@@ -57,7 +80,9 @@ void proc_exit(int return_code) {
 
   // Clean up PCB for the current process
   mem_free(pcb->stack);
+  mem_free(pcb->kernel_stack);
   pcb->stack = NULL;
+  pcb->kernel_stack = NULL;
 
   // TODO: unblock waiting process with return code...
 
@@ -73,7 +98,12 @@ void proc_init(proc_entrypoint_t entry_point) {
   proc_control_block_t *pcb = &proc_control_table[new_pid];
 
   pcb->stack = mem_alloc(STACK_SIZE);
-  void *stack_begin = pcb->stack + STACK_SIZE - 8;
+  pcb->kernel_stack = mem_alloc(STACK_SIZE);
+  printf(
+    "init process with pid %u, stack at %#08lx\n", (uint32_t) (new_pid),
+    (size_t) pcb->stack
+  );
+  uint8_t *stack_begin = (uint8_t *) pcb->stack + STACK_SIZE - 8;
 
   proc_running_pid = new_pid;
   _proc_init(entry_point, stack_begin);

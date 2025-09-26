@@ -42,6 +42,7 @@
 
 #define MEM_DUMP_SIZE 128
 
+;// empty statement, mutes warning from clangd bug (https://github.com/clangd/clangd/issues/1167)
 #pragma pack(push) /* Push de la alineación actual */
 #pragma pack(1)    /* Alinear las siguiente estructuras a 1 byte */
 

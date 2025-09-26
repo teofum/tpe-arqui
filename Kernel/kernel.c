@@ -43,7 +43,7 @@ void clear_bss(void *bss_address, uint64_t bss_size) {
 
 void *get_stack_base() {
   return (void *) ((uint64_t) &end_of_kernel +
-                   page_size * 8      //The size of the stack itself, 32KiB
+                   page_size * 8     //The size of the stack itself, 32KiB
                    - sizeof(uint64_t)//Begin at the top of the stack
   );
 }
@@ -66,7 +66,7 @@ int main() {
   mem_default_mgr =
     mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0);
 
-  proc_kernel_stack = mem_alloc(1024 * 64);
+  proc_kernel_stack = mem_alloc(1024 * 64) + 1024 * 64 - 8;
 
   // Init timer
   timer_init();
@@ -80,6 +80,9 @@ int main() {
 
   // Enable status bar
   status_set_enabled(1);
+
+  printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
+  printf("Kernel stack at %#016lx\n\n", (size_t) proc_kernel_stack);
 
   // Initialize interrupts and syscalls
   init_syscalls();

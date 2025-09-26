@@ -30,6 +30,7 @@ section .text
 
 ; Generic IRQ handler
 %macro irq_handler_begin 0
+  cli
   push rbx                                              ; backup rbx
   pushall                                               ; backup regs that a c function can clobber
   call proc_get_registers_addr_for_current_process
@@ -64,12 +65,12 @@ section .text
 
   mov [rax + 0x98], rbp
   mov [rax + 0xA0], ds
-  mov [rax + 0xA8], es
-  mov [rax + 0xB0], fs
-  mov [rax + 0xB8], gs
+  mov [rax + 0xA2], es
+  mov [rax + 0xA4], fs
+  mov [rax + 0xA6], gs
 
   ; Move to kernel stack for interrupt handler
-  mov rsp, proc_kernel_stack
+  mov rsp, [proc_kernel_stack]
 %endmacro
 
 %macro irq_handler_end 0
@@ -99,9 +100,9 @@ section .text
 
   mov rbp, [rax + 0x98]
   mov ds, [rax + 0xA0]
-  mov es, [rax + 0xA8]
-  mov fs, [rax + 0xB0]
-  mov gs, [rax + 0xB8]
+  mov es, [rax + 0xA2]
+  mov fs, [rax + 0xA4]
+  mov gs, [rax + 0xA6]
 
   mov rax, [rax + 0x00]
 
@@ -111,6 +112,7 @@ section .text
   out 0x20, al
   pop rax
 
+  sti
   iretq
 %endmacro
 
@@ -187,8 +189,10 @@ extern proc_kernel_stack
 extern proc_get_registers_addr_for_current_process
 _irq_00_handler:
   irq_handler_begin
+  pushall
   mov rdi, 0
   call irq_dispatcher
+  popall
   irq_handler_end
 
 ;------------------------------------------------------------------------------
@@ -201,6 +205,7 @@ global _irq_01_handler
 extern kbd_add_key_event
 extern _regdump
 _irq_01_handler:
+  cli
   push rax     ; Preserve RAX value for statedump
 
   mov rax, 0
@@ -229,6 +234,7 @@ _irq_01_handler:
   pop rax
 
 .exit:
+  sti
   iretq
 
 ;------------------------------------------------------------------------------
@@ -238,11 +244,18 @@ _irq_01_handler:
 global _irq_80_handler
 extern last_iretq_frame
 extern syscall_dispatch_table
+extern proc_get_kernel_stack
 _irq_80_handler:
   mov [last_iretq_frame], rsp
 
   push rbp
   mov rbp, rsp
+
+  ; Switch to the process kernel stack
+  mov r10, rax
+  call proc_get_kernel_stack
+  mov rsp, rax
+  mov rax, r10
 
   sti ; Allow syscalls to be interrupted
 
@@ -251,6 +264,7 @@ _irq_80_handler:
 
   mov rsp, rbp
   pop rbp
+
   iretq
 
 ;------------------------------------------------------------------------------

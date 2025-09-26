@@ -12,6 +12,8 @@
 typedef int16_t pid_t;
 typedef void (*proc_entrypoint_t)();
 
+typedef enum { PROC_MODE_USER = 0, PROC_MODE_KERNEL } proc_mode_t;
+
 typedef struct {
   uint64_t rax, rbx, rcx, rdx, rsi, rdi;
   uint64_t r8, r9, r10, r11, r12, r13, r14, r15;
@@ -24,6 +26,8 @@ typedef struct {
 
 typedef struct {
   void *stack;
+  void *kernel_stack;
+  proc_mode_t mode;
 
   proc_registers_t registers;
 } proc_control_block_t;
@@ -41,15 +45,24 @@ extern void *proc_kernel_stack;
 void proc_init(proc_entrypoint_t entry_point);
 
 /*
- * Spawn a process.
+ * Spawn a process. Returns the PID of the new process.
  */
-void proc_spawn(proc_entrypoint_t entry_point);
+void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid);
 
 /*
  * Terminate the current process.
  */
 void proc_exit(int return_code);
 
+/*
+ * Wait for a process to end. Blocks the caller until the waited process
+ * terminates.
+ */
+void proc_wait(pid_t pid);
+
+/*
+ * Kill a running process.
+ */
 void proc_kill(pid_t pid);
 
 /*

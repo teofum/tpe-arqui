@@ -31,6 +31,8 @@ section .text
 global _proc_jump_to_spawned
 extern last_iretq_frame
 _proc_jump_to_spawned:
+  cli
+  push rbx
   mov [rdx + 0x00], rax
   mov [rdx + 0x08], rbx
   mov [rdx + 0x10], rcx
@@ -51,26 +53,37 @@ _proc_jump_to_spawned:
   mov rbx, [last_iretq_frame]
   mov rbx, [rbx]
   mov [rdx + 0x70], rbx
-  mov qword [rdx + 0x78], 0x8 ; CS
 
-  pushf
-  pop qword [rdx + 0x80] ; RFLAGS
+  mov rbx, [last_iretq_frame]
+  mov rbx, [rbx + 8 * 1]
+  mov [rdx + 0x78], rbx ; CS
 
+  mov rbx, [last_iretq_frame]
+  mov rbx, [rbx + 8 * 2]
+  mov [rdx + 0x80], rbx ; RFLAGS
+
+  ; Get RSP from the last iretq frame
   mov rbx, [last_iretq_frame]
   mov rbx, [rbx + 8 * 3]
   mov [rdx + 0x88], rbx ; RSP
 
-  mov qword [rax + 0x90], 0x0 ; SS
+  mov rbx, [last_iretq_frame]
+  mov rbx, [rbx + 8 * 4]
+  mov [rax + 0x90], rbx ; SS
 
-  mov [rdx + 0x98], rbp
+  mov rbx, [last_iretq_frame]
+  mov rbx, [rbx - 8 * 1]
+  mov [rdx + 0x98], rbx ; RBP
   mov [rdx + 0xA0], ds
-  mov [rdx + 0xA8], es
-  mov [rdx + 0xB0], fs
-  mov [rdx + 0xB8], gs
+  mov [rdx + 0xA2], es
+  mov [rdx + 0xA4], fs
+  mov [rdx + 0xA6], gs
 
+  pop rbx
   mov rbp, rsi ; Reset rbp
   mov rsp, rsi ; Move rsp to process stack
-  jmp rdi ; Jump to process entry point
+  sti
+  call rdi ; Jump to process entry point
 
 global _proc_jump_to_next
 extern proc_get_registers_addr_for_current_process
@@ -113,7 +126,7 @@ global _proc_init
 _proc_init:
   mov rbp, rsi ; Reset rbp
   mov rsp, rsi ; Move rsp to process stack
-  jmp rdi ; Jump to process entry point
+  call rdi ; Jump to process entry point
 
 global _proc_use_kernel_stack
 extern proc_kernel_stack
@@ -122,3 +135,9 @@ _proc_use_kernel_stack:
   mov rsp, proc_kernel_stack
   push rax
   ret
+
+  ; debug shit DO NOT COMMIT
+  global _getrsp
+  _getrsp:
+    mov rax, rsp
+    ret
