@@ -23,6 +23,12 @@ IMG=$(OSIMAGENAME).img
 PACKEDKERNEL=out/packedKernel.bin
 IMGSIZE=16777216
 
+# Make all targets in the docker container
+# This is the default target for convenience, to build locally use "make all"
+remote:
+	docker start tpe-builder # Start the container if it's not running
+	docker exec -it tpe-builder make all -C /root
+
 all: $(IMG) $(VMDK) $(QCOW2)
 
 $(KERNEL):
@@ -40,7 +46,10 @@ $(MBR):
 $(PURE64):
 	make out/pure64.sys -C Bootloader
 
-$(PACKEDKERNEL): $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) | out
+$(MP):
+	make -C Toolchain
+
+$(PACKEDKERNEL): $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) $(MP) | out
 	$(MP) $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) -o $(PACKEDKERNEL)
 
 $(IMG): $(BMFS) $(MBR) $(PURE64) $(PACKEDKERNEL) | out
@@ -55,10 +64,21 @@ $(QCOW2): $(IMG) | out
 out:
 	mkdir -p out
 
+container:
+	docker pull agodio/itba-so:2.0
+	docker run -d -v $(PWD):/root --security-opt seccomp:unconfined -it --name tpe-builder --platform=linux/amd64 agodio/itba-so:2.0
+
+run:
+	./run.sh
+
+debug:
+	./run.sh -d
+
 clean:
 	make clean -C Kernel
 	make clean -C Userland
 	make clean -C Bootloader
+	make clean -C Toolchain
 	rm -rf out
 
-.PHONY: clean
+.PHONY: remote container clean
