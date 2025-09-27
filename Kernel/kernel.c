@@ -81,15 +81,10 @@ int main() {
   // Enable status bar
   status_set_enabled(1);
 
-  printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
-  printf("Kernel stack at %#016lx\n\n", (size_t) proc_kernel_stack);
-
   // Initialize interrupts and syscalls
   init_syscalls();
   init_interrupts();
   load_idt();
-
-  printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
 
   while (1) {
     proc_init((proc_entrypoint_t) userland_code_module);

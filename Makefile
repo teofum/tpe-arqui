@@ -93,19 +93,22 @@ $(USERLAND_DIR)/out:
 # Bootloader
 # =============================================================================
 
-BOOTLOADER_PATH=Bootloader
-BMFS=$(BOOTLOADER_PATH)/out/bmfs.bin
-MBR=$(BOOTLOADER_PATH)/out/bmfs_mbr.sys
-PURE64=$(BOOTLOADER_PATH)/out/pure64.sys
+BOOTLOADER_DIR=Bootloader
+BMFS=$(BOOTLOADER_DIR)/out/bmfs.bin
+MBR=$(BOOTLOADER_DIR)/out/bmfs_mbr.sys
+PURE64=$(BOOTLOADER_DIR)/out/pure64.sys
 
-$(BMFS):
-	make out/bmfs.bin -C Bootloader
+$(BMFS): | $(BOOTLOADER_DIR)/out
+	gcc -ansi -std=c99 -Wall -pedantic -o $(BMFS) $(BOOTLOADER_DIR)/BMFS/bmfs.c
 
-$(MBR):
-	make out/bmfs_mbr.sys -C Bootloader
+$(MBR): | $(BOOTLOADER_DIR)/out
+	cd $(BOOTLOADER_DIR)/Pure64/src; $(ASM) bootsectors/bmfs_mbr.asm -o ../../../$(MBR)
 
-$(PURE64):
-	make out/pure64.sys -C Bootloader
+$(PURE64): | $(BOOTLOADER_DIR)/out
+	cd $(BOOTLOADER_DIR)/Pure64/src; $(ASM) pure64.asm -o ../../../$(PURE64)
+
+$(BOOTLOADER_DIR)/out:
+	cd $(BOOTLOADER_DIR); mkdir -p out
 
 # =============================================================================
 # Final output
@@ -151,9 +154,11 @@ debug:
 	./run.sh -d
 
 clean:
-	make clean -C Kernel
+	rm -rf Kernel/out
+	rm -rf Kernel/build
 	rm -rf Userland/out
-	make clean -C Bootloader
+	rm -rf Userland/build
+	rm -rf Bootloader/out
 	rm -f Toolchain/ModulePacker/mp.bin
 	rm -rf out
 
