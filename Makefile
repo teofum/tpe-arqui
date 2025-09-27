@@ -23,7 +23,7 @@ $(MP): $(MP_SOURCES)
 KERNEL_DIR=Kernel
 KERNEL=$(KERNEL_DIR)/out/kernel.bin
 KERNEL_DEBUG_ELF=$(KERNEL:.bin=.elf)
-KERNEL_SOURCES=$(wildcard $(KERNEL_DIR)/*.c)
+KERNEL_SOURCES=$(wildcard $(KERNEL_DIR)/src/*.c)
 KERNEL_SOURCES_ASM=$(wildcard $(KERNEL_DIR)/asm/*.asm)
 KERNEL_OBJECTS=$(foreach I,$(notdir $(KERNEL_SOURCES:.c=.o)),$(KERNEL_DIR)/build/$I)
 KERNEL_OBJECTS_ASM=$(foreach I,$(notdir $(KERNEL_SOURCES_ASM:.asm=.o)),$(KERNEL_DIR)/build/$I)
@@ -36,7 +36,7 @@ $(KERNEL): $(KERNEL_LOADEROBJECT) $(KERNEL_OBJECTS) $(KERNEL_STATICLIBS) $(KERNE
 $(DEBUG_ELF): $(KERNEL_LOADEROBJECT) $(KERNEL_OBJECTS) $(KERNEL_STATICLIBS) $(KERNEL_OBJECTS_ASM) | $(KERNEL_DIR)/out
 	$(LD) $(KERNEL_LDFLAGS) -T $(KERNEL_DIR)/kernel.ld --oformat=elf64-x86-64 -o $(KERNEL_DEBUG_ELF) $(KERNEL_LOADEROBJECT) $(KERNEL_OBJECTS) $(KERNEL_OBJECTS_ASM) $(KERNEL_STATICLIBS)
 
-$(KERNEL_DIR)/build/%.o: $(KERNEL_DIR)/%.c | $(KERNEL_DIR)/build
+$(KERNEL_DIR)/build/%.o: $(KERNEL_DIR)/src/%.c | $(KERNEL_DIR)/build
 	$(GCC) $(KERNEL_GCCFLAGS) -I$(KERNEL_DIR)/include -c $< -o $@
 
 $(KERNEL_DIR)/build/%.o: $(KERNEL_DIR)/asm/%.asm | $(KERNEL_DIR)/build
@@ -61,7 +61,7 @@ USERLAND_ASSETS=capibara.meme capybase.mdl capyface.mdl capyclub.mdl flag.mdl fl
 USERLAND_ASSETS_PATH=$(foreach I,$(USERLAND_ASSETS),$(USERLAND_DIR)/assets/$I)
 
 USER_DEBUG_ELF=$(USERLAND:.bin=.elf)
-USER_SOURCES=$(wildcard $(USERLAND_DIR)/[^_]*.c)
+USER_SOURCES=$(wildcard $(USERLAND_DIR)/src/*.c)
 USER_SOURCES_ASM=$(wildcard $(USERLAND_DIR)/asm/*.asm)
 USER_OBJECTS=$(foreach I,$(notdir $(USER_SOURCES:.c=.o)),$(USERLAND_DIR)/build/$I)
 USER_OBJECTS_ASM=$(foreach I,$(notdir $(USER_SOURCES_ASM:.asm=.o)),$(USERLAND_DIR)/build/$I)
@@ -74,7 +74,7 @@ $(USERLAND): $(USER_LOADEROBJECT) $(USER_OBJECTS) $(USER_STATICLIBS) $(USER_OBJE
 $(USER_DEBUG_ELF): $(USER_LOADEROBJECT) $(USER_OBJECTS) $(USER_STATICLIBS) $(USER_OBJECTS_ASM) | $(USERLAND_DIR)/out
 	$(LD) $(LDFLAGS) -T $(USERLAND_DIR)/userlandModule.ld --oformat=elf64-x86-64 -o $(USER_DEBUG_ELF) $(USER_LOADEROBJECT) $(USER_OBJECTS) $(USER_OBJECTS_ASM)
 
-$(USERLAND_DIR)/build/%.o: $(USERLAND_DIR)/%.c | $(USERLAND_DIR)/build
+$(USERLAND_DIR)/build/%.o: $(USERLAND_DIR)/src/%.c | $(USERLAND_DIR)/build
 	$(GCC) $(GCCFLAGS) -I$(USERLAND_DIR)/include -c $< -o $@
 
 $(USERLAND_DIR)/build/%.o: $(USERLAND_DIR)/asm/%.asm | $(USERLAND_DIR)/build
