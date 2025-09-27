@@ -65,18 +65,4 @@ void proc_wait(pid_t pid);
  */
 void proc_kill(pid_t pid);
 
-/*
- * 1.  Some process A is running
- * 2.  Interrupt (timer)
- * 3.  Pop the interrupt return data (rsp, rip, cs, ss, rflags) from the stack
- * 4.  Store it + register state in the current process PCB
- * 5.  Set rsp to kernel/scheduler stack
- * 6.  Call the timer interrupt handler
- * 7.  Potentially run scheduler -> changes current process
- * 8.  Get interrupt return data + register state from current process PCB (might have changed!)
- * 9.  Restore registers
- * 10. Push interrupt return data to stack
- * 11. iretq -> will return to the now running process!!
- */
-
 #endif
