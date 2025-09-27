@@ -1,22 +1,64 @@
+# Module packer utility
+MP=Toolchain/ModulePacker/mp.bin
 
-all:  bootloader kernel userland image
+# Bootloader
+BOOTLOADER_PATH=Bootloader
+BMFS=$(BOOTLOADER_PATH)/out/bmfs.bin
+MBR=$(BOOTLOADER_PATH)/out/bmfs_mbr.sys
+PURE64=$(BOOTLOADER_PATH)/out/pure64.sys
 
-bootloader:
-	cd Bootloader; make all
+# Kernel
+KERNEL=Kernel/out/kernel.bin
 
-kernel:
-	cd Kernel; make all
+# Userland
+USERLAND=Userland/out/userlandModule.bin
+USERLAND_ASSETS=capibara.meme capybase.mdl capyface.mdl capyclub.mdl flag.mdl flagpole.mdl ball.mdl utah.mdl
+USERLAND_ASSETS_PATH=$(foreach I,$(USERLAND_ASSETS),Userland/assets/$I)
 
-userland:
-	cd Userland; make all
+# Output
+OSIMAGENAME=out/x64BareBonesImage
+VMDK=$(OSIMAGENAME).vmdk
+QCOW2=$(OSIMAGENAME).qcow2
+IMG=$(OSIMAGENAME).img
+PACKEDKERNEL=out/packedKernel.bin
+IMGSIZE=16777216
 
-image: kernel bootloader userland
-	cd Image; make all
+all: $(IMG) $(VMDK) $(QCOW2)
+
+$(KERNEL):
+	make -C Kernel
+
+$(USERLAND):
+	make -C Userland
+
+$(BMFS):
+	make out/bmfs.bin -C Bootloader
+
+$(MBR):
+	make out/bmfs_mbr.sys -C Bootloader
+
+$(PURE64):
+	make out/pure64.sys -C Bootloader
+
+$(PACKEDKERNEL): $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) | out
+	$(MP) $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) -o $(PACKEDKERNEL)
+
+$(IMG): $(BMFS) $(MBR) $(PURE64) $(PACKEDKERNEL) | out
+	$(BMFS) $(IMG) initialize $(IMGSIZE) $(MBR) $(PURE64) $(PACKEDKERNEL)
+
+$(VMDK): $(IMG) | out
+	qemu-img convert -f raw -O vmdk $(IMG) $(VMDK)
+
+$(QCOW2): $(IMG) | out
+	qemu-img convert -f raw -O qcow2 $(IMG) $(QCOW2)
+
+out:
+	mkdir -p out
 
 clean:
-	cd Bootloader; make clean
-	cd Image; make clean
-	cd Kernel; make clean
-	cd Userland; make clean
+	make clean -C Kernel
+	make clean -C Userland
+	make clean -C Bootloader
+	rm -rf out
 
-.PHONY: bootloader image collections kernel userland all clean
+.PHONY: clean

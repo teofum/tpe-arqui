@@ -1,9 +1,9 @@
-all: modulePacker
+all: ModulePacker/mp.bin
 
-modulePacker:
-	cd ModulePacker; make all
+ModulePacker/mp.bin:
+	make -C ModulePacker
 
 clean:
-	cd ModulePacker; make clean
+	make clean -C ModulePacker
 
-.PHONY: modulePacker all clean
+.PHONY: clean

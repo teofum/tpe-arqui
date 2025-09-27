@@ -9,4 +9,4 @@ $(MP): $(SOURCES)
 clean:
 	rm -rf $(MP)
 
-.PHONY: all clean
+.PHONY: clean
