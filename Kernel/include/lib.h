@@ -19,4 +19,8 @@ extern uint8_t inb(uint16_t port);
  */
 extern void outb(uint16_t port, uint8_t value);
 
+void *memset(void *destination, int32_t c, uint64_t length);
+
+void *memcpy(void *destination, const void *source, uint64_t length);
+
 #endif

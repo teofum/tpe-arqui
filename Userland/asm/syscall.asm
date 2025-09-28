@@ -60,6 +60,10 @@ define_syscall mem_alloc, 0x60
 define_syscall mem_free, 0x61
 define_syscall mem_check, 0x62
 
+; Process system calls
+define_syscall proc_spawn, 0x70
+define_syscall proc_exit, 0x71
+
 ; Graphics system calls
 define_syscall gfx_clear, 0xA0
 define_syscall gfx_draw_primitives, 0xA1

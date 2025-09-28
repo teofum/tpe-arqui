@@ -17,7 +17,7 @@ class Pane():
         LEFT = '-L'
         UP = '-U'
         DOWN = '-D'
-        
+
     def __init__(self, id: str, tty: str, module_name: str):
         self.id = id
         self.tty = tty
@@ -44,7 +44,7 @@ class Pane():
                              '-P', '-F', '#{pane_id},#{pane_tty}', NULLPROG)
         Pane.tmux('select-pane', '-t', self.id)
         Pane.tmux('resize-pane', '-D', f"{percentage}")
-        
+
         # self.check()
         return Pane(id, tty, module_name)
 
@@ -78,18 +78,18 @@ class Window(Pane):
 
 ################### Layout ####################
 # ---------------------------------------------
-# |            |                   |          | 
-# |            |                   |  Memory  | 
-# |    GDB     |     Registers     |          | 
-# |            |                   |----------| 
-# |            |                   |          | 
-# |--------------------------------|          | 
-# |                |               |          | 
-# |                |               |   Stack  | 
-# |     Source     |   Assembly    |          | 
-# |                |               |          | 
-# |                |               |          | 
-# |                |               |          | 
+# |            |                   |          |
+# |            |                   |  Memory  |
+# |    GDB     |     Registers     |          |
+# |            |                   |----------|
+# |            |                   |          |
+# |--------------------------------|          |
+# |                |               |          |
+# |                |               |   Stack  |
+# |     Source     |   Assembly    |          |
+# |                |               |          |
+# |                |               |          |
+# |                |               |          |
 # ---------------------------------------------
 
 gdb_window = Window('gdb')
@@ -118,7 +118,7 @@ source_pane = gdb_window.splitResizeCurrent(
     )
 # dashboard_pane.set_dashboard()
 source_pane.add_extra_module('variables')
-    
+
 # Tamano ideal 64bits = 82 columnas
 registers_pane = gdb_window.split(
         dir=Pane.SplitDir.HORIZONTAL_RIGHT,
@@ -165,7 +165,7 @@ gdb.execute(f'dashboard stack')
 # set debuginfod enabled off
 gdb.execute(f'target remote 192.168.0.150:1234')
 gdb.execute(f'add-symbol-file Kernel/out/kernel.elf 0x100000')
-gdb.execute(f'add-symbol-file Userland/0000-userlandModule.elf 0x2000000')
+gdb.execute(f'add-symbol-file Userland/out/userlandModule.elf 0x400000')
 gdb.execute(f'set directories Kernel:Userland:Userland/UserlandModule')
 gdb.execute(f"dashboard registers -style list 'rax rbx rcx rdx rsi rdi rbp rsp r8 r9 r10 r11 r12 r13 r14 r15 rip eflags cs ss ds es fs gs fs_base gs_base k_gs_base cr0 cr2 cr3 cr4 cr8 efer'")
 

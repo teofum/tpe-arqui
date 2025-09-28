@@ -6,9 +6,9 @@
 #include <mem.h>
 #include <module_loader.h>
 #include <print.h>
+#include <process.h>
 #include <status.h>
 #include <stdint.h>
-#include <string.h>
 #include <time.h>
 #include <vga.h>
 
@@ -43,7 +43,7 @@ void clear_bss(void *bss_address, uint64_t bss_size) {
 
 void *get_stack_base() {
   return (void *) ((uint64_t) &end_of_kernel +
-                   page_size * 8      //The size of the stack itself, 32KiB
+                   page_size * 8     //The size of the stack itself, 32KiB
                    - sizeof(uint64_t)//Begin at the top of the stack
   );
 }
@@ -62,17 +62,14 @@ void *initialize_kernel_binary() {
 }
 
 int main() {
-  // Initialize interrupts and syscalls
-  init_syscalls();
-  init_interrupts();
-  load_idt();
-
-  // Init timer
-  timer_init();
-
   // Initialize memory manager
   mem_default_mgr =
     mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0);
+
+  proc_kernel_stack = mem_alloc(1024 * 64) + 1024 * 64 - 8;
+
+  // Init timer
+  timer_init();
 
   // Initialize video driver and graphics
   vga_init();
@@ -84,17 +81,20 @@ int main() {
   // Enable status bar
   status_set_enabled(1);
 
-  printf("Stack at %#016lx\n\n", (size_t) get_stack_base());
+  // Initialize interrupts and syscalls
+  init_syscalls();
+  init_interrupts();
+  load_idt();
 
   while (1) {
-    int ret = ((entrypoint_t) userland_code_module)();
-    printf(
-      "\x1A 195,248,132;[Kernel] \x1A R;"
-      "Userland module exited with code \x1A 255,197,96;%#08x\n"
-      "\x1A 195,248,132;[Kernel] \x1A R;"
-      "Press any key to restart shell\n",
-      ret
-    );
+    proc_init((proc_entrypoint_t) userland_code_module);
+    // printf(
+    //   "\x1A 195,248,132;[Kernel] \x1A R;"
+    //   "Userland module exited with code \x1A 255,197,96;%#08x\n"
+    //   "\x1A 195,248,132;[Kernel] \x1A R;"
+    //   "Press any key to restart shell\n",
+    //   ret
+    // );
 
     int key = 0;
     while (!key) { key = kbd_get_key_event().key; }

@@ -1,8 +1,8 @@
+#include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 #include <kbd.h>
-#include <string.h>
+#include <lib.h>
 
 #define scancode_to_key(x) ((x) & 0x7f)
 #define is_release(x) ((x) & 0x80)
