@@ -23,7 +23,13 @@ $(MP): $(MP_SOURCES)
 KERNEL_DIR=Kernel
 KERNEL=$(KERNEL_DIR)/out/kernel.bin
 KERNEL_DEBUG_ELF=$(KERNEL:.bin=.elf)
-KERNEL_SOURCES=$(wildcard $(KERNEL_DIR)/src/*.c)
+# Allocator selection
+ALLOCATOR ?= simple
+ifeq ($(ALLOCATOR),buddy)
+	KERNEL_SOURCES=$(filter-out $(KERNEL_DIR)/src/mem_simple.c,$(wildcard $(KERNEL_DIR)/src/*.c))
+else
+	KERNEL_SOURCES=$(filter-out $(KERNEL_DIR)/src/mem_buddy.c,$(wildcard $(KERNEL_DIR)/src/*.c))
+endif
 KERNEL_SOURCES_ASM=$(wildcard $(KERNEL_DIR)/asm/*.asm)
 KERNEL_OBJECTS=$(foreach I,$(notdir $(KERNEL_SOURCES:.c=.o)),$(KERNEL_DIR)/build/$I)
 KERNEL_OBJECTS_ASM=$(foreach I,$(notdir $(KERNEL_SOURCES_ASM:.asm=.o)),$(KERNEL_DIR)/build/$I)
@@ -124,6 +130,12 @@ IMGSIZE=16777216
 
 all: $(IMG) $(VMDK) $(QCOW2)
 
+simple:
+	$(MAKE) all ALLOCATOR=simple
+
+buddy:
+	$(MAKE) all ALLOCATOR=buddy
+
 $(IMG): $(BMFS) $(MBR) $(PURE64) $(PACKEDKERNEL) | out
 	$(BMFS) $(IMG) initialize $(IMGSIZE) $(MBR) $(PURE64) $(PACKEDKERNEL)
 
@@ -162,4 +174,4 @@ clean:
 	rm -f Toolchain/ModulePacker/mp.bin
 	rm -rf out
 
-.PHONY: remote container clean
+.PHONY: remote container clean simple buddy

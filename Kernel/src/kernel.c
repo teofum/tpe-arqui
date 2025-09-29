@@ -64,7 +64,7 @@ void *initialize_kernel_binary() {
 int main() {
   // Initialize memory manager
   mem_default_mgr =
-    mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0);
+    mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0x1000000);
 
   proc_kernel_stack = mem_alloc(1024 * 64) + 1024 * 64 - 8;
 
@@ -79,7 +79,7 @@ int main() {
   io_init();
 
   // Enable status bar
-  status_set_enabled(1);
+  // status_set_enabled(1);  // Disabled for buddy allocator testing
 
   // Initialize interrupts and syscalls
   init_syscalls();
