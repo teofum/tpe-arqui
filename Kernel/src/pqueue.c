@@ -75,6 +75,7 @@ pqueue_remove_impl(pqueue_item_t *item, pid_t pid, uint32_t *count) {
   pqueue_item_t *tail = pqueue_remove_impl(item->tail, pid, count);
   if (item->data == pid) {
     (*count)++;
+    mem_free(item);
     return tail;
   } else {
     item->tail = tail;

@@ -41,7 +41,7 @@ const char *mascot =
 
 
 void test_b() {
-  for (int i = 0; i < 100; i++) { writes(COL_GREEN "B"); }
+  for (int i = 0; i < 300; i++) { writes(COL_GREEN "B"); }
   proc_exit(0);
 }
 
@@ -49,7 +49,11 @@ void main() {
   writes(COL_BLUE "Spawning B\n");
   pid_t pid;
   proc_spawn(test_b, &pid);
-  printf("spawned process with pid %u\n", (uint32_t) pid);
+  printf("\nspawned process with pid %u\n", (uint32_t) pid);
+  for (int i = 0; i < 50; i++) { writes(COL_RED "A"); }
+  printf("\nwaiting for process with pid %u\n", (uint32_t) pid);
+  int ret = proc_wait(pid);
+  printf("\nprocess with pid %u exited with code %u\n", (uint32_t) pid, ret);
   while (1) { writes(COL_RED "A"); }
 }
 

@@ -1,7 +1,7 @@
 #ifndef PQUEUE_H
 #define PQUEUE_H
 
-#include <process.h>
+#include <types.h>
 
 typedef struct pqueue_cdt_t *pqueue_t;
 

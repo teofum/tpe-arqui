@@ -1,15 +1,14 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <pqueue.h>
 #include <stddef.h>
-#include <stdint.h>
 
 /*
  * Support up to 4096 processes
  */
 #define MAX_PID 0xfff
 
-typedef int16_t pid_t;
 typedef void (*proc_entrypoint_t)();
 
 typedef enum {
@@ -24,6 +23,9 @@ typedef struct {
 
   proc_state_t state;
   int return_code;
+
+  pqueue_t waiting_processes;
+  uint32_t n_waiting_processes;
 } proc_control_block_t;
 
 extern proc_control_block_t proc_control_table[];
@@ -35,6 +37,18 @@ extern pid_t proc_running_pid;
  * to keep the calling process running. Used to start the first "init" process.
  */
 void proc_init(proc_entrypoint_t entry_point);
+
+/*
+ * Kernel-only function. Yields control to the scheduler.
+ */
+void proc_yield();
+
+/*
+ * Kernel-only function. Blocks the current process and yields control to the
+ * scheduler. NOTE: the process should add itself to some queue before blocking
+ * or it may stay in a blocked state indefinitely.
+ */
+void proc_block();
 
 /*
  * Spawn a process. Returns the PID of the new process.
@@ -50,7 +64,7 @@ void proc_exit(int return_code);
  * Wait for a process to end. Blocks the caller until the waited process
  * terminates.
  */
-void proc_wait(pid_t pid);
+int proc_wait(pid_t pid);
 
 /*
  * Kill a running process.

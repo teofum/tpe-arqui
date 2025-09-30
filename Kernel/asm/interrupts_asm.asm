@@ -29,6 +29,7 @@ section .text
 %endmacro
 
 %macro push_state 0
+  push rbp
   push rax
   push rbx
   push rcx
@@ -60,6 +61,7 @@ section .text
   pop rcx
   pop rbx
   pop rax
+  pop rbp
 %endmacro
 
 ; Generic exception handler

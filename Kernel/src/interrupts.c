@@ -196,6 +196,7 @@ void init_syscalls() {
   /* Processes */
   register_syscall(0x70, proc_spawn);
   register_syscall(0x71, proc_exit);
+  register_syscall(0x72, proc_wait);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);

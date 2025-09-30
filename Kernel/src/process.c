@@ -1,3 +1,5 @@
+#include "pqueue.h"
+#include "types.h"
 #include <lib.h>
 #include <mem.h>
 #include <process.h>
@@ -24,6 +26,33 @@ static pid_t get_first_unused_pid() {
   return pid;
 }
 
+void proc_init(proc_entrypoint_t entry_point) {
+  pid_t new_pid = get_first_unused_pid();
+
+  proc_control_block_t *pcb = &proc_control_table[new_pid];
+
+  pcb->stack = mem_alloc(STACK_SIZE);
+  pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
+  pcb->state = PROC_STATE_RUNNING;
+  pcb->waiting_processes = pqueue_create();
+  pcb->n_waiting_processes = 0;
+
+  proc_running_pid = new_pid;
+  _proc_init(entry_point, (void *) pcb->rsp);
+}
+
+void proc_yield() {
+  scheduler_force_next = 1;
+  _proc_timer_interrupt();
+}
+
+void proc_block() {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  pcb->state = PROC_STATE_BLOCKED;
+
+  proc_yield();
+}
+
 void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
   *new_pid = get_first_unused_pid();
 
@@ -32,6 +61,8 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
   pcb->state = PROC_STATE_RUNNING;
+  pcb->waiting_processes = pqueue_create();
+  pcb->n_waiting_processes = 0;
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
@@ -42,7 +73,8 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
   process_stack[1] = 0x8;                   // CS
   process_stack[0] = (uint64_t) entry_point;// RIP
 
-  process_stack -= 14;
+  process_stack -= 15;
+  process_stack[14] = 0;// RBP
   process_stack[13] = 0;// RAX
   process_stack[12] = 0;// RBX
   process_stack[11] = 0;// RCX
@@ -62,8 +94,7 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
 
   scheduler_enqueue(*new_pid);
 
-  scheduler_force_next = 1;
-  _proc_timer_interrupt();
+  proc_yield();
 }
 
 void proc_exit(int return_code) {
@@ -71,25 +102,41 @@ void proc_exit(int return_code) {
 
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = return_code;
-  // TODO: unblock waiting process with return code...
 
-  scheduler_force_next = 1;
-  _proc_timer_interrupt();
+  while (!pqueue_empty(pcb->waiting_processes)) {
+    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
 
-  // Clean up PCB for the current process
-  mem_free(pcb->stack);
-  pcb->stack = NULL;
+    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
+    waiting_pcb->state = PROC_STATE_RUNNING;
+
+    scheduler_enqueue(waiting_pid);
+  }
+
+  proc_yield();
 }
 
-void proc_init(proc_entrypoint_t entry_point) {
-  pid_t new_pid = get_first_unused_pid();
+static void proc_destroy(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
 
-  proc_control_block_t *pcb = &proc_control_table[new_pid];
+  mem_free(pcb->stack);
+  pcb->stack = NULL;
+  pqueue_destroy(pcb->waiting_processes);
+}
 
-  pcb->stack = mem_alloc(STACK_SIZE);
-  pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
-  pcb->state = PROC_STATE_RUNNING;
+int proc_wait(pid_t pid) {
+  proc_control_block_t *waiting_pcb = &proc_control_table[pid];
 
-  proc_running_pid = new_pid;
-  _proc_init(entry_point, (void *) pcb->rsp);
+  while (waiting_pcb->state != PROC_STATE_EXITED) {
+    waiting_pcb->n_waiting_processes++;
+    pqueue_enqueue(waiting_pcb->waiting_processes, proc_running_pid);
+
+    proc_block();
+  }
+
+  int return_code = waiting_pcb->return_code;
+  waiting_pcb->n_waiting_processes--;
+
+  if (waiting_pcb->n_waiting_processes == 0) proc_destroy(pid);
+
+  return return_code;
 }

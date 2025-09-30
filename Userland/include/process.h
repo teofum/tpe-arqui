@@ -22,4 +22,9 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid);
  */
 void proc_exit(int return_code);
 
+/*
+ * Terminate the current process.
+ */
+int proc_wait(pid_t pid);
+
 #endif

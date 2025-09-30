@@ -63,6 +63,7 @@ define_syscall mem_check, 0x62
 ; Process system calls
 define_syscall proc_spawn, 0x70
 define_syscall proc_exit, 0x71
+define_syscall proc_wait, 0x72
 
 ; Graphics system calls
 define_syscall gfx_clear, 0xA0
