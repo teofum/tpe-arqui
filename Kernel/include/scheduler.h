@@ -3,6 +3,8 @@
 
 #include <process.h>
 
+#define MAX_PRIORITY 4
+
 pid_t scheduler_next();
 
 void scheduler_enqueue(pid_t pid);
