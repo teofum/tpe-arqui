@@ -64,7 +64,7 @@ void *initialize_kernel_binary() {
 int main() {
   // Initialize memory manager
   mem_default_mgr =
-    mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0x1000000);
+    mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 1024 * 1024 * 1024);
 
   proc_kernel_stack = mem_alloc(1024 * 64) + 1024 * 64 - 8;
 
