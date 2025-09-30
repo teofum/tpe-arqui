@@ -26,37 +26,8 @@ static pid_t get_first_unused_pid() {
   return pid;
 }
 
-void proc_init(proc_entrypoint_t entry_point) {
-  pid_t new_pid = get_first_unused_pid();
-
-  proc_control_block_t *pcb = &proc_control_table[new_pid];
-
-  pcb->stack = mem_alloc(STACK_SIZE);
-  pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
-  pcb->state = PROC_STATE_RUNNING;
-  pcb->waiting_processes = pqueue_create();
-  pcb->n_waiting_processes = 0;
-
-  proc_running_pid = new_pid;
-  _proc_init(entry_point, (void *) pcb->rsp);
-}
-
-void proc_yield() {
-  scheduler_force_next = 1;
-  _proc_timer_interrupt();
-}
-
-void proc_block() {
-  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
-  pcb->state = PROC_STATE_BLOCKED;
-
-  proc_yield();
-}
-
-void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
-  *new_pid = get_first_unused_pid();
-
-  proc_control_block_t *pcb = &proc_control_table[*new_pid];
+static void proc_initialize_process(pid_t pid, proc_entrypoint_t entry_point) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
 
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
@@ -91,9 +62,53 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
   process_stack[0] = 0; // R15
 
   pcb->rsp = (uint64_t) process_stack;
+}
 
+static void proc_idle() {
+  while (1) _hlt();
+}
+
+void proc_init(proc_entrypoint_t entry_point) {
+  /*
+   * Initialize the idle process, but don't run it
+   */
+  proc_initialize_process(IDLE_PID, proc_idle);
+
+  /*
+   * Initialize and start the init process. We "bootstrap" the process
+   * system by jumping to this first process directly.
+   */
+  pid_t new_pid = get_first_unused_pid();
+
+  proc_control_block_t *pcb = &proc_control_table[new_pid];
+
+  pcb->stack = mem_alloc(STACK_SIZE);
+  pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
+  pcb->state = PROC_STATE_RUNNING;
+  pcb->waiting_processes = pqueue_create();
+  pcb->n_waiting_processes = 0;
+
+  proc_running_pid = new_pid;
+  _proc_init(entry_point, (void *) pcb->rsp);
+}
+
+void proc_yield() {
+  scheduler_force_next = 1;
+  _proc_timer_interrupt();
+}
+
+void proc_block() {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  pcb->state = PROC_STATE_BLOCKED;
+
+  proc_yield();
+}
+
+void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
+  *new_pid = get_first_unused_pid();
+
+  proc_initialize_process(*new_pid, entry_point);
   scheduler_enqueue(*new_pid);
-
   proc_yield();
 }
 

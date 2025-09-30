@@ -8,6 +8,7 @@
  * Support up to 4096 processes
  */
 #define MAX_PID 0xfff
+#define IDLE_PID 0
 
 typedef void (*proc_entrypoint_t)();
 
@@ -33,8 +34,9 @@ extern proc_control_block_t proc_control_table[];
 extern pid_t proc_running_pid;
 
 /*
- * Kernel-only function. Spawns a process from kernel, without the usual plumbing
- * to keep the calling process running. Used to start the first "init" process.
+ * Kernel-only function. Initialize the process system. Spawns a process from
+ * kernel, without the usual plumbing to keep the calling process running.
+ * Used to start the first "init" process as well as an idle process.
  */
 void proc_init(proc_entrypoint_t entry_point);
 
