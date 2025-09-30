@@ -12,11 +12,18 @@
 typedef int16_t pid_t;
 typedef void (*proc_entrypoint_t)();
 
-typedef enum { PROC_MODE_USER = 0, PROC_MODE_KERNEL } proc_mode_t;
+typedef enum {
+  PROC_STATE_RUNNING = 0,
+  PROC_STATE_BLOCKED,
+  PROC_STATE_EXITED,
+} proc_state_t;
 
 typedef struct {
   void *stack;
   uint64_t rsp;
+
+  proc_state_t state;
+  int return_code;
 } proc_control_block_t;
 
 extern proc_control_block_t proc_control_table[];

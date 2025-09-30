@@ -31,6 +31,7 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
 
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
+  pcb->state = PROC_STATE_RUNNING;
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
@@ -60,7 +61,6 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
   pcb->rsp = (uint64_t) process_stack;
 
   scheduler_enqueue(*new_pid);
-  scheduler_enqueue(proc_running_pid);
 
   scheduler_force_next = 1;
   _proc_timer_interrupt();
@@ -69,14 +69,16 @@ void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
 void proc_exit(int return_code) {
   proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
 
+  pcb->state = PROC_STATE_EXITED;
+  pcb->return_code = return_code;
   // TODO: unblock waiting process with return code...
+
+  scheduler_force_next = 1;
+  _proc_timer_interrupt();
 
   // Clean up PCB for the current process
   mem_free(pcb->stack);
   pcb->stack = NULL;
-
-  scheduler_force_next = 1;
-  _proc_timer_interrupt();
 }
 
 void proc_init(proc_entrypoint_t entry_point) {
@@ -86,6 +88,7 @@ void proc_init(proc_entrypoint_t entry_point) {
 
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
+  pcb->state = PROC_STATE_RUNNING;
 
   proc_running_pid = new_pid;
   _proc_init(entry_point, (void *) pcb->rsp);
