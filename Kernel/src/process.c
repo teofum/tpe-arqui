@@ -104,12 +104,14 @@ void proc_block() {
   proc_yield();
 }
 
-void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
-  *new_pid = get_first_unused_pid();
+pid_t proc_spawn(proc_entrypoint_t entry_point) {
+  pid_t new_pid = get_first_unused_pid();
 
-  proc_initialize_process(*new_pid, entry_point);
-  scheduler_enqueue(*new_pid);
+  proc_initialize_process(new_pid, entry_point);
+  scheduler_enqueue(new_pid);
   proc_yield();
+
+  return new_pid;
 }
 
 void proc_exit(int return_code) {

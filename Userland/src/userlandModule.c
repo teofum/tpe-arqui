@@ -47,13 +47,14 @@ void test_b() {
 
 void main() {
   writes(COL_BLUE "Spawning B\n");
-  pid_t pid;
-  proc_spawn(test_b, &pid);
-  printf("\nspawned process with pid %u\n", (uint32_t) pid);
+  pid_t child_pid = proc_spawn(test_b);
+  printf("\nspawned process with pid %u\n", (uint32_t) child_pid);
   for (int i = 0; i < 50; i++) { writes(COL_RED "A"); }
-  printf("\nwaiting for process with pid %u\n", (uint32_t) pid);
-  int ret = proc_wait(pid);
-  printf("\nprocess with pid %u exited with code %u\n", (uint32_t) pid, ret);
+  printf("\nwaiting for process with pid %u\n", (uint32_t) child_pid);
+  int ret = proc_wait(child_pid);
+  printf(
+    "\nprocess with pid %u exited with code %u\n", (uint32_t) child_pid, ret
+  );
   while (1) { writes(COL_RED "A"); }
 }
 

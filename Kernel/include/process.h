@@ -55,7 +55,7 @@ void proc_block();
 /*
  * Spawn a process. Returns the PID of the new process.
  */
-void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid);
+pid_t proc_spawn(proc_entrypoint_t entry_point);
 
 /*
  * Terminate the current process.
