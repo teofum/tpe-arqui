@@ -166,6 +166,14 @@ static int test_alloc() {
   return 0;
 }
 
+static int test_check() {
+  void *ptr = mem_alloc(256);
+  printf("Allocated 256 bytes at %#016lx\n", (size_t) ptr);
+  printf("mem_check(allocated ptr): %u (should be 1)\n", mem_check(ptr));
+  printf("mem_check(random address): %u (should be 0)\n", mem_check((void*)0x12345));
+  return 0;
+}
+
 static int help();
 command_t commands[] = {
   {"help", "Display this help message", help},
@@ -183,6 +191,7 @@ command_t commands[] = {
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
   {"test_alloc", "Test alloc syscall", test_alloc},
+  {"test_check", "Test mem_check syscall", test_check},
 };
 size_t n_commands = sizeof(commands) / sizeof(command_t);
 

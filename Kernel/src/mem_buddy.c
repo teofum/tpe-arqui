@@ -94,5 +94,15 @@ void mem_manager_free(mem_manager_t mgr, void *mem) {
 }
 
 int mem_manager_check(mem_manager_t mgr, void *mem) {
-  return 0; // TODO
+  if (mem == NULL) return 0;
+
+  if ((uint8_t *) mem < (uint8_t *) mgr->start ||
+      (uint8_t *) mem >= (uint8_t *) mgr->start + mgr->size) {
+    return 0;
+  }
+
+  // Get block header
+  block_t *block = (block_t *) ((uint8_t *) mem - sizeof(block_t));
+
+  return !block->free;
 }
