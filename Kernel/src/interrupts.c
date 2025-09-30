@@ -119,19 +119,18 @@ void load_idt() {
   _sti();
 }
 
-/* Dispatcher de IRQs */
-void irq_dispatcher(uint64_t irq) { irq_handlers[irq](); }
+/*
+ * Interrupt handler for IRQ 0 (timer)
+ */
+uint64_t irq_timer_handler(uint64_t running_process_rsp) {
+  // Store stack pointer for the current process
+  proc_control_table[proc_running_pid].rsp = running_process_rsp;
 
-/* Registra un handler para una IRQ */
-static void set_interrupt_handler(uint64_t irq, void (*handler)()) {
-  irq_handlers[irq] = handler;
-}
+  // Handle timer interrupt, may call the scheduler and cause a process switch
+  timer_handler();
 
-/* inicializa la tabla de interrupts */
-void init_interrupts() {
-  set_interrupt_handler(0x00, timer_handler);
-  // Keyboard interrupt (0x01) is handled specially for register dump function,
-  // so it doesn't have an entry in the interrupt dispatch table
+  // Return stack pointer for the now running process
+  return proc_control_table[proc_running_pid].rsp;
 }
 
 /* Registra una syscall */

@@ -9,6 +9,7 @@ typedef struct {
 } scheduler_queue_t;
 
 static scheduler_queue_t scheduler_queue = {0};
+int scheduler_force_next = 0;
 
 pid_t scheduler_next() {
   if (scheduler_queue.write_pos == scheduler_queue.read_pos) {

@@ -15,28 +15,13 @@ typedef void (*proc_entrypoint_t)();
 typedef enum { PROC_MODE_USER = 0, PROC_MODE_KERNEL } proc_mode_t;
 
 typedef struct {
-  uint64_t rax, rbx, rcx, rdx, rsi, rdi;
-  uint64_t r8, r9, r10, r11, r12, r13, r14, r15;
-
-  // Interrupt vector stuff
-  uint64_t rip, cs, rflags, rsp, ss;
-
-  uint64_t rbp, ds, es, fs, gs;
-} proc_registers_t;
-
-typedef struct {
   void *stack;
-  void *kernel_stack;
-  proc_mode_t mode;
-
-  proc_registers_t registers;
+  uint64_t rsp;
 } proc_control_block_t;
 
 extern proc_control_block_t proc_control_table[];
 
 extern pid_t proc_running_pid;
-
-extern void *proc_kernel_stack;
 
 /*
  * Kernel-only function. Spawns a process from kernel, without the usual plumbing

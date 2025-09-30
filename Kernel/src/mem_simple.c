@@ -15,6 +15,7 @@ mem_manager_t mem_manager_create(
 
 void *mem_manager_alloc(mem_manager_t mgr, size_t size) {
   void *alloc = mgr->next_address;
+  if (size % 8 != 0) size += 8 - (size % 8);// alignment
   mgr->next_address += size;
   return alloc;
 }

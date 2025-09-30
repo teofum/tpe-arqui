@@ -31,7 +31,11 @@ void timer_handler() {
   audio_timer_tick();
 
   // Run scheduler every 50 ticks (about 20hz)
-  if (!(timer_ticks % 50)) {
+  if (scheduler_force_next) {
+    // kinda hacky
+    scheduler_force_next = 0;
+    scheduler_next();
+  } else if (!(timer_ticks % 50)) {
     scheduler_enqueue(proc_running_pid);
     scheduler_next();
   }

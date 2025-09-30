@@ -12,16 +12,10 @@ proc_control_block_t proc_control_table[MAX_PID + 1] = {0};
 
 pid_t proc_running_pid = 0;
 
-void *proc_kernel_stack = NULL;
-
 void *last_iretq_frame = 0;
 
-extern void _proc_jump_to_spawned(
-  proc_entrypoint_t entry_point, void *stack, proc_registers_t *spawner_regs
-);
-extern void _proc_jump_to_next();
-extern void _proc_use_kernel_stack();
 extern void _proc_init(proc_entrypoint_t entry_point, void *stack);
+extern void _proc_timer_interrupt();
 
 static pid_t get_first_unused_pid() {
   pid_t pid = 0;
@@ -30,57 +24,59 @@ static pid_t get_first_unused_pid() {
   return pid;
 }
 
-proc_registers_t *proc_get_registers_addr_for_current_process() {
-  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
-  return &pcb->registers;
-}
-
-void *proc_get_kernel_stack() {
-  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
-
-  return (uint8_t *) pcb->kernel_stack + STACK_SIZE - 8;
-}
-
-extern size_t _getrsp();
 void proc_spawn(proc_entrypoint_t entry_point, pid_t *new_pid) {
   *new_pid = get_first_unused_pid();
 
-  _cli();
   proc_control_block_t *pcb = &proc_control_table[*new_pid];
 
-  pcb->mode = PROC_MODE_USER;
   pcb->stack = mem_alloc(STACK_SIZE);
-  pcb->kernel_stack = mem_alloc(STACK_SIZE);
-  uint8_t *stack_begin = (uint8_t *) pcb->stack + STACK_SIZE - 8;
+  pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
 
-  proc_registers_t *spawner_regs =
-    proc_get_registers_addr_for_current_process();
+  // Initialize process stack
+  uint64_t *process_stack = (uint64_t *) pcb->rsp;
+  process_stack -= 5;
+  process_stack[4] = 0x0;                   // SS
+  process_stack[3] = pcb->rsp;              // RSP
+  process_stack[2] = 0x202;                 // RFLAGS
+  process_stack[1] = 0x8;                   // CS
+  process_stack[0] = (uint64_t) entry_point;// RIP
 
+  process_stack -= 14;
+  process_stack[13] = 0;// RAX
+  process_stack[12] = 0;// RBX
+  process_stack[11] = 0;// RCX
+  process_stack[10] = 0;// RDX
+  process_stack[9] = 0; // RSI
+  process_stack[8] = 0; // RDI
+  process_stack[7] = 0; // R8
+  process_stack[6] = 0; // R9
+  process_stack[5] = 0; // R10
+  process_stack[4] = 0; // R11
+  process_stack[3] = 0; // R12
+  process_stack[2] = 0; // R13
+  process_stack[1] = 0; // R14
+  process_stack[0] = 0; // R15
+
+  pcb->rsp = (uint64_t) process_stack;
+
+  scheduler_enqueue(*new_pid);
   scheduler_enqueue(proc_running_pid);
-  proc_running_pid = *new_pid;
-  _proc_jump_to_spawned(entry_point, stack_begin, spawner_regs);
 
-  // Unreachable! _proc_jump_to_spawned actually sets the value of rax to
-  // the spawned process PID, which has the same effect
-  // return new_pid;
+  scheduler_force_next = 1;
+  _proc_timer_interrupt();
 }
 
 void proc_exit(int return_code) {
   proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
 
-  _cli();// Critical region
-
-  // Call the scheduler and move on to next process
-  scheduler_next();
-
   // TODO: unblock waiting process with return code...
 
   // Clean up PCB for the current process
   mem_free(pcb->stack);
-  mem_free(pcb->kernel_stack);
   pcb->stack = NULL;
-  pcb->kernel_stack = NULL;
-  _proc_jump_to_next();
+
+  scheduler_force_next = 1;
+  _proc_timer_interrupt();
 }
 
 void proc_init(proc_entrypoint_t entry_point) {
@@ -89,9 +85,8 @@ void proc_init(proc_entrypoint_t entry_point) {
   proc_control_block_t *pcb = &proc_control_table[new_pid];
 
   pcb->stack = mem_alloc(STACK_SIZE);
-  pcb->kernel_stack = mem_alloc(STACK_SIZE);
-  uint8_t *stack_begin = (uint8_t *) pcb->stack + STACK_SIZE - 8;
+  pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
 
   proc_running_pid = new_pid;
-  _proc_init(entry_point, stack_begin);
+  _proc_init(entry_point, (void *) pcb->rsp);
 }
