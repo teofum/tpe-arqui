@@ -26,6 +26,11 @@ static pid_t get_first_unused_pid() {
   return pid;
 }
 
+static void proc_start(proc_entrypoint_t entry_point) {
+  int ret = entry_point();
+  proc_exit(ret);
+}
+
 static void proc_initialize_process(pid_t pid, proc_entrypoint_t entry_point) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
@@ -38,34 +43,36 @@ static void proc_initialize_process(pid_t pid, proc_entrypoint_t entry_point) {
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
   process_stack -= 5;
-  process_stack[4] = 0x0;                   // SS
-  process_stack[3] = pcb->rsp;              // RSP
-  process_stack[2] = 0x202;                 // RFLAGS
-  process_stack[1] = 0x8;                   // CS
-  process_stack[0] = (uint64_t) entry_point;// RIP
+  process_stack[4] = 0x0;                  // SS
+  process_stack[3] = pcb->rsp;             // RSP
+  process_stack[2] = 0x202;                // RFLAGS
+  process_stack[1] = 0x8;                  // CS
+  process_stack[0] = (uint64_t) proc_start;// RIP
 
   process_stack -= 15;
-  process_stack[14] = 0;// RBP
-  process_stack[13] = 0;// RAX
-  process_stack[12] = 0;// RBX
-  process_stack[11] = 0;// RCX
-  process_stack[10] = 0;// RDX
-  process_stack[9] = 0; // RSI
-  process_stack[8] = 0; // RDI
-  process_stack[7] = 0; // R8
-  process_stack[6] = 0; // R9
-  process_stack[5] = 0; // R10
-  process_stack[4] = 0; // R11
-  process_stack[3] = 0; // R12
-  process_stack[2] = 0; // R13
-  process_stack[1] = 0; // R14
-  process_stack[0] = 0; // R15
+  process_stack[14] = 0;                    // RBP
+  process_stack[13] = 0;                    // RAX
+  process_stack[12] = 0;                    // RBX
+  process_stack[11] = 0;                    // RCX
+  process_stack[10] = 0;                    // RDX
+  process_stack[9] = 0;                     // RSI
+  process_stack[8] = (uint64_t) entry_point;// RDI
+  process_stack[7] = 0;                     // R8
+  process_stack[6] = 0;                     // R9
+  process_stack[5] = 0;                     // R10
+  process_stack[4] = 0;                     // R11
+  process_stack[3] = 0;                     // R12
+  process_stack[2] = 0;                     // R13
+  process_stack[1] = 0;                     // R14
+  process_stack[0] = 0;                     // R15
 
   pcb->rsp = (uint64_t) process_stack;
 }
 
-static void proc_idle() {
+static int proc_idle() {
   while (1) _hlt();
+
+  // Never returns
 }
 
 void proc_init(proc_entrypoint_t entry_point) {

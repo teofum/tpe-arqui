@@ -40,12 +40,13 @@ const char *mascot =
   "                                                  .-#%%#-.\n";
 
 
-void test_b() {
+int test_b() {
   for (int i = 0; i < 300; i++) { writes(COL_GREEN "B"); }
-  proc_exit(0);
+
+  return 42;
 }
 
-void main() {
+int main() {
   writes(COL_BLUE "Spawning B\n");
   pid_t child_pid = proc_spawn(test_b);
   printf("\nspawned process with pid %u\n", (uint32_t) child_pid);
@@ -56,6 +57,8 @@ void main() {
     "\nprocess with pid %u exited with code %u\n", (uint32_t) child_pid, ret
   );
   while (1) { writes(COL_RED "A"); }
+
+  return 0;
 }
 
 // int main() {

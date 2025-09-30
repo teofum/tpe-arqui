@@ -10,7 +10,7 @@
 #define MAX_PID 0xfff
 
 typedef int16_t pid_t;
-typedef void (*proc_entrypoint_t)();
+typedef int (*proc_entrypoint_t)();
 
 /*
  * Spawn a process.
