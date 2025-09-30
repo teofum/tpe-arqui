@@ -37,6 +37,11 @@ static uint8_t get_order(size_t size) {
   return order;
 }
 
+static int in_bounds(mem_manager_t mgr, void *addr) {
+  return (uint8_t *) addr >= (uint8_t *) mgr->start &&
+         (uint8_t *) addr < (uint8_t *) mgr->start + mgr->size;
+}
+
 static void remove_block(block_t **head, block_t *block) {
   block_t *prev = NULL;
   block_t *curr = *head;
@@ -86,7 +91,7 @@ mem_manager_t mem_manager_create(void *mgr_mem, void *mem, size_t mem_size) {
 }
 
 void *mem_manager_alloc(mem_manager_t mgr, size_t size) {
-  if (size == 0) return NULL;
+  if (size == 0 || size > mgr->size) return NULL;
 
   uint8_t order = get_order(size + sizeof(block_t));
 
@@ -123,21 +128,24 @@ void mem_manager_free(mem_manager_t mgr, void *mem) {
 
   // Get block header
   block_t *block = (block_t *) ((uint8_t *) mem - sizeof(block_t));
-  
+
+  if (block->free) return;
+
   block->free = 1;
 
   // Merge with buddies recursively
-  block_t *buddy_block = (block_t *) get_buddy(block, block->order, mgr->start);
-  while (block->order < mgr->max_order && buddy_block->free && buddy_block->order == block->order) {
+  block_t *buddy = (block_t *) get_buddy(block, block->order, mgr->start);
+  while (block->order < mgr->max_order && in_bounds(mgr, buddy) &&
+         buddy->free && buddy->order == block->order) {
     // Remove buddy from list
-    remove_block(&mgr->lists[block->order], buddy_block);
-    
+    remove_block(&mgr->lists[block->order], buddy);
+
     // Merge blocks
-    if ((uint8_t *) buddy_block < (uint8_t *) block) { block = buddy_block; }
+    if ((uint8_t *) buddy < (uint8_t *) block) { block = buddy; }
     block->order++;
-    
+
     // Find new buddy
-    buddy_block = (block_t *) get_buddy(block, block->order, mgr->start);
+    buddy = (block_t *) get_buddy(block, block->order, mgr->start);
   }
 
   // Add block to free list
@@ -148,10 +156,7 @@ void mem_manager_free(mem_manager_t mgr, void *mem) {
 int mem_manager_check(mem_manager_t mgr, void *mem) {
   if (mem == NULL) return 0;
 
-  if ((uint8_t *) mem < (uint8_t *) mgr->start ||
-      (uint8_t *) mem >= (uint8_t *) mgr->start + mgr->size) {
-    return 0;
-  }
+  if (!in_bounds(mgr, mem)) { return 0; }
 
   // Get block header
   block_t *block = (block_t *) ((uint8_t *) mem - sizeof(block_t));
