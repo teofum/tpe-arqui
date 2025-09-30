@@ -37,6 +37,35 @@ static uint8_t get_order(size_t size) {
   return order;
 }
 
+static void remove_block(block_t **head, block_t *block) {
+  block_t *prev = NULL;
+  block_t *curr = *head;
+
+  while (curr && curr != block) {
+    prev = curr;
+    curr = curr->next;
+  }
+
+  if (!curr) return;
+  if (prev) {
+    prev->next = curr->next;
+    return;
+  }
+  *head = curr->next;
+}
+
+/*
+ * Find buddy block
+ */
+static void *get_buddy(void *block, uint8_t order, void *start) {
+  // Calculate block size for this order
+  size_t offset = MIN_BLOCK_SIZE << order;
+  // Get relative address from start
+  size_t addr = (size_t) block - (size_t) start;
+  // XOR with offset to find buddy
+  return (uint8_t *) start + (addr ^ offset);
+}
+
 mem_manager_t mem_manager_create(void *mgr_mem, void *mem, size_t mem_size) {
   mem_manager_t mgr = (mem_manager_t) mgr_mem;
 
@@ -90,7 +119,29 @@ void *mem_manager_alloc(mem_manager_t mgr, size_t size) {
 }
 
 void mem_manager_free(mem_manager_t mgr, void *mem) {
-  // TODO
+  if (mem == NULL) return;
+
+  // Get block header
+  block_t *block = (block_t *) ((uint8_t *) mem - sizeof(block_t));
+  
+  block->free = 1;
+
+  // Try to merge with buddy
+  void *buddy = get_buddy(block, block->order, mgr->start);
+  block_t *buddy_block = (block_t *) buddy;
+
+  if (buddy_block->free && buddy_block->order == block->order) {
+    // Remove buddy from list
+    remove_block(&mgr->lists[block->order], buddy_block);
+
+    // Merge blocks
+    if ((uint8_t *) buddy < (uint8_t *) block) { block = buddy_block; }
+    block->order++;
+  }
+
+  // Add block to free list
+  block->next = mgr->lists[block->order];
+  mgr->lists[block->order] = block;
 }
 
 int mem_manager_check(mem_manager_t mgr, void *mem) {
