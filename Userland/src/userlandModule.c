@@ -40,17 +40,29 @@ const char *mascot =
   "                                                  .-#%%#-.\n";
 
 
-extern size_t _getrsp();
-void test_b() {
-  for (int i = 0; i < 100; i++) { writes(COL_GREEN "B"); }
-  proc_exit(0);
+int test_b(uint64_t argc, const char **argv) {
+  printf(COL_MAGENTA "%s my name is %s\n", argv[1], argv[0]);
+
+  for (int i = 0; i < 300; i++) { writes(COL_GREEN "B"); }
+
+  return 42;
 }
 
-void main() {
+int main() {
   writes(COL_BLUE "Spawning B\n");
-  pid_t pid;
-  proc_spawn(test_b, &pid);
-  printf("spawned process with pid %u\n", (uint32_t) pid);
+
+  const char *argv[] = {"test_b", "Hello world!"};
+  pid_t child_pid = proc_spawn(test_b, sizeof(argv) / sizeof(argv[0]), argv);
+
+  printf("\nspawned process with pid %u\n", (uint32_t) child_pid);
+  for (int i = 0; i < 50; i++) { writes(COL_RED "A"); }
+  printf("\nwaiting for process with pid %u\n", (uint32_t) child_pid);
+
+  int ret = proc_wait(child_pid);
+  printf(
+    "\nprocess with pid %u exited with code %u\n", (uint32_t) child_pid, ret
+  );
+
   while (1) { writes(COL_RED "A"); }
 }
 

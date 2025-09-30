@@ -30,9 +30,12 @@ void timer_handler() {
 
   audio_timer_tick();
 
-  // Run scheduler every 50 ticks (about 20hz)
-  if (!(timer_ticks % 50)) {
-    scheduler_enqueue(proc_running_pid);
+  if (!(timer_ticks % 20) || scheduler_force_next) {
+    scheduler_force_next = 0;
+
+    proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+    if (pcb->state == PROC_STATE_RUNNING) scheduler_enqueue(proc_running_pid);
+
     scheduler_next();
   }
 }

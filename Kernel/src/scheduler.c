@@ -1,4 +1,4 @@
-#include "process.h"
+#include <process.h>
 #include <scheduler.h>
 
 #define next(x) x = (x + 1) % (MAX_PID + 1)
@@ -9,10 +9,12 @@ typedef struct {
 } scheduler_queue_t;
 
 static scheduler_queue_t scheduler_queue = {0};
+int scheduler_force_next = 0;
 
 pid_t scheduler_next() {
   if (scheduler_queue.write_pos == scheduler_queue.read_pos) {
-    return 0;// idle process
+    proc_running_pid = IDLE_PID;
+    return IDLE_PID;
   }
 
   pid_t next_pid = scheduler_queue.data[scheduler_queue.read_pos];
