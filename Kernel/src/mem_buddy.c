@@ -2,7 +2,7 @@
  * Buddy allocator - splits memory in powers of 2
  * Each order has a list of free blocks of that size
  * When allocating: find block, split if too big
- * When freeing: merge with buddy if both free
+ * When freeing: merge recursively with buddies
  * order 0 = 32 bytes, order 1 = 64 bytes, etc
  */
 
@@ -59,11 +59,11 @@ static void remove_block(block_t **head, block_t *block) {
  */
 static void *get_buddy(void *block, uint8_t order, void *start) {
   // Calculate block size for this order
-  size_t offset = MIN_BLOCK_SIZE << order;
+  size_t block_size = MIN_BLOCK_SIZE << order;
   // Get relative address from start
   size_t addr = (size_t) block - (size_t) start;
-  // XOR with offset to find buddy
-  return (uint8_t *) start + (addr ^ offset);
+  // XOR with block size to find buddy
+  return (uint8_t *) start + (addr ^ block_size);
 }
 
 mem_manager_t mem_manager_create(void *mgr_mem, void *mem, size_t mem_size) {
@@ -126,17 +126,18 @@ void mem_manager_free(mem_manager_t mgr, void *mem) {
   
   block->free = 1;
 
-  // Try to merge with buddy
-  void *buddy = get_buddy(block, block->order, mgr->start);
-  block_t *buddy_block = (block_t *) buddy;
-
-  if (buddy_block->free && buddy_block->order == block->order) {
+  // Merge with buddies recursively
+  block_t *buddy_block = (block_t *) get_buddy(block, block->order, mgr->start);
+  while (block->order < mgr->max_order && buddy_block->free && buddy_block->order == block->order) {
     // Remove buddy from list
     remove_block(&mgr->lists[block->order], buddy_block);
-
+    
     // Merge blocks
-    if ((uint8_t *) buddy < (uint8_t *) block) { block = buddy_block; }
+    if ((uint8_t *) buddy_block < (uint8_t *) block) { block = buddy_block; }
     block->order++;
+    
+    // Find new buddy
+    buddy_block = (block_t *) get_buddy(block, block->order, mgr->start);
   }
 
   // Add block to free list
