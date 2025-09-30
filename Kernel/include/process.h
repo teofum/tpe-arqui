@@ -3,6 +3,7 @@
 
 #include <pqueue.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /*
  * Support up to 4096 processes
@@ -10,7 +11,7 @@
 #define MAX_PID 0xfff
 #define IDLE_PID 0
 
-typedef int (*proc_entrypoint_t)();
+typedef int (*proc_entrypoint_t)(uint64_t argc, const char **argv);
 
 typedef enum {
   PROC_STATE_RUNNING = 0,
@@ -55,7 +56,9 @@ void proc_block();
 /*
  * Spawn a process. Returns the PID of the new process.
  */
-pid_t proc_spawn(proc_entrypoint_t entry_point);
+pid_t proc_spawn(
+  proc_entrypoint_t entry_point, uint64_t argc, const char **argv
+);
 
 /*
  * Terminate the current process.

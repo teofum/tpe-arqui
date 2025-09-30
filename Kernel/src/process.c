@@ -26,13 +26,21 @@ static pid_t get_first_unused_pid() {
   return pid;
 }
 
-static void proc_start(proc_entrypoint_t entry_point) {
-  int ret = entry_point();
+static void
+proc_start(proc_entrypoint_t entry_point, uint64_t argc, const char **argv) {
+  int ret = entry_point(argc, argv);
   proc_exit(ret);
 }
 
-static void proc_initialize_process(pid_t pid, proc_entrypoint_t entry_point) {
+static void proc_initialize_process(
+  pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, const char **argv
+) {
   proc_control_block_t *pcb = &proc_control_table[pid];
+
+  // Make a copy of argv so we don't give the spawned program a pointer to
+  // caller memory
+  const char **argv_copy = mem_alloc(argc * sizeof(const char *));
+  for (int i = 0; i < argc; i++) { argv_copy[i] = argv[i]; }
 
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
@@ -54,8 +62,8 @@ static void proc_initialize_process(pid_t pid, proc_entrypoint_t entry_point) {
   process_stack[13] = 0;                    // RAX
   process_stack[12] = 0;                    // RBX
   process_stack[11] = 0;                    // RCX
-  process_stack[10] = 0;                    // RDX
-  process_stack[9] = 0;                     // RSI
+  process_stack[10] = (uint64_t) argv_copy; // RDX
+  process_stack[9] = argc;                  // RSI
   process_stack[8] = (uint64_t) entry_point;// RDI
   process_stack[7] = 0;                     // R8
   process_stack[6] = 0;                     // R9
@@ -79,7 +87,8 @@ void proc_init(proc_entrypoint_t entry_point) {
   /*
    * Initialize the idle process, but don't run it
    */
-  proc_initialize_process(IDLE_PID, proc_idle);
+  const char *idle_argv[1] = {"idle"};
+  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv);
 
   /*
    * Initialize and start the init process. We "bootstrap" the process
@@ -111,10 +120,12 @@ void proc_block() {
   proc_yield();
 }
 
-pid_t proc_spawn(proc_entrypoint_t entry_point) {
+pid_t proc_spawn(
+  proc_entrypoint_t entry_point, uint64_t argc, const char **argv
+) {
   pid_t new_pid = get_first_unused_pid();
 
-  proc_initialize_process(new_pid, entry_point);
+  proc_initialize_process(new_pid, entry_point, argc, argv);
   scheduler_enqueue(new_pid);
   proc_yield();
 

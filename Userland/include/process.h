@@ -10,12 +10,14 @@
 #define MAX_PID 0xfff
 
 typedef int16_t pid_t;
-typedef int (*proc_entrypoint_t)();
+typedef int (*proc_entrypoint_t)(uint64_t argc, const char **argv);
 
 /*
  * Spawn a process.
  */
-pid_t proc_spawn(proc_entrypoint_t entry_point);
+pid_t proc_spawn(
+  proc_entrypoint_t entry_point, uint64_t argc, const char **argv
+);
 
 /*
  * Terminate the current process.
