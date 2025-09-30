@@ -37,9 +37,9 @@ static uint8_t get_order(size_t size) {
   return order;
 }
 
-static int in_bounds(mem_manager_t mgr, void *addr) {
-  return (uint8_t *) addr >= (uint8_t *) mgr->start &&
-         (uint8_t *) addr < (uint8_t *) mgr->start + mgr->size;
+static int in_bounds(mem_manager_t mgr, void *mem) {
+  return (uint8_t *) mem >= (uint8_t *) mgr->start &&
+         (uint8_t *) mem < (uint8_t *) mgr->start + mgr->size;
 }
 
 static void remove_block(block_t **head, block_t *block) {
