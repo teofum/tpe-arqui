@@ -3,6 +3,9 @@
 
 #include <kbd.h>
 #include <lib.h>
+#include <pqueue.h>
+#include <process.h>
+#include <scheduler.h>
 
 #define scancode_to_key(x) ((x) & 0x7f)
 #define is_release(x) ((x) & 0x80)
@@ -82,8 +85,10 @@ static uint8_t kbd_extended = 0;
 
 static kbd_event_type_t kbd_eventmask = KBD_EV_PRESS;
 
+static pqueue_t kbd_pqueue;
+
 static int kbd_key2ascii[128] = {
-  -1,  0x1B, '1',  '2', '3',  '4', '5', '6',  '7', '8', '9', '0', '-',
+  0,   0x1B, '1',  '2', '3',  '4', '5', '6',  '7', '8', '9', '0', '-',
   '=', '\b', '\t', 'q', 'w',  'e', 'r', 't',  'y', 'u', 'i', 'o', 'p',
   '[', ']',  '\n', 0,   'a',  's', 'd', 'f',  'g', 'h', 'j', 'k', 'l',
   ';', '\'', '`',  0,   '\\', 'z', 'x', 'c',  'v', 'b', 'n', 'm', ',',
@@ -96,7 +101,7 @@ static int kbd_key2ascii[128] = {
 };
 
 static int kbd_key2ascii_shift[128] = {
-  -1,  0x1B, '!',  '@', '#', '$', '%', '^',  '&', '*', '(', ')', '_',
+  0,   0x1B, '!',  '@', '#', '$', '%', '^',  '&', '*', '(', ')', '_',
   '+', '\b', '\t', 'Q', 'W', 'E', 'R', 'T',  'Y', 'U', 'I', 'O', 'P',
   '{', '}',  '\n', 0,   'A', 'S', 'D', 'F',  'G', 'H', 'J', 'K', 'L',
   ':', '"',  '~',  0,   '|', 'Z', 'X', 'C',  'V', 'B', 'N', 'M', '<',
@@ -211,9 +216,11 @@ static uint8_t get_extended_key(uint8_t key) {
   }
 }
 
+void kbd_init() { kbd_pqueue = pqueue_create(); }
+
 /*
  * Called by keyboard interrupt handler.
- * Adds a scancode to the buffer, discarding oldest events fi we run out of
+ * Adds a scancode to the buffer, discarding oldest events if we run out of
  * space.
  */
 void kbd_add_key_event(uint8_t sc) {
@@ -222,6 +229,19 @@ void kbd_add_key_event(uint8_t sc) {
 
   // If we ran into the start of the queue, get rid of the older events
   if (kbd_buffer.write_pos == kbd_buffer.read_pos) next(kbd_buffer.read_pos);
+
+  // Unblock a process
+  // TODO: should we actually unblock everyone??
+  while (!pqueue_empty(kbd_pqueue)) {
+    pid_t waiting_pid = pqueue_dequeue(kbd_pqueue);
+
+    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
+    waiting_pcb->state = PROC_STATE_RUNNING;
+
+    scheduler_enqueue(waiting_pid);
+  }
+  proc_yield();
+
   return;
 }
 
@@ -279,10 +299,14 @@ static inline int kbd_next_event(kbd_event_t *ev) {
   return handle;
 }
 
-void kbd_poll_events() {
+uint64_t kbd_poll_events() {
   memcpy(kbd_last_state, kbd_state, sizeof(kbd_state));
 
-  while (kbd_buffer.read_pos != kbd_buffer.write_pos) { kbd_next_event(NULL); }
+  uint64_t e;
+  while (kbd_buffer.read_pos != kbd_buffer.write_pos) {
+    if (kbd_next_event(NULL)) e++;
+  }
+  return e;
 }
 
 int kbd_keydown(uint8_t key) { return get_key_state(kbd_state, key); }
@@ -299,6 +323,13 @@ kbd_event_t kbd_get_key_event() {
   kbd_event_t event = {0};
   event.key = 0;
 
+  // Buffer empty, block this process
+  if (kbd_buffer.read_pos == kbd_buffer.write_pos) {
+    pqueue_enqueue(kbd_pqueue, proc_running_pid);
+    proc_block();
+  }
+
+  // Read the next event
   while (kbd_buffer.read_pos != kbd_buffer.write_pos) {
     if (kbd_next_event(&event)) return event;
   }
@@ -308,6 +339,9 @@ kbd_event_t kbd_get_key_event() {
 
 int kbd_getchar() {
   kbd_event_t ev = kbd_get_key_event();
+
+  // Return EOF on ctrl+D
+  if ((ev.ctrl || ev.ctrl_r) && ev.key == KEY_D) return KBD_EOF;
 
   int is_shifted = ev.shift || ev.shift_r || ev.capslock;
   return is_shifted ? kbd_key2ascii_shift[ev.key] : kbd_key2ascii[ev.key];

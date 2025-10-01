@@ -3,11 +3,15 @@
 #include <io.h>
 #include <mem.h>
 #include <print.h>
+#include <process.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
+
+#define SHELL_VERSION "1.0.0"
 
 #define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
@@ -16,21 +20,28 @@ extern const char *mascot;
 
 typedef enum {
   RET_EXIT = -1,
-  RET_UNKNOWN_CMD = -255,
 } retcode_t;
 
 typedef struct {
   const char *cmd;
   const char *desc;
-  int (*entryPoint)(const char *args);
-} command_t;
+  proc_entrypoint_t entry_point;
+} program_t;
 
-char command_history[HISTORY_SIZE][CMD_BUF_LEN];
-uint32_t history_pointer = 0;
-uint32_t prompt_length = 2;
+typedef struct {
+  uint64_t argc;
+  char *const *argv;
+} args_t;
 
-static int echo(const char *args) {
-  printf("%s\n", args != NULL ? args : "");
+static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
+static uint32_t history_pointer = 0;
+static uint32_t prompt_length = 2;
+
+static int echo(uint64_t argc, char *const *argv) {
+  if (argc > 1) {
+    for (size_t i = 1; i < argc; i++) { printf("%s ", argv[i]); }
+    write("\n", 1);
+  }
 
   return 0;
 }
@@ -60,21 +71,27 @@ font_entry_t fonts[] = {
 };
 size_t n_fonts = sizeof(fonts) / sizeof(font_entry_t);
 
-static int setfont(const char *name) {
-  if (name == NULL) {
-    printf(
-      COL_RED "Missing font name\n" COL_RESET "Usage: setfont <font name>\n"
-              "Hint: Type " COL_YELLOW "'setfont ls'" COL_RESET
-              " for a list of fonts\n"
-    );
+static int setfont(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
+    printf(COL_RED "Missing font name\n" COL_RESET
+                   "Usage: setfont <font name>\n"
+                   "Hint: Type " COL_YELLOW "'setfont ls'" COL_RESET
+                   " for a list of fonts\n");
     return 1;
   }
 
-  if (strcmp(name, "ls") == 0) {
+  if (strcmp(argv[1], "ls") == 0) {
     for (int i = 0; i < n_fonts; i++) {
       printf(COL_BLUE "%s\n", fonts[i].name);
     }
     return 0;
+  }
+
+  char name[CMD_BUF_LEN];
+  char *w = name;
+  for (size_t i = 1; i < argc; i++) {
+    w += sprintf(w, "%s", argv[i]);
+    if (i < argc - 1) w += sprintf(w, " ");
   }
 
   for (int i = 0; i < n_fonts; i++) {
@@ -100,17 +117,17 @@ static int history() {
   return 0;
 }
 
-static int status(const char *param) {
-  if (param == NULL) {
+static int status(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
     printf("Usage: status <on/off>\n");
     return 1;
   }
 
-  if (!strcmp(param, "off")) {
+  if (!strcmp(argv[1], "off")) {
     status_set_enabled(0);
     io_clear();
     return 0;
-  } else if (!strcmp(param, "on")) {
+  } else if (!strcmp(argv[1], "on")) {
     status_set_enabled(1);
     io_clear();
     return 0;
@@ -118,7 +135,7 @@ static int status(const char *param) {
 
   printf(
     COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on|off>\n",
-    param
+    argv[1]
   );
 
   return 2;
@@ -127,19 +144,25 @@ static int status(const char *param) {
 extern void _throw_00();
 extern void _throw_06();
 extern void _regdump_test();
-int exception_test(const char *param) {
-  if (!strcmp(param, "0")) {
+int exception_test(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
+    printf("Usage: except <0|6|test_regdump>\n");
+    return 1;
+  }
+
+  if (!strcmp(argv[1], "0")) {
     _throw_00();
-  } else if (!strcmp(param, "6")) {
+  } else if (!strcmp(argv[1], "6")) {
     _throw_06();
-  } else if (!strcmp(param, "test_regdump")) {
+  } else if (!strcmp(argv[1], "test_regdump")) {
     _regdump_test();
   } else {
     printf(
       COL_RED "Invalid exception type '%s'\n" COL_RESET
               "Usage: except <0|6|test_regdump>\n",
-      param
+      argv[1]
     );
+    return 1;
   }
 
   return 0;
@@ -192,7 +215,7 @@ static int test_free() {
 }
 
 static int help();
-command_t commands[] = {
+program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
   {"exit", "Exit the shell and return to kernel", exit},
@@ -210,13 +233,10 @@ command_t commands[] = {
   {"test_alloc", "Test alloc syscall", test_alloc},
   {"test_free", "Test free/check syscalls", test_free},
 };
-size_t n_commands = sizeof(commands) / sizeof(command_t);
+size_t n_commands = sizeof(commands) / sizeof(program_t);
 
 static int help() {
-  printf(
-    "Welcome to " COL_GREEN "carpinchOS" COL_RESET "!\n"
-    "Available commands:\n\n"
-  );
+  printf("Available commands:\n\n");
 
   for (int i = 0; i < n_commands; i++) {
     printf(
@@ -224,81 +244,76 @@ static int help() {
     );
   }
 
-  printf(
-    "\nPress the " COL_YELLOW "F1" COL_RESET " key any time to dump CPU state\n"
-  );
+  printf("\nPress the " COL_YELLOW "F1" COL_RESET
+         " key any time to dump CPU state\n");
   return 0;
 }
 
-static void write_prompt() { printf("> "); }
+static void write_prompt() { printf("$ "); }
 
 static void read_command(char *cmd) {
   int input_end = 0;
   uint32_t local_history_pointer = history_pointer;
   uint32_t write_pos = 0, back = 0;
-  char temp[CMD_BUF_LEN];
+  char temp[4];// Buffer big enough for multi char escape sequences
 
   while (!input_end) {
     // Wait for input on stdin
-    int len;
-    do { len = read(temp, CMD_BUF_LEN); } while (!len);
+    read(temp, 1);
 
     // Iterate the input and add to internal buffer, handling special characters
-    char c;
-    for (uint32_t read = 0; read < len; read++) {
-      c = temp[read];
-
-      if (c == '\n') {
-        // Newline: end input
-        input_end = 1;
-        break;
-      } else if (c == '\b') {
-        // Backspace: delete last char from buffer
-        if (write_pos > 0) write_pos--;
-        cmd[write_pos] = 0;
-      } else if (c == '\x1B') {
-        // Escape char: handle escape sequences
-        read += 2;     // All existing escape sequences are of the form "\x1B[X"
-        c = temp[read];// Third character is the one we care about
-        switch (c) {
-          case 'A':
-            // Up arrow
-            if (local_history_pointer > 0) {
-              char *last = command_history[--local_history_pointer];
-              write_pos = strcpy(cmd, last);
-            }
-            break;
-          case 'B':
-            // Down arrow
-            if (local_history_pointer < history_pointer - 1) {
-              char *last = command_history[++local_history_pointer];
-              write_pos = strcpy(cmd, last);
-            }
-            break;
-          case 'C':
-            // Right
-            if (back > 0) {
-              write_pos++;
-              back--;
-            }
-            break;
-          case 'D':
-            // Left
-            if (write_pos > 0) {
-              write_pos--;
-              back++;
-            }
-            break;
-        }
-      } else if (write_pos < CMD_BUF_LEN - 1) {
-        // For any other char just add to internal buffer and advance write pointer
-        // If we reached the end of the buffer, ignore any further input
-        cmd[write_pos++] = c;
-        if (back > 0) back--;
-
-        // Make sure the command string is null-terminated
-        cmd[write_pos + back] = 0;
+    char c = temp[0];
+    if (c == '\n') {
+      // Newline: end input
+      input_end = 1;
+      break;
+    } else if (c == '\b') {
+      // Backspace: delete last char from buffer
+      if (write_pos > 0) write_pos--;
+      cmd[write_pos] = 0;
+    } else if (c == '\x1B') {
+      // Escape char: handle escape sequences
+      // All existing escape sequences are of the form "\x1B[X"
+      // Third character is the one we care about
+      c = temp[2];
+      switch (c) {
+        case 'A':
+          // Up arrow
+          if (local_history_pointer > 0) {
+            char *last = command_history[--local_history_pointer];
+            write_pos = strcpy(cmd, last);
+          }
+          break;
+        case 'B':
+          // Down arrow
+          if (local_history_pointer < history_pointer - 1) {
+            char *last = command_history[++local_history_pointer];
+            write_pos = strcpy(cmd, last);
+          }
+          break;
+        case 'C':
+          // Right
+          if (back > 0) {
+            write_pos++;
+            back--;
+          }
+          break;
+        case 'D':
+          // Left
+          if (write_pos > 0) {
+            write_pos--;
+            back++;
+          }
+          break;
       }
+    } else if (write_pos < CMD_BUF_LEN - 1) {
+      // For any other char just add to internal buffer and advance write pointer
+      // If we reached the end of the buffer, ignore any further input
+      cmd[write_pos++] = c;
+      if (back > 0) back--;
+
+      // Make sure the command string is null-terminated
+      cmd[write_pos + back] = 0;
     }
 
     // Reset the cursor position and print the command so far to stdout
@@ -329,41 +344,79 @@ static void read_command(char *cmd) {
   }
 }
 
-static int run_command(const char *cmd) {
-  char cmd_name[CMD_BUF_LEN];
-  cmd = strsplit(cmd_name, cmd, ' ');
+static program_t *find_program(const char *cmd_name) {
+  for (int i = 0; i < n_commands; i++)
+    if (strcmp(cmd_name, commands[i].cmd) == 0) return &commands[i];
 
-  if (cmd_name[0] == 0) return 0;
+  return NULL;
+}
 
-  // Linear search all commands. Not super efficient, but the number of
-  // commands is quite small so we don't need to worry too much.
-  int retcode = RET_UNKNOWN_CMD;
-  for (int i = 0; i < n_commands; i++) {
-    if (strcmp(cmd_name, commands[i].cmd) == 0) {
-      retcode = commands[i].entryPoint(cmd);
-      break;
-    }
+static args_t make_args(const char *cmd) {
+  uint64_t argc = 1;
+
+  for (size_t i = 0; cmd[i] != 0; i++) {
+    if (cmd[i] == ' ') argc++;
   }
-  if (retcode == RET_UNKNOWN_CMD) {
+
+  char **argv = mem_alloc(argc * sizeof(char *));
+  size_t i = 0;
+  while (cmd) {
+    argv[i] = mem_alloc(CMD_BUF_LEN);
+    cmd = strsplit(argv[i++], cmd, ' ');
+  }
+
+  return (args_t) {
+    .argc = argc,
+    .argv = argv,
+  };
+}
+
+static void free_args(args_t *args) {
+  for (size_t i = 0; i < args->argc; i++) mem_free(args->argv[i]);
+  mem_free((void *) args->argv);
+}
+
+static int run_command(const char *cmd) {
+  char program_name[CMD_BUF_LEN];
+  strsplit(program_name, cmd, ' ');
+
+  if (program_name[0] == 0) return 0;
+
+  program_t *program = find_program(program_name);
+  if (!program) {
     printf(
       COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
-      cmd_name
+      program_name
     );
-  } else if (retcode == RET_EXIT) {
+
+    return 0;
+  }
+
+  char *const *argv;
+  args_t args = make_args(cmd);
+
+  pid_t pid = proc_spawn(program->entry_point, args.argc, args.argv);
+  int return_value = proc_wait(pid);
+
+  free_args(&args);
+
+  if (return_value == RET_EXIT) {
     return 1;
-  } else if (retcode != 0) {
-    prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", retcode);
+  } else if (return_value != 0) {
+    prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", return_value);
   } else {
     prompt_length = 2;
   }
 
-
   return 0;
 }
 
-int start_shell() {
+int cash() {
   char cmd_buf[CMD_BUF_LEN];
+
+  printf("Welcome to " COL_GREEN "carpinchOS\n");
+  printf("cash v" SHELL_VERSION " | " COL_GREEN "Capybara Shell\n");
 
   // Run the shell
   int exit = 0;
