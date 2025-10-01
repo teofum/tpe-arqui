@@ -7,6 +7,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+// TODO move this somewhere else
+#define lengthof(x) (sizeof((x)) / sizeof((x)[0]))
+
 #define SST
 
 char *v = (char *) 0xB8000 + 79 * 2;
@@ -63,7 +66,9 @@ int main() {
   writes(mascot);
   writes("\n\n\x1A R;Welcome to \x1A 195,248,132;carpinchOS\x1A R;!\n");
 
-  start_shell();
+  const char *shell_args[] = {"cash"};
+  pid_t shell_pid = proc_spawn(start_shell, lengthof(shell_args), shell_args);
+  proc_wait(shell_pid);
 
   return 0xDEADBEEF;
 }
