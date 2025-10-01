@@ -12,8 +12,6 @@
 
 #define SST
 
-char *v = (char *) 0xB8000 + 79 * 2;
-
 const char *mascot =
   "\x1A 187,111,68;"
   "                     .%-%@.                                         \n"
