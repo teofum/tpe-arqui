@@ -1,12 +1,11 @@
-#include "pqueue.h"
-#include "types.h"
 #include <lib.h>
 #include <mem.h>
+#include <pqueue.h>
 #include <process.h>
 #include <scheduler.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <types.h>
 
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
 
