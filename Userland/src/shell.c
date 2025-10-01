@@ -9,6 +9,7 @@
 #include <status.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <strings.h>
 
 #define CMD_BUF_LEN 64
@@ -208,8 +209,7 @@ program_t commands[] = {
 size_t n_commands = sizeof(commands) / sizeof(program_t);
 
 static int help() {
-  printf("Welcome to " COL_GREEN "carpinchOS" COL_RESET "!\n"
-         "Available commands:\n\n");
+  printf("Available commands:\n\n");
 
   for (int i = 0; i < n_commands; i++) {
     printf(
@@ -222,7 +222,7 @@ static int help() {
   return 0;
 }
 
-static void write_prompt() { printf("> "); }
+static void write_prompt() { printf("$ "); }
 
 static void read_command(char *cmd) {
   int input_end = 0;
@@ -387,6 +387,9 @@ static int run_command(const char *cmd) {
 
 int cash() {
   char cmd_buf[CMD_BUF_LEN];
+
+  printf("Welcome to " COL_GREEN "carpinchOS\n");
+  printf("cash v1.0.0 | " COL_GREEN "Capybara Shell\n");
 
   // Run the shell
   int exit = 0;

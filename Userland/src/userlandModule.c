@@ -62,7 +62,7 @@ int main() {
 
   io_clear();
   writes(mascot);
-  writes("\n\n\x1A R;Welcome to \x1A 195,248,132;carpinchOS\x1A R;!\n");
+  writes("\n\n");
 
   char *shell_args[] = {"cash"};
   pid_t shell_pid = proc_spawn(cash, lengthof(shell_args), shell_args);
