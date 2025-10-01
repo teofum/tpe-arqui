@@ -77,7 +77,10 @@ static void proc_initialize_process(
 }
 
 static int proc_idle() {
-  while (1) _hlt();
+  while (1) {
+    scheduler_force_next = 1;
+    _hlt();
+  }
 
   // Never returns
 }
