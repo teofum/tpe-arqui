@@ -154,38 +154,20 @@ _irq_00_handler:
 
 global _irq_01_handler
 extern kbd_add_key_event
-extern _regdump
 _irq_01_handler:
-  cli
-  push rax     ; Preserve RAX value for statedump
+  push_state
+
+  mov al, 0x20
+  out 0x20, al
 
   mov rax, 0
   in  al, 0x60
 
-  ; Signal PIC EOI (End of Interrupt)
-  push rax
-  mov al, 0x20
-  out 0x20, al
-  pop rax
-
-  cmp al, 0x3B ; if F1 is pressed, dump registers
-  jne .keyEvent
-
-  pop rax
-  call _regdump
-  jmp .exit
-
-.keyEvent:
-  pushall
-
   mov rdi, rax
   call kbd_add_key_event
 
-  popall
-  pop rax
+  pop_state
 
-.exit:
-  sti
   iretq
 
 ;------------------------------------------------------------------------------

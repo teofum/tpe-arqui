@@ -181,9 +181,10 @@ typedef struct {
 void kbd_init();
 
 /*
- * Consumes all events (scancodes) in queue and updates keyboard state
+ * Consumes all events (scancodes) in queue and updates keyboard state.
+ * Returns the number of events consumed.
  */
-void kbd_poll_events();
+uint64_t kbd_poll_events();
 
 /*
  * Returns 1 if key is pressed, 0 if not.

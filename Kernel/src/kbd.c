@@ -220,7 +220,7 @@ void kbd_init() { kbd_pqueue = pqueue_create(); }
 
 /*
  * Called by keyboard interrupt handler.
- * Adds a scancode to the buffer, discarding oldest events fi we run out of
+ * Adds a scancode to the buffer, discarding oldest events if we run out of
  * space.
  */
 void kbd_add_key_event(uint8_t sc) {
@@ -239,8 +239,8 @@ void kbd_add_key_event(uint8_t sc) {
     waiting_pcb->state = PROC_STATE_RUNNING;
 
     scheduler_enqueue(waiting_pid);
-    proc_yield();
   }
+  proc_yield();
 
   return;
 }
@@ -299,10 +299,14 @@ static inline int kbd_next_event(kbd_event_t *ev) {
   return handle;
 }
 
-void kbd_poll_events() {
+uint64_t kbd_poll_events() {
   memcpy(kbd_last_state, kbd_state, sizeof(kbd_state));
 
-  while (kbd_buffer.read_pos != kbd_buffer.write_pos) { kbd_next_event(NULL); }
+  uint64_t e;
+  while (kbd_buffer.read_pos != kbd_buffer.write_pos) {
+    if (kbd_next_event(NULL)) e++;
+  }
+  return e;
 }
 
 int kbd_keydown(uint8_t key) { return get_key_state(kbd_state, key); }

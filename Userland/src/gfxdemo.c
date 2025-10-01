@@ -13,8 +13,7 @@ int gfxdemo() {
   uint64_t frametime = 0, ticks_total = time();
   uint8_t green = 0;
   int d = 1;
-  int key = 0;
-  while (!key) {
+  while (1) {
     vga_clear(0x00000080 | (green << 8));
 
     green += d;
@@ -90,7 +89,8 @@ int gfxdemo() {
 
     vga_present();
 
-    key = kbd_get_key_event().key;
+    kbd_get_key_event();
+    // if (kbd_poll_events()) break;
     frametime = time() - ticks_total;
     ticks_total += frametime;
   }
