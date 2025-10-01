@@ -11,7 +11,7 @@
 #define MAX_PID 0xfff
 #define IDLE_PID 0
 
-typedef int (*proc_entrypoint_t)(uint64_t argc, const char **argv);
+typedef int (*proc_entrypoint_t)(uint64_t argc, char *const *argv);
 
 typedef enum {
   PROC_STATE_RUNNING = 0,
@@ -57,7 +57,7 @@ void proc_block();
  * Spawn a process. Returns the PID of the new process.
  */
 pid_t proc_spawn(
-  proc_entrypoint_t entry_point, uint64_t argc, const char **argv
+  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv
 );
 
 /*

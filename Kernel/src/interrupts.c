@@ -101,7 +101,7 @@ void load_idt() {
   // IRQ 0: Timer tick
   setup_idt_entry(ID_TIMER_TICK, (uint64_t) &_irq_00_handler);
 
-  // IRQ 1: Teclado (comentado por ahora)
+  // IRQ 1: Keyboard
   setup_idt_entry(ID_KEYBOARD, (uint64_t) &_irq_01_handler);
 
   // Syscalls
@@ -133,12 +133,10 @@ uint64_t irq_timer_handler(uint64_t running_process_rsp) {
   return proc_control_table[proc_running_pid].rsp;
 }
 
-/* Registra una syscall */
 static void register_syscall(uint64_t id, void *syscall) {
   syscall_dispatch_table[id] = syscall;
 }
 
-/* Inicializa la tabla de syscalls */
 void init_syscalls() {
   /* Virtual terminal I/O */
   register_syscall(0x03, io_read);
@@ -216,13 +214,11 @@ void init_syscalls() {
   register_syscall(0xAF, gfx_present);
 }
 
-// Información de excepción
 typedef struct {
   const char *name;
   const char *description;
 } exception_info_t;
 
-// Tabla de información de excepciones - índice directo por ID
 static const exception_info_t exception_table[MAX_EXCEPTIONS] = {
   [0x00] = {"Division by Zero", "Attempt to divide by zero"},
   [0x06] = {"Invalid Opcode", "Illegal or undefined instruction"}

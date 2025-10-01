@@ -26,19 +26,19 @@ static pid_t get_first_unused_pid() {
 }
 
 static void
-proc_start(proc_entrypoint_t entry_point, uint64_t argc, const char **argv) {
+proc_start(proc_entrypoint_t entry_point, uint64_t argc, char *const *argv) {
   int ret = entry_point(argc, argv);
   proc_exit(ret);
 }
 
 static void proc_initialize_process(
-  pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, const char **argv
+  pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, char *const *argv
 ) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
   // Make a copy of argv so we don't give the spawned program a pointer to
   // caller memory
-  const char **argv_copy = mem_alloc(argc * sizeof(const char *));
+  char **argv_copy = mem_alloc(argc * sizeof(const char *));
   for (int i = 0; i < argc; i++) { argv_copy[i] = argv[i]; }
 
   pcb->stack = mem_alloc(STACK_SIZE);
@@ -77,7 +77,10 @@ static void proc_initialize_process(
 }
 
 static int proc_idle() {
-  while (1) _hlt();
+  while (1) {
+    scheduler_force_next = 1;
+    _hlt();
+  }
 
   // Never returns
 }
@@ -86,7 +89,7 @@ void proc_init(proc_entrypoint_t entry_point) {
   /*
    * Initialize the idle process, but don't run it
    */
-  const char *idle_argv[1] = {"idle"};
+  char *const idle_argv[1] = {"idle"};
   proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv);
 
   /*
@@ -120,7 +123,7 @@ void proc_block() {
 }
 
 pid_t proc_spawn(
-  proc_entrypoint_t entry_point, uint64_t argc, const char **argv
+  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv
 ) {
   pid_t new_pid = get_first_unused_pid();
 

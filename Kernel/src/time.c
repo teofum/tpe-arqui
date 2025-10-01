@@ -34,7 +34,8 @@ void timer_handler() {
     scheduler_force_next = 0;
 
     proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
-    if (pcb->state == PROC_STATE_RUNNING) scheduler_enqueue(proc_running_pid);
+    if (proc_running_pid != IDLE_PID && pcb->state == PROC_STATE_RUNNING)
+      scheduler_enqueue(proc_running_pid);
 
     scheduler_next();
   }
