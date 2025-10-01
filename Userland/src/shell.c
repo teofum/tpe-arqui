@@ -9,8 +9,9 @@
 #include <status.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <strings.h>
+
+#define SHELL_VERSION "1.0.0"
 
 #define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
@@ -389,7 +390,7 @@ int cash() {
   char cmd_buf[CMD_BUF_LEN];
 
   printf("Welcome to " COL_GREEN "carpinchOS\n");
-  printf("cash v1.0.0 | " COL_GREEN "Capybara Shell\n");
+  printf("cash v" SHELL_VERSION " | " COL_GREEN "Capybara Shell\n");
 
   // Run the shell
   int exit = 0;
