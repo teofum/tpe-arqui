@@ -62,11 +62,10 @@ size_t n_fonts = sizeof(fonts) / sizeof(font_entry_t);
 
 static int setfont(const char *name) {
   if (name == NULL) {
-    printf(
-      COL_RED "Missing font name\n" COL_RESET "Usage: setfont <font name>\n"
-              "Hint: Type " COL_YELLOW "'setfont ls'" COL_RESET
-              " for a list of fonts\n"
-    );
+    printf(COL_RED "Missing font name\n" COL_RESET
+                   "Usage: setfont <font name>\n"
+                   "Hint: Type " COL_YELLOW "'setfont ls'" COL_RESET
+                   " for a list of fonts\n");
     return 1;
   }
 
@@ -187,10 +186,8 @@ command_t commands[] = {
 size_t n_commands = sizeof(commands) / sizeof(command_t);
 
 static int help() {
-  printf(
-    "Welcome to " COL_GREEN "carpinchOS" COL_RESET "!\n"
-    "Available commands:\n\n"
-  );
+  printf("Welcome to " COL_GREEN "carpinchOS" COL_RESET "!\n"
+         "Available commands:\n\n");
 
   for (int i = 0; i < n_commands; i++) {
     printf(
@@ -198,9 +195,8 @@ static int help() {
     );
   }
 
-  printf(
-    "\nPress the " COL_YELLOW "F1" COL_RESET " key any time to dump CPU state\n"
-  );
+  printf("\nPress the " COL_YELLOW "F1" COL_RESET
+         " key any time to dump CPU state\n");
   return 0;
 }
 
@@ -210,69 +206,65 @@ static void read_command(char *cmd) {
   int input_end = 0;
   uint32_t local_history_pointer = history_pointer;
   uint32_t write_pos = 0, back = 0;
-  char temp[CMD_BUF_LEN];
+  char temp[4];
 
   while (!input_end) {
     // Wait for input on stdin
-    int len;
-    do { len = read(temp, CMD_BUF_LEN); } while (!len);
+    read(temp, 1);
 
     // Iterate the input and add to internal buffer, handling special characters
-    char c;
-    for (uint32_t read = 0; read < len; read++) {
-      c = temp[read];
-
-      if (c == '\n') {
-        // Newline: end input
-        input_end = 1;
-        break;
-      } else if (c == '\b') {
-        // Backspace: delete last char from buffer
-        if (write_pos > 0) write_pos--;
-        cmd[write_pos] = 0;
-      } else if (c == '\x1B') {
-        // Escape char: handle escape sequences
-        read += 2;     // All existing escape sequences are of the form "\x1B[X"
-        c = temp[read];// Third character is the one we care about
-        switch (c) {
-          case 'A':
-            // Up arrow
-            if (local_history_pointer > 0) {
-              char *last = command_history[--local_history_pointer];
-              write_pos = strcpy(cmd, last);
-            }
-            break;
-          case 'B':
-            // Down arrow
-            if (local_history_pointer < history_pointer - 1) {
-              char *last = command_history[++local_history_pointer];
-              write_pos = strcpy(cmd, last);
-            }
-            break;
-          case 'C':
-            // Right
-            if (back > 0) {
-              write_pos++;
-              back--;
-            }
-            break;
-          case 'D':
-            // Left
-            if (write_pos > 0) {
-              write_pos--;
-              back++;
-            }
-            break;
-        }
-      } else if (write_pos < CMD_BUF_LEN - 1) {
-        // For any other char just add to internal buffer and advance write pointer
-        // If we reached the end of the buffer, ignore any further input
-        cmd[write_pos++] = c;
-        if (back > 0) back--;
-
-        // Make sure the command string is null-terminated
-        cmd[write_pos + back] = 0;
+    char c = temp[0];
+    if (c == '\n') {
+      // Newline: end input
+      input_end = 1;
+      break;
+    } else if (c == '\b') {
+      // Backspace: delete last char from buffer
+      if (write_pos > 0) write_pos--;
+      cmd[write_pos] = 0;
+    } else if (c == '\x1B') {
+      // Escape char: handle escape sequences
+      // All existing escape sequences are of the form "\x1B[X"
+      // Third character is the one we care about
+      c = temp[2];
+      switch (c) {
+        case 'A':
+          // Up arrow
+          if (local_history_pointer > 0) {
+            char *last = command_history[--local_history_pointer];
+            write_pos = strcpy(cmd, last);
+          }
+          break;
+        case 'B':
+          // Down arrow
+          if (local_history_pointer < history_pointer - 1) {
+            char *last = command_history[++local_history_pointer];
+            write_pos = strcpy(cmd, last);
+          }
+          break;
+        case 'C':
+          // Right
+          if (back > 0) {
+            write_pos++;
+            back--;
+          }
+          break;
+        case 'D':
+          // Left
+          if (write_pos > 0) {
+            write_pos--;
+            back++;
+          }
+          break;
       }
+    } else if (write_pos < CMD_BUF_LEN - 1) {
+      // For any other char just add to internal buffer and advance write pointer
+      // If we reached the end of the buffer, ignore any further input
+      cmd[write_pos++] = c;
+      if (back > 0) back--;
+
+      // Make sure the command string is null-terminated
+      cmd[write_pos + back] = 0;
     }
 
     // Reset the cursor position and print the command so far to stdout
