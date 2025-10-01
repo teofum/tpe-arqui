@@ -67,7 +67,7 @@ int main() {
   writes("\n\n\x1A R;Welcome to \x1A 195,248,132;carpinchOS\x1A R;!\n");
 
   const char *shell_args[] = {"cash"};
-  pid_t shell_pid = proc_spawn(start_shell, lengthof(shell_args), shell_args);
+  pid_t shell_pid = proc_spawn(cash, lengthof(shell_args), shell_args);
   proc_wait(shell_pid);
 
   return 0xDEADBEEF;

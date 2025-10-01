@@ -328,7 +328,7 @@ static int run_command(const char *cmd) {
   return 0;
 }
 
-int start_shell() {
+int cash() {
   char cmd_buf[CMD_BUF_LEN];
 
   // Run the shell
