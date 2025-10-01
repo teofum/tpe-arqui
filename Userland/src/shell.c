@@ -7,6 +7,7 @@
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
 
@@ -25,12 +26,20 @@ typedef struct {
   proc_entrypoint_t entry_point;
 } program_t;
 
+typedef struct {
+  uint64_t argc;
+  char *const *argv;
+} args_t;
+
 static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
 static uint32_t history_pointer = 0;
 static uint32_t prompt_length = 2;
 
-static int echo(uint64_t argc, const char **argv) {
-  printf("%s\n", argc > 1 ? argv[1] : "");
+static int echo(uint64_t argc, char *const *argv) {
+  if (argc > 1) {
+    for (size_t i = 1; i < argc; i++) { printf("%s ", argv[i]); }
+    write("\n", 1);
+  }
 
   return 0;
 }
@@ -60,7 +69,7 @@ font_entry_t fonts[] = {
 };
 size_t n_fonts = sizeof(fonts) / sizeof(font_entry_t);
 
-static int setfont(uint64_t argc, const char **argv) {
+static int setfont(uint64_t argc, char *const *argv) {
   if (argc < 2) {
     printf(COL_RED "Missing font name\n" COL_RESET
                    "Usage: setfont <font name>\n"
@@ -76,8 +85,15 @@ static int setfont(uint64_t argc, const char **argv) {
     return 0;
   }
 
+  char name[CMD_BUF_LEN];
+  char *w = name;
+  for (size_t i = 1; i < argc; i++) {
+    w += sprintf(w, "%s", argv[i]);
+    if (i < argc - 1) w += sprintf(w, " ");
+  }
+
   for (int i = 0; i < n_fonts; i++) {
-    if (strcmp(argv[1], fonts[i].name) == 0) {
+    if (strcmp(name, fonts[i].name) == 0) {
       io_setfont(fonts[i].id);
       return 0;
     }
@@ -86,7 +102,7 @@ static int setfont(uint64_t argc, const char **argv) {
   printf(
     COL_RED "Unknown font name '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
             "'setfont ls'" COL_RESET " for a list of fonts\n",
-    argv[1]
+    name
   );
 
   return 2;
@@ -99,7 +115,7 @@ static int history() {
   return 0;
 }
 
-static int status(uint64_t argc, const char **argv) {
+static int status(uint64_t argc, char *const *argv) {
   if (argc < 2) {
     printf("Usage: status <on/off>\n");
     return 1;
@@ -126,7 +142,7 @@ static int status(uint64_t argc, const char **argv) {
 extern void _throw_00();
 extern void _throw_06();
 extern void _regdump_test();
-int exception_test(uint64_t argc, const char **argv) {
+int exception_test(uint64_t argc, char *const *argv) {
   if (argc < 2) {
     printf("Usage: except <0|6|test_regdump>\n");
     return 1;
@@ -302,34 +318,61 @@ static void read_command(char *cmd) {
 }
 
 static program_t *find_program(const char *cmd_name) {
-  // Linear search all commands. Not super efficient, but the number of
-  // commands is quite small so we don't need to worry too much.
   for (int i = 0; i < n_commands; i++)
     if (strcmp(cmd_name, commands[i].cmd) == 0) return &commands[i];
 
   return NULL;
 }
 
+static args_t make_args(const char *cmd) {
+  uint64_t argc = 1;
+
+  for (size_t i = 0; cmd[i] != 0; i++) {
+    if (cmd[i] == ' ') argc++;
+  }
+
+  char **argv = mem_alloc(argc * sizeof(char *));
+  size_t i = 0;
+  while (cmd) {
+    argv[i] = mem_alloc(CMD_BUF_LEN);
+    cmd = strsplit(argv[i++], cmd, ' ');
+  }
+
+  return (args_t) {
+    .argc = argc,
+    .argv = argv,
+  };
+}
+
+static void free_args(args_t *args) {
+  for (size_t i = 0; i < args->argc; i++) mem_free(args->argv[i]);
+  mem_free((void *) args->argv);
+}
+
 static int run_command(const char *cmd) {
-  char cmd_name[CMD_BUF_LEN];
-  cmd = strsplit(cmd_name, cmd, ' ');
+  char program_name[CMD_BUF_LEN];
+  strsplit(program_name, cmd, ' ');
 
-  if (cmd_name[0] == 0) return 0;
+  if (program_name[0] == 0) return 0;
 
-  program_t *program = find_program(cmd_name);
+  program_t *program = find_program(program_name);
   if (!program) {
     printf(
       COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
-      cmd_name
+      program_name
     );
 
     return 0;
   }
 
-  const char *argv[2] = {cmd_name, cmd};
-  pid_t pid = proc_spawn(program->entry_point, cmd == NULL ? 1 : 2, argv);
+  char *const *argv;
+  args_t args = make_args(cmd);
+
+  pid_t pid = proc_spawn(program->entry_point, args.argc, args.argv);
   int return_value = proc_wait(pid);
+
+  free_args(&args);
 
   if (return_value == RET_EXIT) {
     return 1;
