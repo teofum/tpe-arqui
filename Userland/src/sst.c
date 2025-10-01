@@ -1,10 +1,16 @@
 #include <mem.h>
 #include <print.h>
+#include <process.h>
 #include <shell.h>
 #include <sst.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <strings.h>
 
 #define TEST_PASS "[" COL_GREEN "PASS" COL_RESET "] "
 #define TEST_FAIL "[" COL_RED "FAIL" COL_RESET "] "
+
+#define lengthof(x) (sizeof((x)) / sizeof((x)[0]))
 
 /*
  * Test function, should take no arguments and return 0 on success, 1 on failure.
@@ -28,7 +34,7 @@ int test_sanity_check() {
  * code, and the returned address can be written to and read back from.
  */
 int test_mem_alloc() {
-  printf("    Memory allocation should return a valid address\n");
+  printf("    Memory allocation must return a valid address\n");
 
   void *mem = mem_alloc(1024);
   printf("    Got 1024 bytes at %#016lx\n", (size_t) mem);
@@ -60,7 +66,7 @@ int test_mem_alloc() {
  * Test the memory allocator gives exclusive access to memory
  */
 int test_mem_exclusive() {
-  printf("    Memory allocation should be exclusive\n");
+  printf("    Memory allocation must be exclusive\n");
 
   size_t size = 1024, last_size = 0;
   void *mem[4];
@@ -84,11 +90,80 @@ int test_mem_exclusive() {
   return 0;
 }
 
+/*
+ * Test a process spawns, exits and returns correctly
+ */
+static int dummy_process() { return 42; }
+int test_proc_spawn_wait() {
+  printf("    Process must start and exit successfully\n");
+
+  char *const argv[1] = {"test"};
+  pid_t pid = proc_spawn(dummy_process, 1, argv);
+  int return_code = proc_wait(pid);
+
+  printf("    Process with pid %u exited with code %u\n", pid, return_code);
+
+  if (return_code != 42) {
+    printf(COL_RED "    Bad return code: expected 42, got %u\n", return_code);
+    return 1;
+  }
+
+  return 0;
+}
+
+/*
+ * Test a process spawns, exits and returns correctly
+ */
+static int args_process(uint64_t argc, char *const *argv) {
+  printf("    Child: Received " COL_MAGENTA "%llu" COL_RESET " args (", argc);
+  for (uint64_t i = 0; i < argc; i++)
+    printf(
+      COL_MAGENTA "'%s'" COL_RESET "%s", argv[i], i == argc - 1 ? "" : ", "
+    );
+  printf(")\n");
+
+  if (argc != 3) {
+    printf(COL_RED "    Bad arg count: expected 3, got %llu\n", argc);
+    return 1;
+  }
+
+  if (strcmp(argv[0], "args_process") != 0) {
+    printf(
+      COL_RED "    Bad argv[0]: expected 'args_process', got '%s'\n", argv[0]
+    );
+    return 1;
+  }
+  if (strcmp(argv[1], "foo") != 0) {
+    printf(COL_RED "    Bad argv[1]: expected 'foo', got '%s'\n", argv[1]);
+    return 1;
+  }
+  if (strcmp(argv[2], "bar") != 0) {
+    printf(COL_RED "    Bad argv[2]: expected 'var', got '%s'\n", argv[2]);
+    return 1;
+  }
+
+  return 0;
+}
+int test_proc_args() {
+  printf("    Process must receive arguments as sent\n");
+
+  char *const argv[] = {"args_process", "foo", "bar"};
+  pid_t pid = proc_spawn(args_process, lengthof(argv), argv);
+  int return_code = proc_wait(pid);
+
+  printf("    Process with pid %u exited with code %u\n", pid, return_code);
+
+  return return_code;
+}
+
 /* ========================================================================= *
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {test_sanity_check, test_mem_alloc, test_mem_exclusive};
+test_fn_t tests[] = {
+  test_sanity_check, test_mem_alloc, test_mem_exclusive, test_proc_spawn_wait,
+  test_proc_args
+};
 
 int sst_run_tests() {
   int result = 0;
@@ -98,7 +173,9 @@ int sst_run_tests() {
   printf("[" COL_BLUE "SST" COL_RESET "] Running Startup Self-Test suite...\n");
 
   for (int i = 0; i < n_tests; i++) {
-    printf("[" COL_BLUE "SST" COL_RESET "] Test %u of %u\n", i + 1, n_tests);
+    printf(
+      "[" COL_BLUE "SST" COL_RESET "] Running test %u of %u\n", i + 1, n_tests
+    );
     int test_result = tests[i]();
 
     printf(
