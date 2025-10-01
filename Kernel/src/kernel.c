@@ -79,7 +79,7 @@ int main() {
   io_init();
 
   // Enable status bar
-  // status_set_enabled(1);  // Disabled for buddy allocator testing
+  status_set_enabled(1);
 
   // Initialize interrupts and syscalls
   init_syscalls();
