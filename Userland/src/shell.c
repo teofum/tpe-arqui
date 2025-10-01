@@ -17,18 +17,17 @@ extern const char *mascot;
 
 typedef enum {
   RET_EXIT = -1,
-  RET_UNKNOWN_CMD = -255,
 } retcode_t;
 
 typedef struct {
   const char *cmd;
   const char *desc;
   proc_entrypoint_t entry_point;
-} command_t;
+} program_t;
 
-char command_history[HISTORY_SIZE][CMD_BUF_LEN];
-uint32_t history_pointer = 0;
-uint32_t prompt_length = 2;
+static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
+static uint32_t history_pointer = 0;
+static uint32_t prompt_length = 2;
 
 static int echo(uint64_t argc, const char **argv) {
   printf("%s\n", argc > 1 ? argv[1] : "");
@@ -173,7 +172,7 @@ static int test_alloc() {
 }
 
 static int help();
-command_t commands[] = {
+program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
   {"exit", "Exit the shell and return to kernel", exit},
@@ -190,7 +189,7 @@ command_t commands[] = {
   {"capy", "Print our cute mascot", print_mascot},
   {"test_alloc", "Test alloc syscall", test_alloc},
 };
-size_t n_commands = sizeof(commands) / sizeof(command_t);
+size_t n_commands = sizeof(commands) / sizeof(program_t);
 
 static int help() {
   printf("Welcome to " COL_GREEN "carpinchOS" COL_RESET "!\n"
@@ -302,41 +301,43 @@ static void read_command(char *cmd) {
   }
 }
 
+static program_t *find_program(const char *cmd_name) {
+  // Linear search all commands. Not super efficient, but the number of
+  // commands is quite small so we don't need to worry too much.
+  for (int i = 0; i < n_commands; i++)
+    if (strcmp(cmd_name, commands[i].cmd) == 0) return &commands[i];
+
+  return NULL;
+}
+
 static int run_command(const char *cmd) {
   char cmd_name[CMD_BUF_LEN];
   cmd = strsplit(cmd_name, cmd, ' ');
 
   if (cmd_name[0] == 0) return 0;
 
-  // Linear search all commands. Not super efficient, but the number of
-  // commands is quite small so we don't need to worry too much.
-  int return_value = RET_UNKNOWN_CMD;
-  for (int i = 0; i < n_commands; i++) {
-    if (strcmp(cmd_name, commands[i].cmd) == 0) {
-      // TODO split args
-      const char *argv[2] = {cmd_name, cmd};
-      pid_t pid =
-        proc_spawn(commands[i].entry_point, cmd == NULL ? 1 : 2, argv);
-
-      return_value = proc_wait(pid);
-      break;
-    }
-  }
-
-  if (return_value == RET_UNKNOWN_CMD) {
+  program_t *program = find_program(cmd_name);
+  if (!program) {
     printf(
       COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
       cmd_name
     );
-  } else if (return_value == RET_EXIT) {
+
+    return 0;
+  }
+
+  const char *argv[2] = {cmd_name, cmd};
+  pid_t pid = proc_spawn(program->entry_point, cmd == NULL ? 1 : 2, argv);
+  int return_value = proc_wait(pid);
+
+  if (return_value == RET_EXIT) {
     return 1;
   } else if (return_value != 0) {
     prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", return_value);
   } else {
     prompt_length = 2;
   }
-
 
   return 0;
 }
