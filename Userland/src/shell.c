@@ -228,7 +228,7 @@ static void read_command(char *cmd) {
   int input_end = 0;
   uint32_t local_history_pointer = history_pointer;
   uint32_t write_pos = 0, back = 0;
-  char temp[4];
+  char temp[4];// Buffer big enough for multi char escape sequences
 
   while (!input_end) {
     // Wait for input on stdin
