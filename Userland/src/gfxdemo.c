@@ -89,8 +89,7 @@ int gfxdemo() {
 
     vga_present();
 
-    kbd_get_key_event();
-    // if (kbd_poll_events()) break;
+    if (kbd_poll_events()) break;
     frametime = time() - ticks_total;
     ticks_total += frametime;
   }
