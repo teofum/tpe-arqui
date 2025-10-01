@@ -3,6 +3,7 @@
 #include <io.h>
 #include <mem.h>
 #include <print.h>
+#include <process.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -22,15 +23,15 @@ typedef enum {
 typedef struct {
   const char *cmd;
   const char *desc;
-  int (*entryPoint)(const char *args);
+  proc_entrypoint_t entry_point;
 } command_t;
 
 char command_history[HISTORY_SIZE][CMD_BUF_LEN];
 uint32_t history_pointer = 0;
 uint32_t prompt_length = 2;
 
-static int echo(const char *args) {
-  printf("%s\n", args != NULL ? args : "");
+static int echo(uint64_t argc, const char **argv) {
+  printf("%s\n", argc > 1 ? argv[1] : "");
 
   return 0;
 }
@@ -60,8 +61,8 @@ font_entry_t fonts[] = {
 };
 size_t n_fonts = sizeof(fonts) / sizeof(font_entry_t);
 
-static int setfont(const char *name) {
-  if (name == NULL) {
+static int setfont(uint64_t argc, const char **argv) {
+  if (argc < 2) {
     printf(COL_RED "Missing font name\n" COL_RESET
                    "Usage: setfont <font name>\n"
                    "Hint: Type " COL_YELLOW "'setfont ls'" COL_RESET
@@ -69,7 +70,7 @@ static int setfont(const char *name) {
     return 1;
   }
 
-  if (strcmp(name, "ls") == 0) {
+  if (strcmp(argv[1], "ls") == 0) {
     for (int i = 0; i < n_fonts; i++) {
       printf(COL_BLUE "%s\n", fonts[i].name);
     }
@@ -77,7 +78,7 @@ static int setfont(const char *name) {
   }
 
   for (int i = 0; i < n_fonts; i++) {
-    if (strcmp(name, fonts[i].name) == 0) {
+    if (strcmp(argv[1], fonts[i].name) == 0) {
       io_setfont(fonts[i].id);
       return 0;
     }
@@ -86,7 +87,7 @@ static int setfont(const char *name) {
   printf(
     COL_RED "Unknown font name '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
             "'setfont ls'" COL_RESET " for a list of fonts\n",
-    name
+    argv[1]
   );
 
   return 2;
@@ -99,17 +100,17 @@ static int history() {
   return 0;
 }
 
-static int status(const char *param) {
-  if (param == NULL) {
+static int status(uint64_t argc, const char **argv) {
+  if (argc < 2) {
     printf("Usage: status <on/off>\n");
     return 1;
   }
 
-  if (!strcmp(param, "off")) {
+  if (!strcmp(argv[1], "off")) {
     status_set_enabled(0);
     io_clear();
     return 0;
-  } else if (!strcmp(param, "on")) {
+  } else if (!strcmp(argv[1], "on")) {
     status_set_enabled(1);
     io_clear();
     return 0;
@@ -117,7 +118,7 @@ static int status(const char *param) {
 
   printf(
     COL_RED "Invalid argument '%s'\n" COL_RESET "Usage: status <on|off>\n",
-    param
+    argv[1]
   );
 
   return 2;
@@ -126,19 +127,25 @@ static int status(const char *param) {
 extern void _throw_00();
 extern void _throw_06();
 extern void _regdump_test();
-int exception_test(const char *param) {
-  if (!strcmp(param, "0")) {
+int exception_test(uint64_t argc, const char **argv) {
+  if (argc < 2) {
+    printf("Usage: except <0|6|test_regdump>\n");
+    return 1;
+  }
+
+  if (!strcmp(argv[1], "0")) {
     _throw_00();
-  } else if (!strcmp(param, "6")) {
+  } else if (!strcmp(argv[1], "6")) {
     _throw_06();
-  } else if (!strcmp(param, "test_regdump")) {
+  } else if (!strcmp(argv[1], "test_regdump")) {
     _regdump_test();
   } else {
     printf(
       COL_RED "Invalid exception type '%s'\n" COL_RESET
               "Usage: except <0|6|test_regdump>\n",
-      param
+      argv[1]
     );
+    return 1;
   }
 
   return 0;
@@ -303,23 +310,29 @@ static int run_command(const char *cmd) {
 
   // Linear search all commands. Not super efficient, but the number of
   // commands is quite small so we don't need to worry too much.
-  int retcode = RET_UNKNOWN_CMD;
+  int return_value = RET_UNKNOWN_CMD;
   for (int i = 0; i < n_commands; i++) {
     if (strcmp(cmd_name, commands[i].cmd) == 0) {
-      retcode = commands[i].entryPoint(cmd);
+      // TODO split args
+      const char *argv[2] = {cmd_name, cmd};
+      pid_t pid =
+        proc_spawn(commands[i].entry_point, cmd == NULL ? 1 : 2, argv);
+
+      return_value = proc_wait(pid);
       break;
     }
   }
-  if (retcode == RET_UNKNOWN_CMD) {
+
+  if (return_value == RET_UNKNOWN_CMD) {
     printf(
       COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
       cmd_name
     );
-  } else if (retcode == RET_EXIT) {
+  } else if (return_value == RET_EXIT) {
     return 1;
-  } else if (retcode != 0) {
-    prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", retcode);
+  } else if (return_value != 0) {
+    prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", return_value);
   } else {
     prompt_length = 2;
   }
