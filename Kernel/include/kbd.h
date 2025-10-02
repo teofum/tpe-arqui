@@ -4,6 +4,8 @@
 
 #define KBD_BUFFER_SIZE 128
 
+#define KBD_EOF -1
+
 /*
  * Used to return special (non-printable) character sequences in getchar()
  */
@@ -174,9 +176,15 @@ typedef struct {
 } kbd_event_t;
 
 /*
- * Consumes all events (scancodes) in queue and updates keyboard state
+ * Initialize the keyboard driver
  */
-void kbd_poll_events();
+void kbd_init();
+
+/*
+ * Consumes all events (scancodes) in queue and updates keyboard state.
+ * Returns the number of events consumed.
+ */
+uint64_t kbd_poll_events();
 
 /*
  * Returns 1 if key is pressed, 0 if not.

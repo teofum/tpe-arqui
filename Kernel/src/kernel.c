@@ -66,16 +66,11 @@ int main() {
   mem_default_mgr =
     mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 0);
 
-  proc_kernel_stack = mem_alloc(1024 * 64) + 1024 * 64 - 8;
-
-  // Init timer
+  // Initialize kernel systems
   timer_init();
-
-  // Initialize video driver and graphics
+  kbd_init();
   vga_init();
   gfx_init();
-
-  // Initialize IO
   io_init();
 
   // Enable status bar
@@ -83,7 +78,6 @@ int main() {
 
   // Initialize interrupts and syscalls
   init_syscalls();
-  init_interrupts();
   load_idt();
 
   while (1) {

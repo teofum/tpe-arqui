@@ -244,7 +244,7 @@ void io_clear() {
 uint32_t io_read(char *buf, uint32_t len) {
   uint32_t read_chars = 0;
   int c;
-  while ((c = kbd_getchar()) != -1 && read_chars < len) {
+  while (read_chars < len && (c = kbd_getchar()) != KBD_EOF) {
     if (c != 0) {
       if (is_special_charcode(c)) {
         // Make sure there's enough room in the buffer to actually fit the

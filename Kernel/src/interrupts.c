@@ -101,7 +101,7 @@ void load_idt() {
   // IRQ 0: Timer tick
   setup_idt_entry(ID_TIMER_TICK, (uint64_t) &_irq_00_handler);
 
-  // IRQ 1: Teclado (comentado por ahora)
+  // IRQ 1: Keyboard
   setup_idt_entry(ID_KEYBOARD, (uint64_t) &_irq_01_handler);
 
   // Syscalls
@@ -119,27 +119,24 @@ void load_idt() {
   _sti();
 }
 
-/* Dispatcher de IRQs */
-void irq_dispatcher(uint64_t irq) { irq_handlers[irq](); }
+/*
+ * Interrupt handler for IRQ 0 (timer)
+ */
+uint64_t irq_timer_handler(uint64_t running_process_rsp) {
+  // Store stack pointer for the current process
+  proc_control_table[proc_running_pid].rsp = running_process_rsp;
 
-/* Registra un handler para una IRQ */
-static void set_interrupt_handler(uint64_t irq, void (*handler)()) {
-  irq_handlers[irq] = handler;
+  // Handle timer interrupt, may call the scheduler and cause a process switch
+  timer_handler();
+
+  // Return stack pointer for the now running process
+  return proc_control_table[proc_running_pid].rsp;
 }
 
-/* inicializa la tabla de interrupts */
-void init_interrupts() {
-  set_interrupt_handler(0x00, timer_handler);
-  // Keyboard interrupt (0x01) is handled specially for register dump function,
-  // so it doesn't have an entry in the interrupt dispatch table
-}
-
-/* Registra una syscall */
 static void register_syscall(uint64_t id, void *syscall) {
   syscall_dispatch_table[id] = syscall;
 }
 
-/* Inicializa la tabla de syscalls */
 void init_syscalls() {
   /* Virtual terminal I/O */
   register_syscall(0x03, io_read);
@@ -197,6 +194,7 @@ void init_syscalls() {
   /* Processes */
   register_syscall(0x70, proc_spawn);
   register_syscall(0x71, proc_exit);
+  register_syscall(0x72, proc_wait);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);
@@ -216,13 +214,11 @@ void init_syscalls() {
   register_syscall(0xAF, gfx_present);
 }
 
-// Información de excepción
 typedef struct {
   const char *name;
   const char *description;
 } exception_info_t;
 
-// Tabla de información de excepciones - índice directo por ID
 static const exception_info_t exception_table[MAX_EXCEPTIONS] = {
   [0x00] = {"Division by Zero", "Attempt to divide by zero"},
   [0x06] = {"Invalid Opcode", "Illegal or undefined instruction"}

@@ -146,7 +146,7 @@ typedef struct {
 /*
  * Consumes all events (scancodes) in queue and updates keyboard state
  */
-extern void kbd_poll_events();
+extern uint64_t kbd_poll_events();
 
 /*
  * Returns 1 if key is pressed, 0 if not.

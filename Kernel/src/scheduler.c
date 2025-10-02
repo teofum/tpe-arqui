@@ -1,4 +1,4 @@
-#include "process.h"
+#include <process.h>
 #include <scheduler.h>
 
 #define next(x) x = (x + 1) % (MAX_PID + 1)
