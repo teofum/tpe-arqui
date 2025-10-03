@@ -25,7 +25,7 @@ KERNEL=$(KERNEL_DIR)/out/kernel.bin
 KERNEL_DEBUG_ELF=$(KERNEL:.bin=.elf)
 KERNEL_HEADERS=$(wildcard $(KERNEL_DIR)/include/*.h)
 # Allocator selection
-ALLOCATOR ?= simple
+ALLOCATOR ?= buddy
 ifeq ($(ALLOCATOR),buddy)
 	KERNEL_SOURCES=$(filter-out $(KERNEL_DIR)/src/mem_simple.c,$(wildcard $(KERNEL_DIR)/src/*.c))
 else
