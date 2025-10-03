@@ -9,7 +9,6 @@
 #include <mem.h>
 #include <stdint.h>
 
-#define MAX_ORDER 25
 #define MIN_BLOCK_SIZE 32
 
 typedef struct block {
@@ -22,14 +21,14 @@ struct mem_manager_cdt_t {
   void *start;
   size_t size;
   uint8_t max_order;
-  block_t *lists[MAX_ORDER];
+  block_t *lists[];
 };
 
 static uint8_t get_order(size_t size) {
   uint8_t order = 0;
   size_t block_size = MIN_BLOCK_SIZE;
 
-  while (block_size < size && order < MAX_ORDER) {
+  while (block_size < size) {
     block_size <<= 1;
     order++;
   }
@@ -77,10 +76,8 @@ mem_manager_t mem_manager_create(void *mgr_mem, void *mem, size_t mem_size) {
   mgr->start = mem;
   mgr->size = mem_size;
   mgr->max_order = get_order(mem_size);
-  
-  if (mgr->max_order > MAX_ORDER) return NULL;
 
-  for (uint8_t i = 0; i < MAX_ORDER; i++) { mgr->lists[i] = NULL; }
+  for (uint8_t i = 0; i <= mgr->max_order; i++) { mgr->lists[i] = NULL; }
 
   block_t *initial = (block_t *) mem;
   initial->next = NULL;
