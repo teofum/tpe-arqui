@@ -13,6 +13,7 @@
 #define IDLE_PID 0
 
 typedef int (*proc_entrypoint_t)(uint64_t argc, char *const *argv);
+typedef int priority_t;
 
 typedef enum {
   PROC_STATE_RUNNING = 0,
@@ -29,6 +30,8 @@ typedef struct {
 
   pqueue_t waiting_processes;
   uint32_t n_waiting_processes;
+
+  priority_t priority;
 } proc_control_block_t;
 
 extern proc_control_block_t proc_control_table[];

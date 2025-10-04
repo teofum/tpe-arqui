@@ -1,5 +1,6 @@
 #include <process.h>
 #include <scheduler.h>
+#include <types.h>
 
 #define next(x) x = (x + 1) % (MAX_PID + 1)
 
@@ -35,7 +36,8 @@ pid_t scheduler_next() {
 }
 
 void scheduler_enqueue(pid_t pid) {
-  scheduler_queue_t *scheduler_queue = &spl.groups[spl.cur];
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  scheduler_queue_t *scheduler_queue = &spl.groups[pcb->priority];
 
   scheduler_queue->data[scheduler_queue->write_pos] = pid;
   next(scheduler_queue->write_pos);
