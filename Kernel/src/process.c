@@ -7,11 +7,14 @@
 #include <stdint.h>
 #include <types.h>
 
+#include <print.h>
+
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
 
 proc_control_block_t proc_control_table[MAX_PID + 1] = {0};
 
 pid_t proc_running_pid = 0;
+pid_t proc_foreground_pid = 0;
 
 void *last_iretq_frame = 0;
 
@@ -107,6 +110,7 @@ void proc_init(proc_entrypoint_t entry_point) {
   pcb->n_waiting_processes = 0;
 
   proc_running_pid = new_pid;
+  proc_foreground_pid = new_pid;
   _proc_init(entry_point, (void *) pcb->rsp);
 }
 
@@ -160,15 +164,29 @@ static void proc_destroy(pid_t pid) {
   pqueue_destroy(pcb->waiting_processes);
 }
 
+static void proc_make_foreground(pid_t pid) {
+  proc_foreground_pid = pid;
+
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  if (pcb->waiting_for_foreground && pcb->state == PROC_STATE_BLOCKED) {
+    pcb->waiting_for_foreground = 0;
+    pcb->state = PROC_STATE_RUNNING;
+    scheduler_enqueue(pid);
+  }
+}
+
 int proc_wait(pid_t pid) {
   proc_control_block_t *waiting_pcb = &proc_control_table[pid];
 
-  while (waiting_pcb->state != PROC_STATE_EXITED) {
-    waiting_pcb->n_waiting_processes++;
-    pqueue_enqueue(waiting_pcb->waiting_processes, proc_running_pid);
+  if (proc_foreground_pid == proc_running_pid) proc_make_foreground(pid);
 
+  waiting_pcb->n_waiting_processes++;
+  while (waiting_pcb->state != PROC_STATE_EXITED) {
+    pqueue_enqueue(waiting_pcb->waiting_processes, proc_running_pid);
     proc_block();
   }
+
+  if (proc_foreground_pid == pid) proc_make_foreground(proc_running_pid);
 
   int return_code = waiting_pcb->return_code;
   waiting_pcb->n_waiting_processes--;
@@ -179,3 +197,12 @@ int proc_wait(pid_t pid) {
 }
 
 pid_t proc_getpid() { return proc_running_pid; }
+
+void proc_wait_for_foreground() {
+  while (proc_foreground_pid != proc_running_pid) {
+    proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+    pcb->waiting_for_foreground = 1;
+
+    proc_block();
+  }
+}

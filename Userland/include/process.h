@@ -34,4 +34,10 @@ int proc_wait(pid_t pid);
  */
 pid_t getpid();
 
+/*
+ * If the current process is running in the background, block until it's brought
+ * to the foreground
+ */
+void proc_wait_for_foreground();
+
 #endif

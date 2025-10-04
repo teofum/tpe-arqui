@@ -29,6 +29,8 @@ typedef struct {
 
   pqueue_t waiting_processes;
   uint32_t n_waiting_processes;
+
+  int waiting_for_foreground;
 } proc_control_block_t;
 
 extern proc_control_block_t proc_control_table[];
@@ -81,5 +83,11 @@ pid_t proc_getpid();
  * Kill a running process.
  */
 void proc_kill(pid_t pid);
+
+/*
+ * If the current process is running in the background, block until it's brought
+ * to the foreground
+ */
+void proc_wait_for_foreground();
 
 #endif
