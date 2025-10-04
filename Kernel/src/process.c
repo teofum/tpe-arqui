@@ -177,3 +177,5 @@ int proc_wait(pid_t pid) {
 
   return return_code;
 }
+
+pid_t proc_getpid() { return proc_running_pid; }

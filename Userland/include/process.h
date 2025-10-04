@@ -29,4 +29,9 @@ void proc_exit(int return_code);
  */
 int proc_wait(pid_t pid);
 
+/*
+ * Get the PID for the running process.
+ */
+pid_t getpid();
+
 #endif

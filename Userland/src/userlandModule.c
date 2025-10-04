@@ -44,7 +44,6 @@ const char *mascot =
 int main() {
 #ifdef SST
   int test_result = sst_run_tests();
-
   if (test_result) {
     printf(
       "[" COL_RED "SST FAIL" COL_RESET "] " COL_RED
