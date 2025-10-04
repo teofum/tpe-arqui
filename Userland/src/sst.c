@@ -91,6 +91,51 @@ int test_mem_exclusive() {
 }
 
 /*
+ * Test memory free and check functionality
+ */
+int test_mem_free() {
+  printf("    Memory free and check must work correctly\n");
+
+  void *mem1 = mem_alloc(128);
+  void *mem2 = mem_alloc(64);
+  printf("    Allocated mem1=%#016lx mem2=%#016lx\n", (size_t) mem1, (size_t) mem2);
+
+  printf(
+    "    Before free: check(mem1)=%u check(mem2)=%u\n", mem_check(mem1),
+    mem_check(mem2)
+  );
+
+  if (!mem_check(mem1) || !mem_check(mem2)) {
+    printf(COL_RED "    Allocated memory should be marked as allocated\n" COL_RESET);
+    return 1;
+  }
+
+  mem_free(mem1);
+  printf(
+    "    After free mem1: check(mem1)=%u check(mem2)=%u\n", mem_check(mem1),
+    mem_check(mem2)
+  );
+
+  if (mem_check(mem1) || !mem_check(mem2)) {
+    printf(COL_RED "    mem1 should be free, mem2 should still be allocated\n" COL_RESET);
+    return 1;
+  }
+
+  mem_free(mem2);
+  printf(
+    "    After free mem2: check(mem1)=%u check(mem2)=%u\n", mem_check(mem1),
+    mem_check(mem2)
+  );
+
+  if (mem_check(mem1) || mem_check(mem2)) {
+    printf(COL_RED "    Both blocks should be free\n" COL_RESET);
+    return 1;
+  }
+
+  return 0;
+}
+
+/*
  * Test a process spawns, exits and returns correctly
  */
 static int dummy_process() { return 42; }
@@ -161,7 +206,7 @@ int test_proc_args() {
  * ========================================================================= */
 
 test_fn_t tests[] = {
-  test_sanity_check, test_mem_alloc, test_mem_exclusive, test_proc_spawn_wait,
+  test_sanity_check, test_mem_alloc, test_mem_exclusive, test_mem_free, test_proc_spawn_wait,
   test_proc_args
 };
 
