@@ -221,6 +221,41 @@ int test_proc_args() {
   return return_code;
 }
 
+/*
+ * Test a process cannot modify its args
+ */
+static int evil(uint64_t argc, char *const *argv) {
+  printf("    Child: Replacing first arg...\n");
+  char **a = (char **) &argv[1];
+  *a = "hax";
+
+  return 0;
+}
+static int evil2(uint64_t argc, char *const *argv) {
+  printf("    Child: Overwriting first arg...\n");
+  strcpy(argv[1], "hax");
+
+  return 0;
+}
+int test_proc_args_copy() {
+  char *const argv[] = {"args_process", mem_alloc(4)};
+  strcpy(argv[1], "foo");
+
+  printf("    Process must not be able to replace its arguments\n");
+  printf("    Spawning process with argv[1] = 'foo'\n");
+  pid_t pid = proc_spawn(evil, lengthof(argv), argv);
+  proc_wait(pid);
+  sst_assert_streq("foo", argv[1], "Process replaced an argument");
+
+  printf("    Process must not be able to modify its arguments\n");
+  printf("    Spawning process with argv[1] = 'foo'\n");
+  pid = proc_spawn(evil2, lengthof(argv), argv);
+  proc_wait(pid);
+  sst_assert_streq("foo", argv[1], "Process modified an argument");
+
+  return 0;
+}
+
 /* ========================================================================= *
  * Tests end here                                                            *
  * ========================================================================= */
@@ -228,7 +263,7 @@ int test_proc_args() {
 test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
                      test_mem_exclusive,   test_mem_free,
                      test_proc_spawn_wait, test_proc_getpid,
-                     test_proc_args};
+                     test_proc_args,       test_proc_args_copy};
 
 int sst_run_tests() {
   int result = 0;
