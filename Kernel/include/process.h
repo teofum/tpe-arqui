@@ -4,6 +4,7 @@
 #include <pqueue.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <types.h>
 
 /*
  * Support up to 4096 processes
@@ -70,6 +71,11 @@ void proc_exit(int return_code);
  * terminates.
  */
 int proc_wait(pid_t pid);
+
+/*
+ * Get the running process PID
+ */
+pid_t proc_getpid();
 
 /*
  * Kill a running process.

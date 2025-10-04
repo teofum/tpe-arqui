@@ -10,6 +10,29 @@
 #define TEST_PASS "[" COL_GREEN "PASS" COL_RESET "] "
 #define TEST_FAIL "[" COL_RED "FAIL" COL_RESET "] "
 
+#define sst_assert(condition, printf_args...)                                  \
+  if (!(condition)) {                                                          \
+    printf(COL_RED "    " printf_args);                                        \
+    return 1;                                                                  \
+  }
+
+#define sst_assert_equal(expected, actual, fail_msg)                           \
+  if ((expected) != (actual)) {                                                \
+    printf(                                                                    \
+      COL_RED "    %s: Expected %llu, got %llu\n", fail_msg,                   \
+      (uint64_t) expected, (uint64_t) actual                                   \
+    );                                                                         \
+    return 1;                                                                  \
+  }
+
+#define sst_assert_streq(expected, actual, fail_msg)                           \
+  if (strcmp((expected), (actual))) {                                          \
+    printf(                                                                    \
+      COL_RED "    %s: Expected '%s', got '%s'\n", fail_msg, expected, actual  \
+    );                                                                         \
+    return 1;                                                                  \
+  }
+
 #define lengthof(x) (sizeof((x)) / sizeof((x)[0]))
 
 /*
@@ -40,23 +63,17 @@ int test_mem_alloc() {
   printf("    Got 1024 bytes at %#016lx\n", (size_t) mem);
 
   // Hardcoded heap memory start address, guaranteed to clear kernel and userland data
-  if ((size_t) mem < 0x1000000) {
-    printf(
-      COL_RED "    Address %#016lx is in reserved memory zone (0x0 - "
-              "0x3FFFFFF)\n" COL_RESET,
-      (size_t) mem
-    );
-    return 1;
-  }
+  sst_assert(
+    (size_t) mem >= 0x1000000,
+    "Address %#016lx is in reserved memory zone (0x0 - 0x3FFFFFF)\n",
+    (size_t) mem
+  );
 
   ((int *) mem)[1023] = 42;
-  if (((int *) mem)[1023] != 42) {
-    printf(
-      COL_RED
-      "    Failed to read back written value from allocated memory\n" COL_RESET
-    );
-    return 1;
-  }
+  sst_assert_equal(
+    42, ((int *) mem)[1023],
+    "Failed to read back written value from allocated memory"
+  );
 
   mem_free(mem);
   return 0;
@@ -74,12 +91,11 @@ int test_mem_exclusive() {
     mem[i] = mem_alloc(size);
     printf("    Got %lu bytes at %#016lx\n", size, (size_t) mem[i]);
 
-    if (i > 0 && ((size_t) mem[i] < (size_t) mem[i - 1] + last_size)) {
-      printf(
-        COL_RED "    Allocated memory overlap at %#016lx\n" COL_RESET,
-        (size_t) mem[i]
+    if (i > 0) {
+      sst_assert(
+        (size_t) mem[i] >= (size_t) mem[i - 1] + last_size,
+        "Allocated memory overlap at %#016lx\n", (size_t) mem[i]
       );
-      return 1;
     }
 
     last_size = size;
@@ -98,17 +114,20 @@ int test_mem_free() {
 
   void *mem1 = mem_alloc(128);
   void *mem2 = mem_alloc(64);
-  printf("    Allocated mem1=%#016lx mem2=%#016lx\n", (size_t) mem1, (size_t) mem2);
+
+  printf(
+    "    Allocated mem1=%#016lx mem2=%#016lx\n", (size_t) mem1, (size_t) mem2
+  );
 
   printf(
     "    Before free: check(mem1)=%u check(mem2)=%u\n", mem_check(mem1),
     mem_check(mem2)
   );
 
-  if (!mem_check(mem1) || !mem_check(mem2)) {
-    printf(COL_RED "    Allocated memory should be marked as allocated\n" COL_RESET);
-    return 1;
-  }
+  sst_assert(
+    mem_check(mem1) && mem_check(mem2),
+    "Allocated memory should be marked as allocated\n"
+  );
 
   mem_free(mem1);
   printf(
@@ -116,10 +135,10 @@ int test_mem_free() {
     mem_check(mem2)
   );
 
-  if (mem_check(mem1) || !mem_check(mem2)) {
-    printf(COL_RED "    mem1 should be free, mem2 should still be allocated\n" COL_RESET);
-    return 1;
-  }
+  sst_assert(
+    !mem_check(mem1) && mem_check(mem2),
+    "mem1 should be free, mem2 should still be allocated\n"
+  );
 
   mem_free(mem2);
   printf(
@@ -127,10 +146,9 @@ int test_mem_free() {
     mem_check(mem2)
   );
 
-  if (mem_check(mem1) || mem_check(mem2)) {
-    printf(COL_RED "    Both blocks should be free\n" COL_RESET);
-    return 1;
-  }
+  sst_assert(
+    !mem_check(mem1) && !mem_check(mem2), "Both blocks should be free\n"
+  );
 
   return 0;
 }
@@ -147,17 +165,34 @@ int test_proc_spawn_wait() {
   int return_code = proc_wait(pid);
 
   printf("    Process with pid %u exited with code %u\n", pid, return_code);
-
-  if (return_code != 42) {
-    printf(COL_RED "    Bad return code: expected 42, got %u\n", return_code);
-    return 1;
-  }
+  sst_assert_equal(42, return_code, "Bad return code");
 
   return 0;
 }
 
 /*
- * Test a process spawns, exits and returns correctly
+ * Test getpid() works as expected
+ */
+static int pid_process() {
+  pid_t my_pid = getpid();
+  printf("    Child: my PID is " COL_MAGENTA "%u\n", (uint32_t) my_pid);
+  return my_pid;
+}
+int test_proc_getpid() {
+  printf("    getpid() must return the running process PID\n");
+
+  char *const argv[1] = {"pid_process"};
+  pid_t pid = proc_spawn(pid_process, 1, argv);
+  int return_code = proc_wait(pid);
+
+  printf("    Process with pid %u exited with code %u\n", pid, return_code);
+  sst_assert_equal(pid, return_code, "getpid() does not match actual PID\n");
+
+  return 0;
+}
+
+/*
+ * Test a process receives its arguments correctly
  */
 static int args_process(uint64_t argc, char *const *argv) {
   printf("    Child: Received " COL_MAGENTA "%llu" COL_RESET " args (", argc);
@@ -167,25 +202,10 @@ static int args_process(uint64_t argc, char *const *argv) {
     );
   printf(")\n");
 
-  if (argc != 3) {
-    printf(COL_RED "    Bad arg count: expected 3, got %llu\n", argc);
-    return 1;
-  }
-
-  if (strcmp(argv[0], "args_process") != 0) {
-    printf(
-      COL_RED "    Bad argv[0]: expected 'args_process', got '%s'\n", argv[0]
-    );
-    return 1;
-  }
-  if (strcmp(argv[1], "foo") != 0) {
-    printf(COL_RED "    Bad argv[1]: expected 'foo', got '%s'\n", argv[1]);
-    return 1;
-  }
-  if (strcmp(argv[2], "bar") != 0) {
-    printf(COL_RED "    Bad argv[2]: expected 'var', got '%s'\n", argv[2]);
-    return 1;
-  }
+  sst_assert_equal(3, argc, "Bad arg count");
+  sst_assert_streq("args_process", argv[0], "Bad argv[0]");
+  sst_assert_streq("foo", argv[1], "Bad argv[1]");
+  sst_assert_streq("bar", argv[2], "Bad argv[2]");
 
   return 0;
 }
@@ -205,10 +225,10 @@ int test_proc_args() {
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {
-  test_sanity_check, test_mem_alloc, test_mem_exclusive, test_mem_free, test_proc_spawn_wait,
-  test_proc_args
-};
+test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
+                     test_mem_exclusive,   test_mem_free,
+                     test_proc_spawn_wait, test_proc_getpid,
+                     test_proc_args};
 
 int sst_run_tests() {
   int result = 0;
