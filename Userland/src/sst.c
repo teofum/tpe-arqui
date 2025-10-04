@@ -98,7 +98,9 @@ int test_mem_free() {
 
   void *mem1 = mem_alloc(128);
   void *mem2 = mem_alloc(64);
-  printf("    Allocated mem1=%#016lx mem2=%#016lx\n", (size_t) mem1, (size_t) mem2);
+  printf(
+    "    Allocated mem1=%#016lx mem2=%#016lx\n", (size_t) mem1, (size_t) mem2
+  );
 
   printf(
     "    Before free: check(mem1)=%u check(mem2)=%u\n", mem_check(mem1),
@@ -106,7 +108,8 @@ int test_mem_free() {
   );
 
   if (!mem_check(mem1) || !mem_check(mem2)) {
-    printf(COL_RED "    Allocated memory should be marked as allocated\n" COL_RESET);
+    printf(COL_RED
+           "    Allocated memory should be marked as allocated\n" COL_RESET);
     return 1;
   }
 
@@ -117,7 +120,9 @@ int test_mem_free() {
   );
 
   if (mem_check(mem1) || !mem_check(mem2)) {
-    printf(COL_RED "    mem1 should be free, mem2 should still be allocated\n" COL_RESET);
+    printf(COL_RED
+           "    mem1 should be free, mem2 should still be allocated\n" COL_RESET
+    );
     return 1;
   }
 
@@ -157,7 +162,32 @@ int test_proc_spawn_wait() {
 }
 
 /*
- * Test a process spawns, exits and returns correctly
+ * Test getpid() works as expected
+ */
+static int pid_process() {
+  pid_t my_pid = getpid();
+  printf("    Child: my PID is " COL_MAGENTA "%u\n", (uint32_t) my_pid);
+  return my_pid;
+}
+int test_proc_getpid() {
+  printf("    getpid() must return the running process PID\n");
+
+  char *const argv[1] = {"pid_process"};
+  pid_t pid = proc_spawn(pid_process, 1, argv);
+  int return_code = proc_wait(pid);
+
+  printf("    Process with pid %u exited with code %u\n", pid, return_code);
+
+  if (return_code != pid) {
+    printf(COL_RED "    PID returned by process does not match actual PID\n");
+    return 1;
+  }
+
+  return 0;
+}
+
+/*
+ * Test a process receives its arguments correctly
  */
 static int args_process(uint64_t argc, char *const *argv) {
   printf("    Child: Received " COL_MAGENTA "%llu" COL_RESET " args (", argc);
@@ -205,10 +235,10 @@ int test_proc_args() {
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {
-  test_sanity_check, test_mem_alloc, test_mem_exclusive, test_mem_free, test_proc_spawn_wait,
-  test_proc_args
-};
+test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
+                     test_mem_exclusive,   test_mem_free,
+                     test_proc_spawn_wait, test_proc_getpid,
+                     test_proc_args};
 
 int sst_run_tests() {
   int result = 0;
