@@ -5,6 +5,7 @@
 #include <scheduler.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <strings.h>
 #include <types.h>
 
 #include <print.h>
@@ -39,11 +40,14 @@ static void proc_initialize_process(
 ) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
-  // Make a copy of argv so we don't give the spawned program a pointer to
-  // caller memory
-  char **argv_copy = mem_alloc(argc * sizeof(const char *));
-  for (int i = 0; i < argc; i++) { argv_copy[i] = argv[i]; }
+  char **argv_copy = mem_alloc(argc * sizeof(char *));
+  for (int i = 0; i < argc; i++) {
+    argv_copy[i] = mem_alloc(strlen(argv[i]));
+    strcpy(argv_copy[i], argv[i]);
+  }
 
+  pcb->argc = argc;
+  pcb->argv = argv_copy;
   pcb->description = argv_copy[0];
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
@@ -104,6 +108,7 @@ void proc_init(proc_entrypoint_t entry_point) {
 
   proc_control_block_t *pcb = &proc_control_table[new_pid];
 
+  pcb->argv = NULL;
   pcb->description = "init";
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
@@ -162,6 +167,11 @@ static void proc_destroy(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
   mem_free(pcb->stack);
+  for (int i = 0; i < pcb->argc; i++) mem_free(pcb->argv[0]);
+  mem_free((void *) pcb->argv);
+  pcb->argc = 0;
+  pcb->argv = NULL;
+  pcb->description = NULL;
   pcb->stack = NULL;
   pqueue_destroy(pcb->waiting_processes);
 }

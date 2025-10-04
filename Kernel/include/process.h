@@ -24,6 +24,8 @@ typedef struct {
   void *stack;
   uint64_t rsp;
 
+  uint64_t argc;
+  char *const *argv;
   const char *description;
   proc_state_t state;
   int return_code;

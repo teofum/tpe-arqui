@@ -374,12 +374,24 @@ static args_t make_args(const char *cmd) {
   }
 
   char **argv = mem_alloc(argc * sizeof(char *));
-  size_t i = 0;
+  char *arg_str = mem_alloc(CMD_BUF_LEN);
+
   int background = 0;
-  while (cmd && !(background = cmd[0] == '&')) {
-    argv[i] = mem_alloc(CMD_BUF_LEN);
-    cmd = strsplit(argv[i++], cmd, ' ');
+  int i = 0, j = 0;
+  argv[0] = arg_str;
+  for (; cmd[i] != 0; i++) {
+    if (cmd[i] == ' ') {
+      arg_str[i] = 0;
+      if (cmd[i + 1] == '&') {
+        background = 1;
+      } else {
+        argv[++j] = &arg_str[i + 1];
+      }
+    } else {
+      arg_str[i] = cmd[i];
+    }
   }
+  arg_str[i] = 0;
 
   return (args_t) {
     .argc = argc,
@@ -389,7 +401,7 @@ static args_t make_args(const char *cmd) {
 }
 
 static void free_args(args_t *args) {
-  for (size_t i = 0; i < args->argc; i++) mem_free(args->argv[i]);
+  mem_free(args->argv[0]);
   mem_free((void *) args->argv);
 }
 
