@@ -10,20 +10,32 @@ typedef struct {
 } scheduler_queue_t;
 
 typedef struct {
-  scheduler_queue_t groups[MAX_PRIORITY];
+  scheduler_queue_t groups[MAX_PRIORITY + 1];
+  priority_t cap;
+  priority_t next;
 } scheduler_priority_list_t;
 
 static scheduler_priority_list_t spl = {0};
 int scheduler_force_next = 0;
 
-// todo borrar: {0;rojo} {1;verde}
 pid_t scheduler_next() {
   scheduler_queue_t *scheduler_queue;
-  for (int i = 0; i < MAX_PRIORITY; ++i) {
-    scheduler_queue = &spl.groups[i % MAX_PRIORITY];
+  priority_t cap = spl.cap;
+  priority_t next = spl.next++;
+  if (next >= cap) {
+    spl.next = 0;
+    ++spl.cap;
+  }
+  if (cap > MAX_PRIORITY) { spl.cap = 0; }
+
+  for (int i = next; i <= cap; ++i) {
+    scheduler_queue = &spl.groups[i];
+
     if (scheduler_queue->write_pos != scheduler_queue->read_pos) {
+
       pid_t next_pid = scheduler_queue->data[scheduler_queue->read_pos];
       next(scheduler_queue->read_pos);
+
       proc_running_pid = next_pid;
       return next_pid;
     }

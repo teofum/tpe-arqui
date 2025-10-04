@@ -47,6 +47,7 @@ static void proc_initialize_process(
   pcb->state = PROC_STATE_RUNNING;
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
+  pcb->priority = priority;
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
