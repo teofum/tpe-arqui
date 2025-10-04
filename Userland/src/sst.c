@@ -238,9 +238,11 @@ static int evil2(uint64_t argc, char *const *argv) {
   return 0;
 }
 int test_proc_args_copy() {
+  char *const argv[] = {"args_process", mem_alloc(4)};
+  strcpy(argv[1], "foo");
+
   printf("    Process must not be able to replace its arguments\n");
   printf("    Spawning process with argv[1] = 'foo'\n");
-  char *const argv[] = {"args_process", "foo"};
   pid_t pid = proc_spawn(evil, lengthof(argv), argv);
   proc_wait(pid);
   sst_assert_streq("foo", argv[1], "Process replaced an argument");
@@ -261,7 +263,7 @@ int test_proc_args_copy() {
 test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
                      test_mem_exclusive,   test_mem_free,
                      test_proc_spawn_wait, test_proc_getpid,
-                     test_proc_args};
+                     test_proc_args,       test_proc_args_copy};
 
 int sst_run_tests() {
   int result = 0;
