@@ -15,11 +15,19 @@ typedef struct {
   priority_t next;
 } scheduler_priority_list_t;
 
+#define order_size 15
+static priority_t order[order_size] = {0, 0, 1, 0, 1, 2, 0, 1,
+                                       2, 3, 0, 1, 2, 3, 4};
+
 static scheduler_priority_list_t spl = {0};
 int scheduler_force_next = 0;
 
 pid_t scheduler_next() {
   scheduler_queue_t *scheduler_queue;
+  priority_t next = order[spl.next];
+  spl.next = (spl.next + 1) % (order_size);
+
+  /*choose a priority group
   priority_t cap = spl.cap;
   priority_t next = spl.next++;
   if (next >= cap) {
@@ -27,8 +35,9 @@ pid_t scheduler_next() {
     ++spl.cap;
   }
   if (cap > MAX_PRIORITY) { spl.cap = 0; }
+  */
 
-  for (int i = next; i <= cap; ++i) {
+  for (int i = next; i <= MAX_PRIORITY; ++i) {
     scheduler_queue = &spl.groups[i];
 
     if (scheduler_queue->write_pos != scheduler_queue->read_pos) {

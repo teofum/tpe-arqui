@@ -62,15 +62,11 @@ void test_e() {
 }
 
 void main() {
-  writes(COL_BLUE "Spawning A\n");
+  writes(COL_BLUE "Spawning ...\n");
   pid_t test_a_pid = proc_spawn(test_a, 0, NULL, 0);
-  writes(COL_BLUE "Spawning B\n");
   pid_t test_b_pid = proc_spawn(test_b, 0, NULL, 1);
-  writes(COL_BLUE "Spawning C\n");
   pid_t test_c_pid = proc_spawn(test_c, 0, NULL, 2);
-  writes(COL_BLUE "Spawning D\n");
   pid_t test_d_pid = proc_spawn(test_d, 0, NULL, 3);
-  writes(COL_BLUE "Spawning E\n");
   pid_t test_e_pid = proc_spawn(test_e, 0, NULL, 4);
 
   proc_wait(test_e_pid);
