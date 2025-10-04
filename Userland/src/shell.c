@@ -1,3 +1,4 @@
+#include "kbd.h"
 #include <gfxdemo.h>
 #include <golf_game.h>
 #include <io.h>
@@ -11,7 +12,7 @@
 #include <stdint.h>
 #include <strings.h>
 
-#define SHELL_VERSION "1.0.0"
+#define SHELL_VERSION "1.1.0"
 
 #define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
@@ -31,6 +32,8 @@ typedef struct {
 typedef struct {
   uint64_t argc;
   char *const *argv;
+
+  int background : 1;
 } args_t;
 
 static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
@@ -183,8 +186,11 @@ static int print_mascot() {
   return 0;
 }
 
-static int print_a() {
-  for (int i = 0; i < 200; i++) { write("a", 1); }
+static int print_test() {
+  for (uint32_t i = 0; i < 5; i++) {
+    printf("%u\n", i);
+    // kbd_get_key_event();
+  }
   write("\n", 1);
 
   return 0;
@@ -206,7 +212,7 @@ program_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
-  {"print_a", "for bg testing", print_a},
+  {"print_test", "for bg testing", print_test},
 };
 size_t n_commands = sizeof(commands) / sizeof(program_t);
 
@@ -330,12 +336,13 @@ static args_t make_args(const char *cmd) {
   uint64_t argc = 1;
 
   for (size_t i = 0; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ') argc++;
+    if (cmd[i] == ' ' && cmd[i + 1] != '&') argc++;
   }
 
   char **argv = mem_alloc(argc * sizeof(char *));
   size_t i = 0;
-  while (cmd) {
+  int background = 0;
+  while (cmd && !(background = cmd[0] == '&')) {
     argv[i] = mem_alloc(CMD_BUF_LEN);
     cmd = strsplit(argv[i++], cmd, ' ');
   }
@@ -343,6 +350,7 @@ static args_t make_args(const char *cmd) {
   return (args_t) {
     .argc = argc,
     .argv = argv,
+    .background = background,
   };
 }
 
@@ -372,16 +380,18 @@ static int run_command(const char *cmd) {
   args_t args = make_args(cmd);
 
   pid_t pid = proc_spawn(program->entry_point, args.argc, args.argv);
-  int return_value = proc_wait(pid);
-
+  int background = args.background;
   free_args(&args);
 
-  if (return_value == RET_EXIT) {
-    return 1;
-  } else if (return_value != 0) {
-    prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", return_value);
-  } else {
-    prompt_length = 2;
+  if (!background) {
+    int return_value = proc_wait(pid);
+    if (return_value == RET_EXIT) {
+      return 1;
+    } else if (return_value != 0) {
+      prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", return_value);
+    } else {
+      prompt_length = 2;
+    }
   }
 
   return 0;
