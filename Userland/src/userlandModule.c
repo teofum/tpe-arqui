@@ -64,7 +64,8 @@ int main() {
   writes("\n\n");
 
   char *shell_args[] = {"cash"};
-  pid_t shell_pid = proc_spawn(cash, lengthof(shell_args), shell_args);
+  pid_t shell_pid =
+    proc_spawn(cash, lengthof(shell_args), shell_args, DEFAULT_PRIORITY);
   proc_wait(shell_pid);
 
   return 0xDEADBEEF;

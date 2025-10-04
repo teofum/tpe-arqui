@@ -161,7 +161,7 @@ int test_proc_spawn_wait() {
   printf("    Process must start and exit successfully\n");
 
   char *const argv[1] = {"test"};
-  pid_t pid = proc_spawn(dummy_process, 1, argv);
+  pid_t pid = proc_spawn(dummy_process, 1, argv, DEFAULT_PRIORITY);
   int return_code = proc_wait(pid);
 
   printf("    Process with pid %u exited with code %u\n", pid, return_code);
@@ -182,7 +182,7 @@ int test_proc_getpid() {
   printf("    getpid() must return the running process PID\n");
 
   char *const argv[1] = {"pid_process"};
-  pid_t pid = proc_spawn(pid_process, 1, argv);
+  pid_t pid = proc_spawn(pid_process, 1, argv, DEFAULT_PRIORITY);
   int return_code = proc_wait(pid);
 
   printf("    Process with pid %u exited with code %u\n", pid, return_code);
@@ -213,7 +213,7 @@ int test_proc_args() {
   printf("    Process must receive arguments as sent\n");
 
   char *const argv[] = {"args_process", "foo", "bar"};
-  pid_t pid = proc_spawn(args_process, lengthof(argv), argv);
+  pid_t pid = proc_spawn(args_process, lengthof(argv), argv, DEFAULT_PRIORITY);
   int return_code = proc_wait(pid);
 
   printf("    Process with pid %u exited with code %u\n", pid, return_code);

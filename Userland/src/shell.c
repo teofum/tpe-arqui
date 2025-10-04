@@ -332,7 +332,7 @@ static args_t make_args(const char *cmd) {
     cmd = strsplit(argv[i++], cmd, ' ');
   }
 
-  return (args_t) {
+  return (args_t){
     .argc = argc,
     .argv = argv,
   };
@@ -363,7 +363,8 @@ static int run_command(const char *cmd) {
   char *const *argv;
   args_t args = make_args(cmd);
 
-  pid_t pid = proc_spawn(program->entry_point, args.argc, args.argv);
+  pid_t pid =
+    proc_spawn(program->entry_point, args.argc, args.argv, DEFAULT_PRIORITY);
   int return_value = proc_wait(pid);
 
   free_args(&args);

@@ -11,7 +11,6 @@ typedef struct {
 
 typedef struct {
   scheduler_queue_t groups[MAX_PRIORITY];
-  int cur;//temporal
 } scheduler_priority_list_t;
 
 static scheduler_priority_list_t spl = {0};

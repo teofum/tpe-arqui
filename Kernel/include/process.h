@@ -61,7 +61,8 @@ void proc_block();
  * Spawn a process. Returns the PID of the new process.
  */
 pid_t proc_spawn(
-  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv
+  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
+  priority_t priority
 );
 
 /*
