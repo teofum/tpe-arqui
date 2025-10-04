@@ -12,6 +12,7 @@
 proc_control_block_t proc_control_table[MAX_PID + 1] = {0};
 
 pid_t proc_running_pid = 0;
+pid_t proc_foreground_pid = 0;
 
 void *last_iretq_frame = 0;
 
@@ -107,6 +108,7 @@ void proc_init(proc_entrypoint_t entry_point) {
   pcb->n_waiting_processes = 0;
 
   proc_running_pid = new_pid;
+  proc_foreground_pid = new_pid;
   _proc_init(entry_point, (void *) pcb->rsp);
 }
 
@@ -163,12 +165,16 @@ static void proc_destroy(pid_t pid) {
 int proc_wait(pid_t pid) {
   proc_control_block_t *waiting_pcb = &proc_control_table[pid];
 
+  if (proc_foreground_pid == proc_running_pid) proc_foreground_pid = pid;
+
   while (waiting_pcb->state != PROC_STATE_EXITED) {
     waiting_pcb->n_waiting_processes++;
     pqueue_enqueue(waiting_pcb->waiting_processes, proc_running_pid);
 
     proc_block();
   }
+
+  if (proc_foreground_pid == pid) proc_foreground_pid = proc_running_pid;
 
   int return_code = waiting_pcb->return_code;
   waiting_pcb->n_waiting_processes--;

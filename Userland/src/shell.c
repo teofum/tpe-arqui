@@ -183,6 +183,13 @@ static int print_mascot() {
   return 0;
 }
 
+static int print_a() {
+  for (int i = 0; i < 200; i++) { write("a", 1); }
+  write("\n", 1);
+
+  return 0;
+}
+
 static int help();
 program_t commands[] = {
   {"help", "Display this help message", help},
@@ -199,6 +206,7 @@ program_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
+  {"print_a", "for bg testing", print_a},
 };
 size_t n_commands = sizeof(commands) / sizeof(program_t);
 
