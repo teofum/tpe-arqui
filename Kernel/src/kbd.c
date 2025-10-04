@@ -323,6 +323,8 @@ kbd_event_t kbd_get_key_event() {
   kbd_event_t event = {0};
   event.key = 0;
 
+  proc_wait_for_foreground();
+
   // Buffer empty, block this process
   if (kbd_buffer.read_pos == kbd_buffer.write_pos) {
     pqueue_enqueue(kbd_pqueue, proc_running_pid);
