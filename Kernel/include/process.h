@@ -24,6 +24,7 @@ typedef struct {
   void *stack;
   uint64_t rsp;
 
+  const char *description;
   proc_state_t state;
   int return_code;
 
@@ -32,6 +33,16 @@ typedef struct {
 
   int waiting_for_foreground;
 } proc_control_block_t;
+
+typedef struct {
+  const char *description;
+  pid_t pid;
+  proc_state_t state;
+  uint32_t priority;
+  uint64_t rsp;
+
+  int foreground : 1;
+} proc_info_t;
 
 extern proc_control_block_t proc_control_table[];
 
@@ -89,5 +100,10 @@ void proc_kill(pid_t pid);
  * to the foreground
  */
 void proc_wait_for_foreground();
+
+/*
+ * Get information about a process. Returns 0 if the process does not exist.
+ */
+int proc_info(pid_t pid, proc_info_t *out_info);
 
 #endif

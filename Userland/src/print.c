@@ -1,6 +1,7 @@
 #include <io.h>
 #include <print.h>
 #include <stddef.h>
+#include <strings.h>
 
 int utostr(
   char *buf, uint64_t n, uint8_t base, uint8_t minLength, char padding
@@ -80,7 +81,9 @@ static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
             break;
           case 's':
             t_str = va_arg(args, const char *);
+            size_t slen = strlen(t_str);
             while ((c = *t_str++) != 0) buf[len++] = c;
+            while (min_length-- > slen) buf[len++] = ' ';
             done = 1;
             break;
           case 'd':

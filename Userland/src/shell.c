@@ -5,6 +5,7 @@
 #include <mem.h>
 #include <print.h>
 #include <process.h>
+#include <ps.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -245,6 +246,7 @@ program_t commands[] = {
   {"capy", "Print our cute mascot", print_mascot},
   {"print_test", "for bg testing", print_test},
   {"fg", "Bring a process to foreground", make_foreground},
+  {"ps", "List all running processes", ps},
 };
 size_t n_commands = sizeof(commands) / sizeof(program_t);
 
@@ -434,7 +436,6 @@ int cash() {
 
   printf("Welcome to " COL_GREEN "carpinchOS\n");
   printf("cash v" SHELL_VERSION " | " COL_GREEN "Capybara Shell\n");
-  printf("%u\n", getpid());
 
   // Run the shell
   int exit = 0;

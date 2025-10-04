@@ -44,6 +44,7 @@ static void proc_initialize_process(
   char **argv_copy = mem_alloc(argc * sizeof(const char *));
   for (int i = 0; i < argc; i++) { argv_copy[i] = argv[i]; }
 
+  pcb->description = argv_copy[0];
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
   pcb->state = PROC_STATE_RUNNING;
@@ -103,6 +104,7 @@ void proc_init(proc_entrypoint_t entry_point) {
 
   proc_control_block_t *pcb = &proc_control_table[new_pid];
 
+  pcb->description = "init";
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
   pcb->state = PROC_STATE_RUNNING;
@@ -205,4 +207,18 @@ void proc_wait_for_foreground() {
 
     proc_block();
   }
+}
+
+int proc_info(pid_t pid, proc_info_t *out_info) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  if (pcb->stack == NULL) return 0;
+
+  out_info->pid = pid;
+  out_info->description = pcb->description;
+  out_info->state = pcb->state;
+  out_info->priority = 0;// TODO
+  out_info->rsp = pcb->rsp;
+  out_info->foreground = pid == proc_foreground_pid;
+
+  return 1;
 }
