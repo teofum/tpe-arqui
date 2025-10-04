@@ -14,7 +14,7 @@ typedef struct {
 } scheduler_priority_list_t;
 
 static scheduler_priority_list_t spl = {0};
-
+int scheduler_force_next = 0;
 
 // todo borrar: {0;rojo} {1;verde}
 pid_t scheduler_next() {
