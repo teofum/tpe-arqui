@@ -8,8 +8,6 @@
 #include <strings.h>
 #include <types.h>
 
-#include <print.h>
-
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
 
 proc_control_block_t proc_control_table[MAX_PID + 1] = {0};
