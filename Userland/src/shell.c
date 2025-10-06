@@ -253,8 +253,8 @@ static int timer_test(uint64_t argc, char *const *argv) {
   printf("my pid is %u\n", getpid());
   uint32_t i = 0;
   while (1) {
-    for (uint32_t j = 0; j < 1000000000;
-         j++);// shitty delay TODO have a real timer
+    // shitty delay TODO have a real timer
+    for (uint32_t j = 0; j < 5000; j++) yield();
     printf("%u %s\n", i++, argv[1]);
   }
   write("\n", 1);

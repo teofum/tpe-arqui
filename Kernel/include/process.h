@@ -60,7 +60,7 @@ extern pid_t proc_running_pid;
 void proc_init(proc_entrypoint_t entry_point);
 
 /*
- * Kernel-only function. Yields control to the scheduler.
+ * Yields control to the scheduler.
  */
 void proc_yield();
 
