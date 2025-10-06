@@ -20,8 +20,8 @@ typedef struct {
 static priority_t order[order_size] = {0, 0, 1, 0, 1, 2, 0, 1,
                                        2, 3, 0, 1, 2, 3, 4};
 //static priority_t order[order_size] = {0, 0, 1, 0, 1, 2, 0, 1, 3, 0, 1, 4};
-//priority_t order[] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4};
-//priority_t order[] = {0, 1, 2, 3, 4};
+//static priority_t order[] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4};
+//static priority_t order[] = {0, 1, 2, 3, 4};
 
 
 static scheduler_priority_list_t spl = {0};
