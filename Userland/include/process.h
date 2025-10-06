@@ -65,6 +65,11 @@ void proc_kill(pid_t pid);
 void proc_wait_for_foreground();
 
 /*
+ * Yields control to the scheduler.
+ */
+void yield();
+
+/*
  * Get information about a process. Returns 0 if the process does not exist.
  */
 int proc_info(pid_t pid, proc_info_t *out_info);
