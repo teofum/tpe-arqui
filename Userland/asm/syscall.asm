@@ -65,6 +65,9 @@ define_syscall proc_spawn, 0x70
 define_syscall proc_exit, 0x71
 define_syscall proc_wait, 0x72
 define_syscall getpid, 0x73
+define_syscall proc_wait_for_foreground, 0x74
+define_syscall proc_info, 0x75
+define_syscall proc_kill, 0x76
 
 ; Graphics system calls
 define_syscall gfx_clear, 0xA0

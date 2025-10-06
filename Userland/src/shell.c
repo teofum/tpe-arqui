@@ -1,9 +1,11 @@
 #include <gfxdemo.h>
 #include <golf_game.h>
 #include <io.h>
+#include <kbd.h>
 #include <mem.h>
 #include <print.h>
 #include <process.h>
+#include <ps.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -11,16 +13,12 @@
 #include <stdint.h>
 #include <strings.h>
 
-#define SHELL_VERSION "1.0.0"
+#define SHELL_VERSION "1.1.0"
 
 #define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
 
 extern const char *mascot;
-
-typedef enum {
-  RET_EXIT = -1,
-} retcode_t;
 
 typedef struct {
   const char *cmd;
@@ -31,6 +29,8 @@ typedef struct {
 typedef struct {
   uint64_t argc;
   char *const *argv;
+
+  int background : 1;
 } args_t;
 
 static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
@@ -45,8 +45,6 @@ static int echo(uint64_t argc, char *const *argv) {
 
   return 0;
 }
-
-static int exit() { return RET_EXIT; }
 
 static int clear() {
   io_clear();
@@ -183,11 +181,91 @@ static int print_mascot() {
   return 0;
 }
 
+static uint32_t parse_uint(const char *s) {
+  uint32_t r = 0;
+  while (*s >= '0' && *s <= '9') {
+    r *= 10;
+    r += *s - '0';
+    s++;
+  }
+  return r;
+}
+
+static int make_foreground(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
+    printf("Usage: fg <pid>\n");
+    return 0;
+  }
+  pid_t pid = parse_uint(argv[1]);
+
+  if (pid < 2) {
+    printf(COL_RED "Cannot bring a system process to foreground\n");
+    return 1;
+  }
+  if (pid == 2) {
+    printf(COL_RED "Cannot bring the shell process to foreground\n");
+    return 1;
+  }
+
+  // TODO fail if pid does not exist
+
+  proc_wait_for_foreground();
+  return proc_wait(pid);
+}
+
+static int kill(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
+    printf("Usage: kill <pid>\n");
+    return 0;
+  }
+  pid_t pid = parse_uint(argv[1]);
+
+  if (pid < 2) {
+    printf(COL_RED "Cannot kill a system process\n");
+    return 1;
+  }
+  if (pid == 2) {
+    printf(COL_RED "Cannot kill the shell process\n");
+    return 1;
+  }
+
+  // TODO fail if pid does not exist
+
+  proc_kill(pid);
+  proc_wait_for_foreground();
+  proc_wait(pid);
+  return 0;
+}
+
+static int print_test() {
+  printf("my pid is %u\n", getpid());
+  for (uint32_t i = 0; i < 5; i++) {
+    printf("Press a key... ");
+    kbd_get_key_event();
+    printf("%u\n", i);
+  }
+  write("\n", 1);
+
+  return 0;
+}
+
+static int timer_test(uint64_t argc, char *const *argv) {
+  printf("my pid is %u\n", getpid());
+  uint32_t i = 0;
+  while (1) {
+    for (uint32_t j = 0; j < 1000000000;
+         j++);// shitty delay TODO have a real timer
+    printf("%u %s\n", i++, argv[1]);
+  }
+  write("\n", 1);
+
+  return 0;
+}
+
 static int help();
 program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
-  {"exit", "Exit the shell and return to kernel", exit},
   {"clear", "Clear stdout", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
@@ -199,6 +277,11 @@ program_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
+  {"test1", "for bg testing, with kb input", print_test},
+  {"test2", "for bg testing, with timer", timer_test},
+  {"fg", "Bring a process to foreground", make_foreground},
+  {"ps", "List all running processes", ps},
+  {"kill", "Kill a process", kill},
 };
 size_t n_commands = sizeof(commands) / sizeof(program_t);
 
@@ -322,24 +405,38 @@ static args_t make_args(const char *cmd) {
   uint64_t argc = 1;
 
   for (size_t i = 0; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ') argc++;
+    if (cmd[i] == ' ' && cmd[i + 1] != '&') argc++;
   }
 
   char **argv = mem_alloc(argc * sizeof(char *));
-  size_t i = 0;
-  while (cmd) {
-    argv[i] = mem_alloc(CMD_BUF_LEN);
-    cmd = strsplit(argv[i++], cmd, ' ');
+  char *arg_str = mem_alloc(CMD_BUF_LEN);
+
+  int background = 0;
+  int i = 0, j = 0;
+  argv[0] = arg_str;
+  for (; cmd[i] != 0; i++) {
+    if (cmd[i] == ' ') {
+      arg_str[i] = 0;
+      if (cmd[i + 1] == '&') {
+        background = 1;
+      } else {
+        argv[++j] = &arg_str[i + 1];
+      }
+    } else {
+      arg_str[i] = cmd[i];
+    }
   }
+  arg_str[i] = 0;
 
   return (args_t){
     .argc = argc,
     .argv = argv,
+    .background = background,
   };
 }
 
 static void free_args(args_t *args) {
-  for (size_t i = 0; i < args->argc; i++) mem_free(args->argv[i]);
+  mem_free(args->argv[0]);
   mem_free((void *) args->argv);
 }
 
@@ -365,16 +462,15 @@ static int run_command(const char *cmd) {
 
   pid_t pid =
     proc_spawn(program->entry_point, args.argc, args.argv, DEFAULT_PRIORITY);
-  int return_value = proc_wait(pid);
-
+  int background = args.background;
   free_args(&args);
 
-  if (return_value == RET_EXIT) {
-    return 1;
-  } else if (return_value != 0) {
-    prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", return_value);
-  } else {
+  if (!background) {
+    int return_value = proc_wait(pid);
     prompt_length = 2;
+    if (return_value != 0) {
+      prompt_length += printf("[" COL_RED "%u" COL_RESET "] ", return_value);
+    }
   }
 
   return 0;

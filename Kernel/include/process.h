@@ -12,6 +12,8 @@
 #define MAX_PID 0xfff
 #define IDLE_PID 0
 
+#define RETURN_KILLED -1
+
 typedef int (*proc_entrypoint_t)(uint64_t argc, char *const *argv);
 typedef int priority_t;
 
@@ -25,6 +27,9 @@ typedef struct {
   void *stack;
   uint64_t rsp;
 
+  uint64_t argc;
+  char *const *argv;
+  const char *description;
   proc_state_t state;
   int return_code;
 
@@ -32,7 +37,19 @@ typedef struct {
   uint32_t n_waiting_processes;
 
   priority_t priority;
+
+  int waiting_for_foreground;
 } proc_control_block_t;
+
+typedef struct {
+  const char *description;
+  pid_t pid;
+  proc_state_t state;
+  uint32_t priority;
+  uint64_t rsp;
+
+  int foreground : 1;
+} proc_info_t;
 
 extern proc_control_block_t proc_control_table[];
 
@@ -85,5 +102,16 @@ pid_t proc_getpid();
  * Kill a running process.
  */
 void proc_kill(pid_t pid);
+
+/*
+ * If the current process is running in the background, block until it's brought
+ * to the foreground
+ */
+void proc_wait_for_foreground();
+
+/*
+ * Get information about a process. Returns 0 if the process does not exist.
+ */
+int proc_info(pid_t pid, proc_info_t *out_info);
 
 #endif

@@ -5,6 +5,7 @@
 #include <scheduler.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <strings.h>
 #include <types.h>
 
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
@@ -12,6 +13,7 @@
 proc_control_block_t proc_control_table[MAX_PID + 1] = {0};
 
 pid_t proc_running_pid = 0;
+pid_t proc_foreground_pid = 0;
 
 void *last_iretq_frame = 0;
 
@@ -37,11 +39,15 @@ static void proc_initialize_process(
 ) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
-  // Make a copy of argv so we don't give the spawned program a pointer to
-  // caller memory
-  char **argv_copy = mem_alloc(argc * sizeof(const char *));
-  for (int i = 0; i < argc; i++) { argv_copy[i] = argv[i]; }
+  char **argv_copy = mem_alloc(argc * sizeof(char *));
+  for (int i = 0; i < argc; i++) {
+    argv_copy[i] = mem_alloc(strlen(argv[i]));
+    strcpy(argv_copy[i], argv[i]);
+  }
 
+  pcb->argc = argc;
+  pcb->argv = argv_copy;
+  pcb->description = argv_copy[0];
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
   pcb->state = PROC_STATE_RUNNING;
@@ -103,6 +109,8 @@ void proc_init(proc_entrypoint_t entry_point) {
 
   proc_control_block_t *pcb = &proc_control_table[new_pid];
 
+  pcb->argv = NULL;
+  pcb->description = "init";
   pcb->stack = mem_alloc(STACK_SIZE);
   pcb->rsp = (uint64_t) pcb->stack + STACK_SIZE;
   pcb->state = PROC_STATE_RUNNING;
@@ -110,6 +118,7 @@ void proc_init(proc_entrypoint_t entry_point) {
   pcb->n_waiting_processes = 0;
 
   proc_running_pid = new_pid;
+  proc_foreground_pid = new_pid;
   _proc_init(entry_point, (void *) pcb->rsp);
 }
 
@@ -160,19 +169,38 @@ static void proc_destroy(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
   mem_free(pcb->stack);
+  for (int i = 0; i < pcb->argc; i++) mem_free(pcb->argv[0]);
+  mem_free((void *) pcb->argv);
+  pcb->argc = 0;
+  pcb->argv = NULL;
+  pcb->description = NULL;
   pcb->stack = NULL;
   pqueue_destroy(pcb->waiting_processes);
+}
+
+static void proc_make_foreground(pid_t pid) {
+  proc_foreground_pid = pid;
+
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  if (pcb->waiting_for_foreground && pcb->state == PROC_STATE_BLOCKED) {
+    pcb->waiting_for_foreground = 0;
+    pcb->state = PROC_STATE_RUNNING;
+    scheduler_enqueue(pid);
+  }
 }
 
 int proc_wait(pid_t pid) {
   proc_control_block_t *waiting_pcb = &proc_control_table[pid];
 
-  while (waiting_pcb->state != PROC_STATE_EXITED) {
-    waiting_pcb->n_waiting_processes++;
-    pqueue_enqueue(waiting_pcb->waiting_processes, proc_running_pid);
+  if (proc_foreground_pid == proc_running_pid) proc_make_foreground(pid);
 
+  waiting_pcb->n_waiting_processes++;
+  while (waiting_pcb->state != PROC_STATE_EXITED) {
+    pqueue_enqueue(waiting_pcb->waiting_processes, proc_running_pid);
     proc_block();
   }
+
+  if (proc_foreground_pid == pid) proc_make_foreground(proc_running_pid);
 
   int return_code = waiting_pcb->return_code;
   waiting_pcb->n_waiting_processes--;
@@ -182,4 +210,43 @@ int proc_wait(pid_t pid) {
   return return_code;
 }
 
+void proc_kill(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+
+  pcb->state = PROC_STATE_EXITED;
+  pcb->return_code = RETURN_KILLED;
+
+  while (!pqueue_empty(pcb->waiting_processes)) {
+    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
+
+    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
+    waiting_pcb->state = PROC_STATE_RUNNING;
+
+    scheduler_enqueue(waiting_pid);
+  }
+}
+
 pid_t proc_getpid() { return proc_running_pid; }
+
+void proc_wait_for_foreground() {
+  while (proc_foreground_pid != proc_running_pid) {
+    proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+    pcb->waiting_for_foreground = 1;
+
+    proc_block();
+  }
+}
+
+int proc_info(pid_t pid, proc_info_t *out_info) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  if (pcb->stack == NULL) return 0;
+
+  out_info->pid = pid;
+  out_info->description = pcb->description;
+  out_info->state = pcb->state;
+  out_info->priority = 0;// TODO
+  out_info->rsp = pcb->rsp;
+  out_info->foreground = pid == proc_foreground_pid;
+
+  return 1;
+}
