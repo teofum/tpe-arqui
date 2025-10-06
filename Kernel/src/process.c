@@ -8,8 +8,6 @@
 #include <strings.h>
 #include <types.h>
 
-#include <print.h>
-
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
 
 proc_control_block_t proc_control_table[MAX_PID + 1] = {0};
@@ -206,6 +204,22 @@ int proc_wait(pid_t pid) {
   if (waiting_pcb->n_waiting_processes == 0) proc_destroy(pid);
 
   return return_code;
+}
+
+void proc_kill(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+
+  pcb->state = PROC_STATE_EXITED;
+  pcb->return_code = RETURN_KILLED;
+
+  while (!pqueue_empty(pcb->waiting_processes)) {
+    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
+
+    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
+    waiting_pcb->state = PROC_STATE_RUNNING;
+
+    scheduler_enqueue(waiting_pid);
+  }
 }
 
 pid_t proc_getpid() { return proc_running_pid; }

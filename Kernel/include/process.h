@@ -12,6 +12,8 @@
 #define MAX_PID 0xfff
 #define IDLE_PID 0
 
+#define RETURN_KILLED -1
+
 typedef int (*proc_entrypoint_t)(uint64_t argc, char *const *argv);
 
 typedef enum {

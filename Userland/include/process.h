@@ -51,6 +51,11 @@ int proc_wait(pid_t pid);
 pid_t getpid();
 
 /*
+ * Kill a running process.
+ */
+void proc_kill(pid_t pid);
+
+/*
  * If the current process is running in the background, block until it's brought
  * to the foreground
  */

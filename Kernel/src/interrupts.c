@@ -198,6 +198,7 @@ void init_syscalls() {
   register_syscall(0x73, proc_getpid);
   register_syscall(0x74, proc_wait_for_foreground);
   register_syscall(0x75, proc_info);
+  register_syscall(0x76, proc_kill);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);

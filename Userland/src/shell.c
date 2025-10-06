@@ -20,10 +20,6 @@
 
 extern const char *mascot;
 
-typedef enum {
-  RET_EXIT = -1,
-} retcode_t;
-
 typedef struct {
   const char *cmd;
   const char *desc;
@@ -49,8 +45,6 @@ static int echo(uint64_t argc, char *const *argv) {
 
   return 0;
 }
-
-static int exit() { return RET_EXIT; }
 
 static int clear() {
   io_clear();
@@ -198,7 +192,10 @@ static uint32_t parse_uint(const char *s) {
 }
 
 static int make_foreground(uint64_t argc, char *const *argv) {
-  if (argc < 2) return 1;
+  if (argc < 2) {
+    printf("Usage: fg <pid>\n");
+    return 0;
+  }
   pid_t pid = parse_uint(argv[1]);
 
   if (pid < 2) {
@@ -216,6 +213,30 @@ static int make_foreground(uint64_t argc, char *const *argv) {
   return proc_wait(pid);
 }
 
+static int kill(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
+    printf("Usage: kill <pid>\n");
+    return 0;
+  }
+  pid_t pid = parse_uint(argv[1]);
+
+  if (pid < 2) {
+    printf(COL_RED "Cannot kill a system process\n");
+    return 1;
+  }
+  if (pid == 2) {
+    printf(COL_RED "Cannot kill the shell process\n");
+    return 1;
+  }
+
+  // TODO fail if pid does not exist
+
+  proc_kill(pid);
+  proc_wait_for_foreground();
+  proc_wait(pid);
+  return 0;
+}
+
 static int print_test() {
   printf("my pid is %u\n", getpid());
   for (uint32_t i = 0; i < 5; i++) {
@@ -228,11 +249,23 @@ static int print_test() {
   return 0;
 }
 
+static int timer_test(uint64_t argc, char *const *argv) {
+  printf("my pid is %u\n", getpid());
+  uint32_t i = 0;
+  while (1) {
+    for (uint32_t j = 0; j < 1000000000;
+         j++);// shitty delay TODO have a real timer
+    printf("%u %s\n", i++, argv[1]);
+  }
+  write("\n", 1);
+
+  return 0;
+}
+
 static int help();
 program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
-  {"exit", "Exit the shell and return to kernel", exit},
   {"clear", "Clear stdout", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
@@ -244,9 +277,11 @@ program_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
-  {"print_test", "for bg testing", print_test},
+  {"test1", "for bg testing, with kb input", print_test},
+  {"test2", "for bg testing, with timer", timer_test},
   {"fg", "Bring a process to foreground", make_foreground},
   {"ps", "List all running processes", ps},
+  {"kill", "Kill a process", kill},
 };
 size_t n_commands = sizeof(commands) / sizeof(program_t);
 
@@ -431,12 +466,9 @@ static int run_command(const char *cmd) {
 
   if (!background) {
     int return_value = proc_wait(pid);
-    if (return_value == RET_EXIT) {
-      return 1;
-    } else if (return_value != 0) {
-      prompt_length = 2 + printf("[" COL_RED "%u" COL_RESET "] ", return_value);
-    } else {
-      prompt_length = 2;
+    prompt_length = 2;
+    if (return_value != 0) {
+      prompt_length += printf("[" COL_RED "%u" COL_RESET "] ", return_value);
     }
   }
 
