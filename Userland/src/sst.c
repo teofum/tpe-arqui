@@ -243,13 +243,13 @@ int test_proc_args_copy() {
 
   printf("    Process must not be able to replace its arguments\n");
   printf("    Spawning process with argv[1] = 'foo'\n");
-  pid_t pid = proc_spawn(evil, lengthof(argv), argv);
+  pid_t pid = proc_spawn(evil, lengthof(argv), argv, DEFAULT_PRIORITY);
   proc_wait(pid);
   sst_assert_streq("foo", argv[1], "Process replaced an argument");
 
   printf("    Process must not be able to modify its arguments\n");
   printf("    Spawning process with argv[1] = 'foo'\n");
-  pid = proc_spawn(evil2, lengthof(argv), argv);
+  pid = proc_spawn(evil2, lengthof(argv), argv, DEFAULT_PRIORITY);
   proc_wait(pid);
   sst_assert_streq("foo", argv[1], "Process modified an argument");
 
