@@ -40,42 +40,7 @@ const char *mascot =
   "                           :++-==. =#*+#**#@#=.           .+*=      \n"
   "                                                  .-#%%#-.\n";
 
-void test_a() {
-  for (int i = 0; i < 100; i++) { writes(COL_RED "A"); }
-  proc_exit(0);
-}
-void test_b() {
-  for (int i = 0; i < 100; i++) { writes(COL_GREEN "B"); }
-  proc_exit(0);
-}
-void test_c() {
-  for (int i = 0; i < 100; i++) { writes(COL_BLUE "C"); }
-  proc_exit(0);
-}
-void test_d() {
-  for (int i = 0; i < 100; i++) { writes(COL_YELLOW "D"); }
-  proc_exit(0);
-}
-void test_e() {
-  for (int i = 0; i < 100; i++) { writes(COL_MAGENTA "E"); }
-  proc_exit(0);
-}
 
-void main() {
-  writes(COL_BLUE "Spawning ...\n");
-  pid_t test_a_pid = proc_spawn(test_a, 0, NULL, 0);
-  pid_t test_b_pid = proc_spawn(test_b, 0, NULL, 1);
-  pid_t test_c_pid = proc_spawn(test_c, 0, NULL, 2);
-  pid_t test_d_pid = proc_spawn(test_d, 0, NULL, 3);
-  pid_t test_e_pid = proc_spawn(test_e, 0, NULL, 4);
-
-  proc_wait(test_e_pid);
-
-  writes(COL_BLUE "end");
-  while (1) {};//writes(COL_GRAY "_(:v \\)/_"); }
-}
-
-/*
 int main() {
 #ifdef SST
   int test_result = sst_run_tests();
@@ -105,4 +70,3 @@ int main() {
 
   return 0xDEADBEEF;
 }
-*/
