@@ -4,8 +4,8 @@
 #include <kbd.h>
 #include <mem.h>
 #include <print.h>
+#include <proc.h>
 #include <process.h>
-#include <ps.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -181,62 +181,6 @@ static int print_mascot() {
   return 0;
 }
 
-static uint32_t parse_uint(const char *s) {
-  uint32_t r = 0;
-  while (*s >= '0' && *s <= '9') {
-    r *= 10;
-    r += *s - '0';
-    s++;
-  }
-  return r;
-}
-
-static int make_foreground(uint64_t argc, char *const *argv) {
-  if (argc < 2) {
-    printf("Usage: fg <pid>\n");
-    return 0;
-  }
-  pid_t pid = parse_uint(argv[1]);
-
-  if (pid < 2) {
-    printf(COL_RED "Cannot bring a system process to foreground\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot bring the shell process to foreground\n");
-    return 1;
-  }
-
-  // TODO fail if pid does not exist
-
-  proc_wait_for_foreground();
-  return proc_wait(pid);
-}
-
-static int kill(uint64_t argc, char *const *argv) {
-  if (argc < 2) {
-    printf("Usage: kill <pid>\n");
-    return 0;
-  }
-  pid_t pid = parse_uint(argv[1]);
-
-  if (pid < 2) {
-    printf(COL_RED "Cannot kill a system process\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot kill the shell process\n");
-    return 1;
-  }
-
-  // TODO fail if pid does not exist
-
-  proc_kill(pid);
-  proc_wait_for_foreground();
-  proc_wait(pid);
-  return 0;
-}
-
 static int print_test() {
   printf("my pid is %u\n", getpid());
   for (uint32_t i = 0; i < 5; i++) {
@@ -263,7 +207,7 @@ static int timer_test(uint64_t argc, char *const *argv) {
 }
 
 static int help();
-program_t commands[] = {
+static program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
   {"clear", "Clear stdout", clear},
@@ -279,11 +223,9 @@ program_t commands[] = {
   {"capy", "Print our cute mascot", print_mascot},
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
-  {"fg", "Bring a process to foreground", make_foreground},
-  {"ps", "List all running processes", ps},
-  {"kill", "Kill a process", kill},
+  {"proc", "Manage processes", proc},
 };
-size_t n_commands = sizeof(commands) / sizeof(program_t);
+static size_t n_commands = sizeof(commands) / sizeof(program_t);
 
 static int help() {
   printf("Available commands:\n\n");
