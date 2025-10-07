@@ -102,7 +102,7 @@ static int stop(pid_t pid) {
 }
 
 static int run(pid_t pid) {
-  check_pid(pid, "foce run");
+  check_pid(pid, "force run");
   // TODO fail if pid does not exist
 
   proc_run(pid);
