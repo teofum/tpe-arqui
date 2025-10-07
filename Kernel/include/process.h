@@ -72,6 +72,17 @@ void proc_yield();
 void proc_block();
 
 /*
+ * Blocks a process by PID and yields control to the scheduler.
+ */
+void proc_blockpid(pid_t pid);
+
+/*
+ * Set a blocked process to running. The process is likely to block itself
+ * again (eg if it's waiting on i/o or foreground)
+ */
+void proc_runpid(pid_t pid);
+
+/*
  * Spawn a process. Returns the PID of the new process.
  */
 pid_t proc_spawn(

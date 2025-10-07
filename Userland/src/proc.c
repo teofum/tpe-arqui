@@ -4,6 +4,13 @@
 #include <shell.h>
 #include <strings.h>
 
+#define check_pid(pid, action)                                                 \
+  if ((pid) < 3) {                                                             \
+    printf(COL_RED "proc: attempted to %s a protected process\n", (action));   \
+    return 1;                                                                  \
+  }
+
+
 typedef struct {
   const char *cmd;
   const char *desc;
@@ -24,6 +31,10 @@ static command_t commands[] = {
   {"ls", "List all running processes"},
   {"fg", "Bring a process into foreground"},
   {"kill", "Kill a process"},
+  {"stop", "Block a process"},
+  {"run",
+   "Force a blocked process to run now " COL_RED "(WARNING: can mess with "
+   "scheduling if process was not blocked manually!)"},
 };
 static size_t n_commands = sizeof(commands) / sizeof(command_t);
 
@@ -65,15 +76,7 @@ static int ps() {
 }
 
 static int make_foreground(pid_t pid) {
-  if (pid < 2) {
-    printf(COL_RED "Cannot bring a system process to foreground\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot bring the shell process to foreground\n");
-    return 1;
-  }
-
+  check_pid(pid, "modify");
   // TODO fail if pid does not exist
 
   proc_wait_for_foreground();
@@ -81,20 +84,28 @@ static int make_foreground(pid_t pid) {
 }
 
 static int kill(pid_t pid) {
-  if (pid < 2) {
-    printf(COL_RED "Cannot kill a system process\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot kill the shell process\n");
-    return 1;
-  }
-
+  check_pid(pid, "kill");
   // TODO fail if pid does not exist
 
   proc_kill(pid);
   proc_wait_for_foreground();
   proc_wait(pid);
+  return 0;
+}
+
+static int stop(pid_t pid) {
+  check_pid(pid, "stop");
+  // TODO fail if pid does not exist
+
+  proc_block(pid);
+  return 0;
+}
+
+static int run(pid_t pid) {
+  check_pid(pid, "foce run");
+  // TODO fail if pid does not exist
+
+  proc_run(pid);
   return 0;
 }
 
@@ -127,6 +138,8 @@ int proc(uint64_t argc, char *const *argv) {
 
   if (!strcmp(argv[1], "fg")) { return make_foreground(pid); }
   if (!strcmp(argv[1], "kill")) { return kill(pid); }
+  if (!strcmp(argv[1], "stop")) { return stop(pid); }
+  if (!strcmp(argv[1], "run")) { return run(pid); }
 
   printf(COL_RED "proc: invalid command %s\n", argv[1]);
   printf("Type " COL_YELLOW "proc help" COL_RESET " for a list of commands\n");
