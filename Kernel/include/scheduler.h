@@ -8,6 +8,8 @@
 
 extern int scheduler_force_next;
 
+int scheduler_init();
+
 pid_t scheduler_next();
 
 void scheduler_enqueue(pid_t pid);

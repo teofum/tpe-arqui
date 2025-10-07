@@ -62,6 +62,9 @@ void test_e() {
 }
 
 void main() {
+
+  scheduler_init();
+
   writes(COL_BLUE "Spawning ...\n");
   pid_t test_a_pid = proc_spawn(test_a, 0, NULL, 0);
   pid_t test_b_pid = proc_spawn(test_b, 0, NULL, 1);
