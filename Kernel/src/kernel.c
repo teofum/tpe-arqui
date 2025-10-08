@@ -7,6 +7,7 @@
 #include <module_loader.h>
 #include <print.h>
 #include <process.h>
+#include <scheduler.h>
 #include <status.h>
 #include <stdint.h>
 #include <time.h>
@@ -63,8 +64,9 @@ void *initialize_kernel_binary() {
 
 int main() {
   // Initialize memory manager
-  mem_default_mgr =
-    mem_manager_create((void *) 0xFFF000, (void *) 0x1000000, 1024 * 1024 * 1024);
+  mem_default_mgr = mem_manager_create(
+    (void *) 0xFFF000, (void *) 0x1000000, 1024 * 1024 * 1024
+  );
 
   // Initialize kernel systems
   timer_init();
@@ -72,6 +74,7 @@ int main() {
   vga_init();
   gfx_init();
   io_init();
+  scheduler_init();
 
   // Enable status bar
   status_set_enabled(1);
@@ -82,6 +85,7 @@ int main() {
 
   while (1) {
     proc_init((proc_entrypoint_t) userland_code_module);
+
     // printf(
     //   "\x1A 195,248,132;[Kernel] \x1A R;"
     //   "Userland module exited with code \x1A 255,197,96;%#08x\n"

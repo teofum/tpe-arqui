@@ -15,6 +15,7 @@
 #define RETURN_KILLED -1
 
 typedef int (*proc_entrypoint_t)(uint64_t argc, char *const *argv);
+typedef int priority_t;
 
 typedef enum {
   PROC_STATE_RUNNING = 0,
@@ -34,6 +35,8 @@ typedef struct {
 
   pqueue_t waiting_processes;
   uint32_t n_waiting_processes;
+
+  priority_t priority;
 
   int waiting_for_foreground;
 } proc_control_block_t;
@@ -75,7 +78,8 @@ void proc_block();
  * Spawn a process. Returns the PID of the new process.
  */
 pid_t proc_spawn(
-  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv
+  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
+  priority_t priority
 );
 
 /*

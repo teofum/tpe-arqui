@@ -34,7 +34,8 @@ proc_start(proc_entrypoint_t entry_point, uint64_t argc, char *const *argv) {
 }
 
 static void proc_initialize_process(
-  pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, char *const *argv
+  pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
+  priority_t priority
 ) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
@@ -52,6 +53,7 @@ static void proc_initialize_process(
   pcb->state = PROC_STATE_RUNNING;
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
+  pcb->priority = priority;
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
@@ -96,7 +98,8 @@ void proc_init(proc_entrypoint_t entry_point) {
    * Initialize the idle process, but don't run it
    */
   char *const idle_argv[1] = {"idle"};
-  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv);
+  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, -1);
+  //priority -1 pq no deberia entrar en la cola
 
   /*
    * Initialize and start the init process. We "bootstrap" the process
@@ -132,11 +135,12 @@ void proc_block() {
 }
 
 pid_t proc_spawn(
-  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv
+  proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
+  priority_t priority
 ) {
   pid_t new_pid = get_first_unused_pid();
 
-  proc_initialize_process(new_pid, entry_point, argc, argv);
+  proc_initialize_process(new_pid, entry_point, argc, argv, priority);
   scheduler_enqueue(new_pid);
   proc_yield();
 
