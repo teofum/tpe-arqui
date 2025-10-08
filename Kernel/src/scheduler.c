@@ -23,10 +23,9 @@ static priority_t order[order_size] = {0, 0, 1, 0, 1, 2, 0, 1,
 static scheduler_priority_list_t spl = {0};
 int scheduler_force_next = 0;
 
-int scheduler_init() {
+void scheduler_init() {
   for (int i = 0; i <= MAX_PRIORITY; ++i) { spl.groups[i] = pqueue_create(); }
   spl.next = 0;
-  return 0;
 }
 
 pid_t scheduler_next() {
