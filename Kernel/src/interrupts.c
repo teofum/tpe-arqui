@@ -190,6 +190,7 @@ void init_syscalls() {
   register_syscall(0x60, mem_alloc);
   register_syscall(0x61, mem_free);
   register_syscall(0x62, mem_check);
+  register_syscall(0x63, mem_status);
 
   /* Processes */
   register_syscall(0x70, proc_spawn);

@@ -181,6 +181,23 @@ static int print_mascot() {
   return 0;
 }
 
+static int mem() {
+  size_t total, used, free;
+  mem_status(&total, &used, &free);
+
+  uint64_t used_pct = (used * 100) / total;
+  uint64_t free_pct = (free * 100) / total;
+
+  printf(
+    COL_GRAY "Total: " COL_RESET "%llu bytes\n"
+    COL_GREEN "Used:  " COL_RESET "%llu bytes (%llu%%)\n"
+    COL_BLUE "Free:  " COL_RESET "%llu bytes (%llu%%)\n",
+    total, used, used_pct, free, free_pct
+  );
+
+  return 0;
+}
+
 static uint32_t parse_uint(const char *s) {
   uint32_t r = 0;
   while (*s >= '0' && *s <= '9') {
@@ -277,6 +294,7 @@ program_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
+  {"mem", "Display memory status", mem},
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
   {"fg", "Bring a process to foreground", make_foreground},

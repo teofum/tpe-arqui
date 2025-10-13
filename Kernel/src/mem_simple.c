@@ -23,3 +23,11 @@ void *mem_manager_alloc(mem_manager_t mgr, size_t size) {
 void mem_manager_free(mem_manager_t mgr, void *mem) {}
 
 int mem_manager_check(mem_manager_t mgr, void *mem) { return 0; }
+
+void mem_manager_status(
+  mem_manager_t mgr, size_t *total, size_t *used, size_t *free
+) {
+  *total = 0;
+  *used = 0;
+  *free = 0;
+}

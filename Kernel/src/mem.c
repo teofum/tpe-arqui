@@ -10,3 +10,7 @@ void *mem_alloc(size_t size) {
 void mem_free(void *mem) { mem_manager_free(mem_default_mgr, mem); }
 
 int mem_check(void *mem) { return mem_manager_check(mem_default_mgr, mem); }
+
+void mem_status(size_t *total, size_t *used, size_t *free) {
+  mem_manager_status(mem_default_mgr, total, used, free);
+}
