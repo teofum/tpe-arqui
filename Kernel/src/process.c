@@ -98,8 +98,8 @@ void proc_init(proc_entrypoint_t entry_point) {
    * Initialize the idle process, but don't run it
    */
   char *const idle_argv[1] = {"idle"};
-  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, -1);
-  //priority -1 pq no deberia entrar en la cola
+  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, MAX_PRIORITY + 1);
+  //invalid priority pq no deberia entrar en la cola
 
   /*
    * Initialize and start the init process. We "bootstrap" the process
