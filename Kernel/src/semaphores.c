@@ -12,13 +12,25 @@ sem_t sem_create(int initial) {
   return newSem;
 }
 
-int sem_trydown(sem_t) {}
+int sem_canDown(sem_t sem) {
+  if (sem->value == 0) return 0;
+  return sem->value;
+}
 
-int sem_down(sem_t) {}
+int sem_down(sem_t sem) {
+  if (sem_canDown(sem)) {
+    sem->value -= 1;
+  } else {
+    pqueue_enqueue(sem->waiters, pid);// todo
+  }
+}
 
 
-int sem_up(sem_t) {}
+int sem_up(sem_t sem) {}// todo
 
 //int sem_getvalue(sem_t, int *out){}
 
-int sem_close(sem_t) {}
+void sem_close(sem_t sem) {
+  pqueue_destroy(sem->waiters);// todo verificar esto
+  mem_free(sem);
+}
