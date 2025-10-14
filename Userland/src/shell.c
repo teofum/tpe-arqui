@@ -181,6 +181,23 @@ static int print_mascot() {
   return 0;
 }
 
+static int mem() {
+  size_t total, used, free;
+  mem_status(&total, &used, &free);
+
+  size_t used_pct = (used * 100) / total;
+  size_t free_pct = (free * 100) / total;
+
+  printf(
+    COL_GRAY "Total: " COL_RESET "%lu bytes\n" COL_GREEN "Used:  " COL_RESET
+             "%lu bytes (%lu%%)\n" COL_BLUE "Free:  " COL_RESET
+             "%lu bytes (%lu%%)\n",
+    total, used, used_pct, free, free_pct
+  );
+
+  return 0;
+}
+
 static int print_test() {
   printf("my pid is %u\n", getpid());
   for (uint32_t i = 0; i < 5; i++) {
@@ -221,6 +238,7 @@ static program_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
+  {"mem", "Display memory status", mem},
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
   {"proc", "Manage processes", proc},
@@ -370,7 +388,7 @@ static args_t make_args(const char *cmd) {
   }
   arg_str[i] = 0;
 
-  return (args_t){
+  return (args_t) {
     .argc = argc,
     .argv = argv,
     .background = background,
