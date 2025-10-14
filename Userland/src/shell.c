@@ -4,8 +4,8 @@
 #include <kbd.h>
 #include <mem.h>
 #include <print.h>
+#include <proc.h>
 #include <process.h>
-#include <ps.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -185,72 +185,16 @@ static int mem() {
   size_t total, used, free;
   mem_status(&total, &used, &free);
 
-  uint64_t used_pct = (used * 100) / total;
-  uint64_t free_pct = (free * 100) / total;
+  size_t used_pct = (used * 100) / total;
+  size_t free_pct = (free * 100) / total;
 
   printf(
-    COL_GRAY "Total: " COL_RESET "%llu bytes\n"
-    COL_GREEN "Used:  " COL_RESET "%llu bytes (%llu%%)\n"
-    COL_BLUE "Free:  " COL_RESET "%llu bytes (%llu%%)\n",
+    COL_GRAY "Total: " COL_RESET "%lu bytes\n" COL_GREEN "Used:  " COL_RESET
+             "%lu bytes (%lu%%)\n" COL_BLUE "Free:  " COL_RESET
+             "%lu bytes (%lu%%)\n",
     total, used, used_pct, free, free_pct
   );
 
-  return 0;
-}
-
-static uint32_t parse_uint(const char *s) {
-  uint32_t r = 0;
-  while (*s >= '0' && *s <= '9') {
-    r *= 10;
-    r += *s - '0';
-    s++;
-  }
-  return r;
-}
-
-static int make_foreground(uint64_t argc, char *const *argv) {
-  if (argc < 2) {
-    printf("Usage: fg <pid>\n");
-    return 0;
-  }
-  pid_t pid = parse_uint(argv[1]);
-
-  if (pid < 2) {
-    printf(COL_RED "Cannot bring a system process to foreground\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot bring the shell process to foreground\n");
-    return 1;
-  }
-
-  // TODO fail if pid does not exist
-
-  proc_wait_for_foreground();
-  return proc_wait(pid);
-}
-
-static int kill(uint64_t argc, char *const *argv) {
-  if (argc < 2) {
-    printf("Usage: kill <pid>\n");
-    return 0;
-  }
-  pid_t pid = parse_uint(argv[1]);
-
-  if (pid < 2) {
-    printf(COL_RED "Cannot kill a system process\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot kill the shell process\n");
-    return 1;
-  }
-
-  // TODO fail if pid does not exist
-
-  proc_kill(pid);
-  proc_wait_for_foreground();
-  proc_wait(pid);
   return 0;
 }
 
@@ -280,7 +224,7 @@ static int timer_test(uint64_t argc, char *const *argv) {
 }
 
 static int help();
-program_t commands[] = {
+static program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
   {"clear", "Clear stdout", clear},
@@ -297,11 +241,9 @@ program_t commands[] = {
   {"mem", "Display memory status", mem},
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
-  {"fg", "Bring a process to foreground", make_foreground},
-  {"ps", "List all running processes", ps},
-  {"kill", "Kill a process", kill},
+  {"proc", "Manage processes", proc},
 };
-size_t n_commands = sizeof(commands) / sizeof(program_t);
+static size_t n_commands = sizeof(commands) / sizeof(program_t);
 
 static int help() {
   printf("Available commands:\n\n");
@@ -446,7 +388,7 @@ static args_t make_args(const char *cmd) {
   }
   arg_str[i] = 0;
 
-  return (args_t){
+  return (args_t) {
     .argc = argc,
     .argv = argv,
     .background = background,

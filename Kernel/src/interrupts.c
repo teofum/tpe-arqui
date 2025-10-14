@@ -201,6 +201,8 @@ void init_syscalls() {
   register_syscall(0x75, proc_info);
   register_syscall(0x76, proc_kill);
   register_syscall(0x77, proc_yield);
+  register_syscall(0x78, proc_blockpid);
+  register_syscall(0x79, proc_runpid);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);
