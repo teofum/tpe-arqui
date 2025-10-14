@@ -61,7 +61,15 @@ static int ps() {
   );
 
   proc_info_t info;
-  for (pid_t i = 0; i <= MAX_PID; i++) {
+  if (proc_info(0, &info)) {
+    printf(
+      COL_MAGENTA "%4u " COL_RESET "%16s %s " COL_MAGENTA "%9s " COL_BLUE
+                  "%10s " COL_MAGENTA "%#016llx\n",
+      info.pid, info.description, state_str[info.state], "      N/A",
+      info.foreground ? "Yes" : " ", info.rsp
+    );
+  }
+  for (pid_t i = 1; i <= MAX_PID; i++) {
     if (proc_info(i, &info)) {
       printf(
         COL_MAGENTA "%4u " COL_RESET "%16s %s " COL_MAGENTA "%9u " COL_BLUE
