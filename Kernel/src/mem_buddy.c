@@ -162,3 +162,23 @@ int mem_manager_check(mem_manager_t mgr, void *mem) {
 
   return !block->free;
 }
+
+void mem_manager_status(
+  mem_manager_t mgr, size_t *total, size_t *used, size_t *free
+) {
+  *total = mgr->size;
+  *used = 0;
+  *free = 0;
+
+  // Count free blocks
+  for (uint8_t order = 0; order <= mgr->max_order; order++) {
+    block_t *curr = mgr->lists[order];
+    while (curr) {
+      size_t block_size = MIN_BLOCK_SIZE << order;
+      *free += block_size;
+      curr = curr->next;
+    }
+  }
+
+  *used = *total - *free;
+}
