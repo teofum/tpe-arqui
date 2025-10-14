@@ -134,6 +134,21 @@ void proc_block() {
   proc_yield();
 }
 
+void proc_blockpid(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  pcb->state = PROC_STATE_BLOCKED;
+
+  // TODO remove from scheduler
+}
+
+void proc_runpid(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  if (pcb->state == PROC_STATE_BLOCKED) {
+    pcb->state = PROC_STATE_RUNNING;
+    scheduler_enqueue(pid);
+  }
+}
+
 pid_t proc_spawn(
   proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
   priority_t priority
