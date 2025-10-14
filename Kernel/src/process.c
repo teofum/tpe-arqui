@@ -259,7 +259,7 @@ int proc_info(pid_t pid, proc_info_t *out_info) {
   out_info->pid = pid;
   out_info->description = pcb->description;
   out_info->state = pcb->state;
-  out_info->priority = 0;// TODO
+  out_info->priority = pcb->priority;
   out_info->rsp = pcb->rsp;
   out_info->foreground = pid == proc_foreground_pid;
 
