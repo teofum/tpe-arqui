@@ -98,8 +98,8 @@ void proc_init(proc_entrypoint_t entry_point) {
    * Initialize the idle process, but don't run it
    */
   char *const idle_argv[1] = {"idle"};
-  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, -1);
-  //priority -1 pq no deberia entrar en la cola
+  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, MAX_PRIORITY + 1);
+  //invalid priority pq no deberia entrar en la cola
 
   /*
    * Initialize and start the init process. We "bootstrap" the process
@@ -259,7 +259,7 @@ int proc_info(pid_t pid, proc_info_t *out_info) {
   out_info->pid = pid;
   out_info->description = pcb->description;
   out_info->state = pcb->state;
-  out_info->priority = 0;// TODO
+  out_info->priority = pcb->priority;
   out_info->rsp = pcb->rsp;
   out_info->foreground = pid == proc_foreground_pid;
 

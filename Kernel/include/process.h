@@ -45,7 +45,7 @@ typedef struct {
   const char *description;
   pid_t pid;
   proc_state_t state;
-  uint32_t priority;
+  priority_t priority;
   uint64_t rsp;
 
   int foreground : 1;
