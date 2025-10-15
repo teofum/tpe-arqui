@@ -1,5 +1,6 @@
 #include <io.h>
 #include <kbd.h>
+#include <process.h>
 #include <status.h>
 #include <stdint.h>
 #include <string.h>
@@ -202,7 +203,12 @@ static uint32_t io_writes_tty(const char *str) {
   return written;
 }
 
-uint32_t io_writes(const char *str) { return io_writes_tty(str); }
+uint32_t io_writes(uint32_t fd, const char *str) {
+  fd_t src = proc_get_fd(fd);
+  if (src != FD_TTY) return -1;// Not implemented
+
+  return io_writes_tty(str);
+}
 
 static uint32_t io_write_tty(const char *str, uint32_t len) {
   vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
@@ -232,7 +238,10 @@ static uint32_t io_write_tty(const char *str, uint32_t len) {
   return written;
 }
 
-uint32_t io_write(const char *str, uint32_t len) {
+uint32_t io_write(uint32_t fd, const char *str, uint32_t len) {
+  fd_t src = proc_get_fd(fd);
+  if (src != FD_TTY) return -1;// Not implemented
+
   return io_write_tty(str, len);
 }
 
@@ -293,7 +302,12 @@ static uint32_t io_read_tty(char *buf, uint32_t len) {
   return read_chars;
 }
 
-uint32_t io_read(char *buf, uint32_t len) { return io_read_tty(buf, len); }
+uint32_t io_read(uint32_t fd, char *buf, uint32_t len) {
+  fd_t src = proc_get_fd(fd);
+  if (src != FD_TTY) return -1;// Not implemented
+
+  return io_read_tty(buf, len);
+}
 
 void io_setfont(vga_font_t font) {
   io_text_font = font;
