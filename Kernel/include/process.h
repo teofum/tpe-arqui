@@ -1,6 +1,7 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <fd.h>
 #include <pqueue.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -11,6 +12,8 @@
  */
 #define MAX_PID 0xfff
 #define IDLE_PID 0
+
+#define FD_COUNT 64
 
 #define RETURN_KILLED -1
 
@@ -35,6 +38,8 @@ typedef struct {
 
   pqueue_t waiting_processes;
   uint32_t n_waiting_processes;
+
+  fd_t file_descriptors[FD_COUNT];
 
   priority_t priority;
 
@@ -124,5 +129,10 @@ void proc_wait_for_foreground();
  * Get information about a process. Returns 0 if the process does not exist.
  */
 int proc_info(pid_t pid, proc_info_t *out_info);
+
+/*
+ * Kernel only function, get the contents of a file descriptor.
+ */
+fd_t proc_get_fd(uint32_t fd);
 
 #endif

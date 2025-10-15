@@ -2,6 +2,7 @@
 #include <kbd.h>
 #include <print.h>
 #include <process.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <sst.h>
 #include <stdint.h>

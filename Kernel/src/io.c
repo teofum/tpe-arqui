@@ -1,6 +1,7 @@
 #include <io.h>
 #include <kbd.h>
 #include <status.h>
+#include <stdint.h>
 #include <string.h>
 #include <vga.h>
 
@@ -174,7 +175,7 @@ static const char *parse_color_escape(const char *str) {
 
 void io_init() { io_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO); }
 
-uint32_t io_writes(const char *str) {
+static uint32_t io_writes_tty(const char *str) {
   vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
   vga_font_t last_font = vga_font(io_text_font);
 
@@ -201,7 +202,9 @@ uint32_t io_writes(const char *str) {
   return written;
 }
 
-uint32_t io_write(const char *str, uint32_t len) {
+uint32_t io_writes(const char *str) { return io_writes_tty(str); }
+
+static uint32_t io_write_tty(const char *str, uint32_t len) {
   vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
   vga_font_t last_font = vga_font(io_text_font);
 
@@ -229,6 +232,10 @@ uint32_t io_write(const char *str, uint32_t len) {
   return written;
 }
 
+uint32_t io_write(const char *str, uint32_t len) {
+  return io_write_tty(str, len);
+}
+
 void io_clear() {
   vga_framebuffer_t current_fb = vga_set_framebuffer(io_framebuffer);
   vga_clear(0x000000);
@@ -241,7 +248,7 @@ void io_clear() {
   cur_x = cur_y = 0;
 }
 
-uint32_t io_read(char *buf, uint32_t len) {
+static uint32_t io_read_tty(char *buf, uint32_t len) {
   uint32_t read_chars = 0;
   int c;
   while (read_chars < len && (c = kbd_getchar()) != KBD_EOF) {
@@ -285,6 +292,8 @@ uint32_t io_read(char *buf, uint32_t len) {
 
   return read_chars;
 }
+
+uint32_t io_read(char *buf, uint32_t len) { return io_read_tty(buf, len); }
 
 void io_setfont(vga_font_t font) {
   io_text_font = font;

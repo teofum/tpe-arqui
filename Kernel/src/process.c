@@ -1,3 +1,4 @@
+#include <fd.h>
 #include <lib.h>
 #include <mem.h>
 #include <pqueue.h>
@@ -33,6 +34,12 @@ proc_start(proc_entrypoint_t entry_point, uint64_t argc, char *const *argv) {
   proc_exit(ret);
 }
 
+static void proc_initialize_fds(proc_control_block_t *pcb) {
+  for (uint32_t i = 0; i < FD_COUNT; i++) {
+    pcb->file_descriptors[i] = i <= STDERR ? FD_TTY : FD_NONE;
+  }
+}
+
 static void proc_initialize_process(
   pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
   priority_t priority
@@ -54,6 +61,8 @@ static void proc_initialize_process(
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
   pcb->priority = priority;
+
+  proc_initialize_fds(pcb);
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
@@ -116,6 +125,8 @@ void proc_init(proc_entrypoint_t entry_point) {
   pcb->state = PROC_STATE_RUNNING;
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
+
+  proc_initialize_fds(pcb);
 
   proc_running_pid = new_pid;
   proc_foreground_pid = new_pid;
@@ -264,4 +275,9 @@ int proc_info(pid_t pid, proc_info_t *out_info) {
   out_info->foreground = pid == proc_foreground_pid;
 
   return 1;
+}
+
+fd_t proc_get_fd(uint32_t fd) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  return pcb->file_descriptors[fd];
 }

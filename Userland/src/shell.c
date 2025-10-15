@@ -6,6 +6,7 @@
 #include <print.h>
 #include <proc.h>
 #include <process.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
