@@ -17,6 +17,10 @@ void mem_manager_free(mem_manager_t mgr, void *mem);
 
 int mem_manager_check(mem_manager_t mgr, void *mem);
 
+void mem_manager_status(
+  mem_manager_t mgr, size_t *total, size_t *used, size_t *free
+);
+
 /*
  * Allocate a block of memory using the system allocator. If allocation fails,
  * returns NULL. The allocated memory is guaranteed to be at least size bytes.
