@@ -4,18 +4,14 @@
 #include <pqueue.h>
 #include <process.h>
 
-
-typedef struct {
-  int value;
-  pqueue_t waiters;
-} ksem_t;
-
-typedef ksem_t *sem_t;
+typedef struct ksem *sem_t;
 
 
 sem_t sem_create(int initial);
 
 int sem_down(sem_t);
+
+int sem_candown(sem_t);
 
 int sem_up(sem_t);
 

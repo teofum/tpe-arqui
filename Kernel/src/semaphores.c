@@ -3,6 +3,11 @@
 #include <scheduler.h>
 #include <semaphores.h>
 
+typedef struct ksem {
+  int value;
+  pqueue_t waiters;
+} ksem_t;
+
 
 sem_t sem_create(int initial) {
   sem_t newSem = (sem_t) mem_alloc(sizeof(ksem_t));
@@ -43,3 +48,5 @@ void sem_close(sem_t sem) {
   pqueue_destroy(sem->waiters);
   mem_free(sem);
 }
+
+int sem_candown(sem_t sem) { return (sem->value == 0) ? 0 : -1; }
