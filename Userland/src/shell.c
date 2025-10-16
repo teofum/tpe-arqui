@@ -30,8 +30,6 @@ extern const char *mascot;
 typedef struct {
   uint64_t argc;
   char *const *argv;
-
-  int background : 1;
 } args_t;
 
 typedef struct {
@@ -39,9 +37,9 @@ typedef struct {
   char *arg_str;
 } args_storage_t;
 
-static args_storage_t args_alloc(uint64_t argc) {
+static args_storage_t args_alloc(uint64_t argc, size_t cmd_len) {
   size_t argv_size = argc * sizeof(char *);
-  void *arg_mem = mem_alloc(argv_size + CMD_BUF_LEN);
+  void *arg_mem = mem_alloc(argv_size + cmd_len);
 
   return (args_storage_t) {
     .argv = arg_mem,
@@ -51,24 +49,19 @@ static args_storage_t args_alloc(uint64_t argc) {
 
 static args_t args_parse(const char *cmd) {
   uint64_t argc = 1;
-
-  for (size_t i = 0; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ' && cmd[i + 1] != '&') argc++;
+  size_t cmd_len = 0;
+  for (; cmd[cmd_len] != 0; cmd_len++) {
+    if (cmd[cmd_len] == ' ') argc++;
   }
 
-  args_storage_t args_storage = args_alloc(argc);
+  args_storage_t args_storage = args_alloc(argc, cmd_len);
 
-  int background = 0;
   int i = 0, j = 0;
   args_storage.argv[0] = args_storage.arg_str;
   for (; cmd[i] != 0; i++) {
     if (cmd[i] == ' ') {
       args_storage.arg_str[i] = 0;
-      if (cmd[i + 1] == '&') {
-        background = 1;
-      } else {
-        args_storage.argv[++j] = &args_storage.arg_str[i + 1];
-      }
+      args_storage.argv[++j] = &args_storage.arg_str[i + 1];
     } else {
       args_storage.arg_str[i] = cmd[i];
     }
@@ -78,7 +71,6 @@ static args_t args_parse(const char *cmd) {
   return (args_t) {
     .argc = argc,
     .argv = args_storage.argv,
-    .background = background,
   };
 }
 
@@ -395,7 +387,7 @@ static int run_command(const char *cmd) {
 
   pid_t pid =
     proc_spawn(program->entry_point, args.argc, args.argv, DEFAULT_PRIORITY);
-  int background = args.background;
+  int background = 0;// TODO
   args_free(&args);
 
   if (!background) {
