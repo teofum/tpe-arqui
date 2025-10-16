@@ -288,15 +288,34 @@ int test_sem_check_2() {
   return 0;
 }
 
+void sem_down_test(uint64_t argc, char *const *argv) {
+  sem_down(argv[1]);
+  printf(" Aux proc finished\n");
+}
+int test_sem_check_3() {
+  sem_t sem = sem_create(0);
+  printf("    Created sem {0}\n");
+
+  char *const argv[] = {sem};
+  pid_t test_pid =
+    proc_spawn(sem_down_test, lengthof(argv), argv, 4);// se bloquea
+
+  sem_up(sem);// se desbloquea el aux proc
+  proc_wait(test_pid);
+  printf(" OK\n");
+  return 0;
+}
+
 /* ========================================================================= *
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
-                     test_mem_exclusive,   test_mem_free,
-                     test_proc_spawn_wait, test_proc_getpid,
-                     test_proc_args,       test_proc_args_copy,
-                     test_sem_check_1,     test_sem_check_2};
+test_fn_t tests[] = {
+  test_sanity_check, test_mem_alloc,       test_mem_exclusive,
+  test_mem_free,     test_proc_spawn_wait, test_proc_getpid,
+  test_proc_args,    test_proc_args_copy,  test_sem_check_1,
+  test_sem_check_2,
+};
 
 int sst_run_tests() {
   int result = 0;
