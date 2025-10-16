@@ -23,11 +23,9 @@
 
 extern const char *mascot;
 
-typedef struct {
-  const char *cmd;
-  const char *desc;
-  proc_entrypoint_t entry_point;
-} program_t;
+/*
+ * Args parsing
+ */
 
 typedef struct {
   uint64_t argc;
@@ -35,6 +33,74 @@ typedef struct {
 
   int background : 1;
 } args_t;
+
+typedef struct {
+  char **argv;
+  char *arg_str;
+} args_storage_t;
+
+static args_storage_t args_alloc(uint64_t argc) {
+  size_t argv_size = argc * sizeof(char *);
+  void *arg_mem = mem_alloc(argv_size + CMD_BUF_LEN);
+
+  return (args_storage_t) {
+    .argv = arg_mem,
+    .arg_str = (char *) arg_mem + argv_size,
+  };
+}
+
+static args_t args_parse(const char *cmd) {
+  uint64_t argc = 1;
+
+  for (size_t i = 0; cmd[i] != 0; i++) {
+    if (cmd[i] == ' ' && cmd[i + 1] != '&') argc++;
+  }
+
+  args_storage_t args_storage = args_alloc(argc);
+
+  int background = 0;
+  int i = 0, j = 0;
+  args_storage.argv[0] = args_storage.arg_str;
+  for (; cmd[i] != 0; i++) {
+    if (cmd[i] == ' ') {
+      args_storage.arg_str[i] = 0;
+      if (cmd[i + 1] == '&') {
+        background = 1;
+      } else {
+        args_storage.argv[++j] = &args_storage.arg_str[i + 1];
+      }
+    } else {
+      args_storage.arg_str[i] = cmd[i];
+    }
+  }
+  args_storage.arg_str[i] = 0;
+
+  return (args_t) {
+    .argc = argc,
+    .argv = args_storage.argv,
+    .background = background,
+  };
+}
+
+static void args_free(args_t *args) { mem_free((void *) args->argv); }
+
+/*
+ * Command parsing
+ */
+
+/*
+ * Simple programs
+ */
+
+/*
+ * Shell
+ */
+
+typedef struct {
+  const char *cmd;
+  const char *desc;
+  proc_entrypoint_t entry_point;
+} program_t;
 
 static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
 static uint32_t history_pointer = 0;
@@ -307,45 +373,6 @@ static program_t *find_program(const char *cmd_name) {
   return NULL;
 }
 
-static args_t make_args(const char *cmd) {
-  uint64_t argc = 1;
-
-  for (size_t i = 0; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ' && cmd[i + 1] != '&') argc++;
-  }
-
-  char **argv = mem_alloc(argc * sizeof(char *));
-  char *arg_str = mem_alloc(CMD_BUF_LEN);
-
-  int background = 0;
-  int i = 0, j = 0;
-  argv[0] = arg_str;
-  for (; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ') {
-      arg_str[i] = 0;
-      if (cmd[i + 1] == '&') {
-        background = 1;
-      } else {
-        argv[++j] = &arg_str[i + 1];
-      }
-    } else {
-      arg_str[i] = cmd[i];
-    }
-  }
-  arg_str[i] = 0;
-
-  return (args_t) {
-    .argc = argc,
-    .argv = argv,
-    .background = background,
-  };
-}
-
-static void free_args(args_t *args) {
-  mem_free(args->argv[0]);
-  mem_free((void *) args->argv);
-}
-
 static int run_command(const char *cmd) {
   char program_name[CMD_BUF_LEN];
   strsplit(program_name, cmd, ' ');
@@ -364,12 +391,12 @@ static int run_command(const char *cmd) {
   }
 
   char *const *argv;
-  args_t args = make_args(cmd);
+  args_t args = args_parse(cmd);
 
   pid_t pid =
     proc_spawn(program->entry_point, args.argc, args.argv, DEFAULT_PRIORITY);
   int background = args.background;
-  free_args(&args);
+  args_free(&args);
 
   if (!background) {
     int return_value = proc_wait(pid);
@@ -382,11 +409,15 @@ static int run_command(const char *cmd) {
   return 0;
 }
 
+static void print_welcome_msg() {
+  printf("Welcome to " COL_GREEN "carpinchOS\n");
+  printf("cash v" SHELL_VERSION " | " COL_GREEN "Capybara Shell\n");
+}
+
 int cash() {
   char cmd_buf[CMD_BUF_LEN];
 
-  printf("Welcome to " COL_GREEN "carpinchOS\n");
-  printf("cash v" SHELL_VERSION " | " COL_GREEN "Capybara Shell\n");
+  print_welcome_msg();
 
   // Run the shell
   int exit = 0;
