@@ -1,6 +1,7 @@
 #include <mem.h>
 #include <print.h>
 #include <process.h>
+#include <semaphores.h>
 #include <shell.h>
 #include <sst.h>
 #include <stdint.h>
@@ -256,6 +257,37 @@ int test_proc_args_copy() {
   return 0;
 }
 
+int test_sem_check_1() {
+  sem_t sem = sem_create(0);
+  printf("    Created sem { 0 }\n");
+
+  sem_up(sem);
+  printf("    Sem up\n");
+
+  printf("    Try sem down...\n");
+  sem_down(sem);
+  printf("    OK\n");
+  return 0;
+}
+
+void sem_up_test(uint64_t argc, char *const *argv) {
+  sem_up(argv[1]);
+  printf(" Aux proc sem_up\n");
+}
+int test_sem_check_2() {
+  sem_t sem = sem_create(0);
+  printf("    Created sem {0}\n");
+
+  char *const argv[] = {sem};
+  pid_t test_pid = proc_spawn(sem_up_test, lengthof(argv), argv, 4);
+  proc_wait(test_pid);
+
+  printf("    Try sem down...\n");
+  sem_down(sem);//si el post del proceso b funciono retorna
+  printf(" OK\n");
+  return 0;
+}
+
 /* ========================================================================= *
  * Tests end here                                                            *
  * ========================================================================= */
@@ -263,7 +295,8 @@ int test_proc_args_copy() {
 test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
                      test_mem_exclusive,   test_mem_free,
                      test_proc_spawn_wait, test_proc_getpid,
-                     test_proc_args,       test_proc_args_copy};
+                     test_proc_args,       test_proc_args_copy,
+                     test_sem_check_1,     test_sem_check_2};
 
 int sst_run_tests() {
   int result = 0;

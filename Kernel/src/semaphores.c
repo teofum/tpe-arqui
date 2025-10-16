@@ -22,7 +22,7 @@ sem_t sem_create(int initial) {
 int sem_down(sem_t sem) {
   _cli();
 
-  while (sem->value == 0) {
+  if (sem->value == 0) {
     pqueue_enqueue(sem->waiters, proc_running_pid);
     _sti();
     proc_block();
@@ -37,8 +37,10 @@ int sem_down(sem_t sem) {
 
 int sem_up(sem_t sem) {
   _cli();
+
   if (sem->value++ == 0 && !pqueue_empty(sem->waiters))
     scheduler_enqueue(pqueue_dequeue(sem->waiters));
+
   _sti();
   return 0;
 }
