@@ -8,7 +8,8 @@ int strcmp(const char *a, const char *b);
 
 uint64_t strlen(const char *s);
 
-const char *strsplit(char *out, const char *str, char delim);
+const uint32_t
+strsplit(char **out_string_starts, char *out, const char *str, char delim);
 
 int strcpy(char *dst, const char *src);
 

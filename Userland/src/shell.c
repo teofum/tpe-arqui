@@ -55,18 +55,7 @@ static args_t args_parse(const char *cmd) {
   }
 
   args_storage_t args_storage = args_alloc(argc, cmd_len);
-
-  int i = 0, j = 0;
-  args_storage.argv[0] = args_storage.arg_str;
-  for (; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ') {
-      args_storage.arg_str[i] = 0;
-      args_storage.argv[++j] = &args_storage.arg_str[i + 1];
-    } else {
-      args_storage.arg_str[i] = cmd[i];
-    }
-  }
-  args_storage.arg_str[i] = 0;
+  strsplit(args_storage.argv, args_storage.arg_str, cmd, ' ');
 
   return (args_t) {
     .argc = argc,
@@ -366,10 +355,8 @@ static program_t *find_program(const char *cmd_name) {
 }
 
 static int run_command(const char *cmd) {
-  char program_name[CMD_BUF_LEN];
-  strsplit(program_name, cmd, ' ');
-
-  if (program_name[0] == 0) return 0;
+  args_t args = args_parse(cmd);
+  const char *program_name = args.argv[0];
 
   program_t *program = find_program(program_name);
   if (!program) {
@@ -381,9 +368,6 @@ static int run_command(const char *cmd) {
 
     return 0;
   }
-
-  char *const *argv;
-  args_t args = args_parse(cmd);
 
   pid_t pid =
     proc_spawn(program->entry_point, args.argc, args.argv, DEFAULT_PRIORITY);

@@ -17,11 +17,21 @@ uint64_t strlen(const char *s) {
   return len;
 }
 
-const char *strsplit(char *out, const char *str, char delim) {
-  while (*str != 0 && *str != delim) { *out++ = *str++; }
+const uint32_t
+strsplit(char **out_string_starts, char *out, const char *str, char delim) {
+  int i = 0, j = 0;
+  out_string_starts[0] = out;
+  for (; str[i] != 0; i++) {
+    if (str[i] == ' ') {
+      out[i] = 0;
+      out_string_starts[++j] = &out[i + 1];
+    } else {
+      out[i] = str[i];
+    }
+  }
+  out[i] = 0;
 
-  *out = 0;
-  return *str == 0 ? NULL : str + 1;
+  return j;
 }
 
 int strcpy(char *dst, const char *src) {
