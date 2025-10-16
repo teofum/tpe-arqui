@@ -258,33 +258,42 @@ int test_proc_args_copy() {
 }
 
 int test_sem_check_1() {
+  printf("    Semaphore operations must work correctly\n");
+
   sem_t sem = sem_create(0);
-  printf("    Created sem { 0 }\n");
+  sst_assert(sem != NULL, "Failed to create semaphore\n");
 
-  sem_up(sem);
-  printf("    Sem up\n");
+  int result = sem_up(sem);
+  sst_assert_equal(0, result, "sem_up failed");
 
-  printf("    Try sem down...\n");
-  sem_down(sem);
-  printf("    OK\n");
+  result = sem_down(sem);
+  sst_assert_equal(0, result, "sem_down failed");
+
+  sem_close(sem);
   return 0;
 }
 
-void sem_up_test(uint64_t argc, char *const *argv) {
-  sem_up(argv[1]);
-  printf(" Aux proc sem_up\n");
+static int sem_up_test(uint64_t argc, char *const *argv) {
+  sem_up((sem_t) argv[1]);
+  return 0;
 }
+
 int test_sem_check_2() {
+  printf("    Semaphore must synchronize between processes\n");
+
   sem_t sem = sem_create(0);
-  printf("    Created sem {0}\n");
+  sst_assert(sem != NULL, "Failed to create semaphore\n");
 
-  char *const argv[] = {sem};
-  pid_t test_pid = proc_spawn(sem_up_test, lengthof(argv), argv, 4);
-  proc_wait(test_pid);
+  char *const argv[] = {"sem_up_test", (char *) sem};
+  pid_t pid = proc_spawn(sem_up_test, lengthof(argv), argv, DEFAULT_PRIORITY);
+  int return_code = proc_wait(pid);
 
-  printf("    Try sem down...\n");
-  sem_down(sem);//si el post del proceso b funciono retorna
-  printf(" OK\n");
+  sst_assert_equal(0, return_code, "Child process failed");
+
+  int result = sem_down(sem);
+  sst_assert_equal(0, result, "sem_down failed after child sem_up");
+
+  sem_close(sem);
   return 0;
 }
 
