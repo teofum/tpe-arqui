@@ -30,21 +30,6 @@ extern const char *mascot;
 /*
  * Simple programs
  */
-
-/*
- * Shell
- */
-
-typedef struct {
-  const char *cmd;
-  const char *desc;
-  proc_entrypoint_t entry_point;
-} program_t;
-
-static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
-static uint32_t history_pointer = 0;
-static uint32_t prompt_length = 2;
-
 static int echo(uint64_t argc, char *const *argv) {
   if (argc > 1) {
     for (size_t i = 1; i < argc; i++) { printf("%s ", argv[i]); }
@@ -56,13 +41,6 @@ static int echo(uint64_t argc, char *const *argv) {
 
 static int clear() {
   io_clear();
-  return 0;
-}
-
-static int history() {
-  for (int i = 0; i < history_pointer; i++) {
-    printf("%s\n", command_history[i]);
-  }
   return 0;
 }
 
@@ -171,6 +149,26 @@ static int timer_test(uint64_t argc, char *const *argv) {
   }
   write(STDOUT, "\n", 1);
 
+  return 0;
+}
+
+/*
+ * Shell
+ */
+typedef struct {
+  const char *cmd;
+  const char *desc;
+  proc_entrypoint_t entry_point;
+} program_t;
+
+static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
+static uint32_t history_pointer = 0;
+static uint32_t prompt_length = 2;
+
+static int history() {
+  for (int i = 0; i < history_pointer; i++) {
+    printf("%s\n", command_history[i]);
+  }
   return 0;
 }
 
