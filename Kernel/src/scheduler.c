@@ -54,5 +54,6 @@ void scheduler_enqueue(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
   pqueue_t scheduler_queue = spl.groups[pcb->priority];
 
+  pcb->state = PROC_STATE_RUNNING;
   pqueue_enqueue(scheduler_queue, pid);
 }
