@@ -1,3 +1,4 @@
+#include <fd.h>
 #include <gfxdemo.h>
 #include <golf_game.h>
 #include <io.h>
@@ -6,6 +7,7 @@
 #include <print.h>
 #include <proc.h>
 #include <process.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -40,7 +42,7 @@ static uint32_t prompt_length = 2;
 static int echo(uint64_t argc, char *const *argv) {
   if (argc > 1) {
     for (size_t i = 1; i < argc; i++) { printf("%s ", argv[i]); }
-    write("\n", 1);
+    write(STDOUT, "\n", 1);
   }
 
   return 0;
@@ -177,7 +179,7 @@ static int music() {
 }
 
 static int print_mascot() {
-  writes(mascot);
+  writes(STDOUT, mascot);
   return 0;
 }
 
@@ -205,7 +207,7 @@ static int print_test() {
     kbd_get_key_event();
     printf("%u\n", i);
   }
-  write("\n", 1);
+  write(STDOUT, "\n", 1);
 
   return 0;
 }
@@ -218,7 +220,7 @@ static int timer_test(uint64_t argc, char *const *argv) {
     for (uint32_t j = 0; j < 5000; j++) yield();
     printf("%u %s\n", i++, argv[1]);
   }
-  write("\n", 1);
+  write(STDOUT, "\n", 1);
 
   return 0;
 }
@@ -269,7 +271,7 @@ static void read_command(char *cmd) {
 
   while (!input_end) {
     // Wait for input on stdin
-    read(temp, 1);
+    read(STDIN, temp, 1);
 
     // Iterate the input and add to internal buffer, handling special characters
     char c = temp[0];
@@ -328,14 +330,14 @@ static void read_command(char *cmd) {
 
     // Reset the cursor position and print the command so far to stdout
     io_blank_from(prompt_length);
-    writes(cmd);
+    writes(STDOUT, cmd);
     io_setcursor(back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
     io_movecursor(-back);
   }
 
   // Insert a newline and reset the cursor
   static char newline = '\n';
-  write(&newline, 1);
+  write(STDOUT, &newline, 1);
   io_setcursor(IO_CURSOR_UNDER);
 
   // Store the entered command in history, if it is different from the most recent one

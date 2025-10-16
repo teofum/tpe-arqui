@@ -1,7 +1,6 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <scheduler.h>
 #include <stddef.h>
 #include <stdint.h>
 /*

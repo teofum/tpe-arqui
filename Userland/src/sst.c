@@ -1,6 +1,8 @@
+#include "io.h"
 #include <mem.h>
 #include <print.h>
 #include <process.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <sst.h>
 #include <stdint.h>
@@ -256,14 +258,51 @@ int test_proc_args_copy() {
   return 0;
 }
 
+/*
+ * Test a process cannot read from an unset fd
+ */
+static int reader(uint64_t argc, char *const *argv) {
+  printf("    Child: Reading from FD 42...\n");
+  return read(42, NULL, 1);
+}
+int test_proc_read_unset_fd() {
+  char *const argv[] = {"reader"};
+
+  printf("    Process must not be able to read from an unset FD\n");
+  pid_t pid = proc_spawn(reader, lengthof(argv), argv, DEFAULT_PRIORITY);
+  int ret = proc_wait(pid);
+  sst_assert_equal(-1, ret, "Process succesfully read from unset FD 42");
+
+  return 0;
+}
+
+/*
+ * Test a process cannot write from an unset fd
+ */
+static int writer(uint64_t argc, char *const *argv) {
+  printf("    Child: Writing to FD 42...\n");
+  return write(42, argv[0], 6);
+}
+int test_proc_write_unset_fd() {
+  char *const argv[] = {"writer"};
+
+  printf("    Process must not be able to write to an unset FD\n");
+  pid_t pid = proc_spawn(writer, lengthof(argv), argv, DEFAULT_PRIORITY);
+  int ret = proc_wait(pid);
+  sst_assert_equal(-1, ret, "Process succesfully wrote to unset FD 42");
+
+  return 0;
+}
+
 /* ========================================================================= *
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
-                     test_mem_exclusive,   test_mem_free,
-                     test_proc_spawn_wait, test_proc_getpid,
-                     test_proc_args,       test_proc_args_copy};
+test_fn_t tests[] = {test_sanity_check,       test_mem_alloc,
+                     test_mem_exclusive,      test_mem_free,
+                     test_proc_spawn_wait,    test_proc_getpid,
+                     test_proc_args,          test_proc_args_copy,
+                     test_proc_read_unset_fd, test_proc_write_unset_fd};
 
 int sst_run_tests() {
   int result = 0;

@@ -1,3 +1,4 @@
+#include <fd.h>
 #include <io.h>
 #include <print.h>
 #include <stddef.h>
@@ -129,7 +130,7 @@ int32_t printf(const char *fmt, ...) {
 
   static char buf[512];
   int32_t len = vsprintf(buf, fmt, args);
-  len = io_write(buf, len);
+  len = io_write(STDOUT, buf, len);
 
   va_end(args);
   return len;
