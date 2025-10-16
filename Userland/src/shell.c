@@ -24,48 +24,6 @@
 extern const char *mascot;
 
 /*
- * Args parsing
- */
-
-typedef struct {
-  uint64_t argc;
-  char *const *argv;
-} args_t;
-
-typedef struct {
-  char **argv;
-  char *arg_str;
-} args_storage_t;
-
-static args_storage_t args_alloc(uint64_t argc, size_t cmd_len) {
-  size_t argv_size = argc * sizeof(char *);
-  void *arg_mem = mem_alloc(argv_size + cmd_len);
-
-  return (args_storage_t) {
-    .argv = arg_mem,
-    .arg_str = (char *) arg_mem + argv_size,
-  };
-}
-
-static args_t args_parse(const char *cmd) {
-  uint64_t argc = 1;
-  size_t cmd_len = 0;
-  for (; cmd[cmd_len] != 0; cmd_len++) {
-    if (cmd[cmd_len] == ' ') argc++;
-  }
-
-  args_storage_t args_storage = args_alloc(argc, cmd_len);
-  strsplit(args_storage.argv, args_storage.arg_str, cmd, ' ');
-
-  return (args_t) {
-    .argc = argc,
-    .argv = args_storage.argv,
-  };
-}
-
-static void args_free(args_t *args) { mem_free((void *) args->argv); }
-
-/*
  * Command parsing
  */
 
@@ -355,24 +313,24 @@ static program_t *find_program(const char *cmd_name) {
 }
 
 static int run_command(const char *cmd) {
-  args_t args = args_parse(cmd);
-  const char *program_name = args.argv[0];
+  split_result_t args = strsplit(cmd, ' ');
+  uint64_t argc = args.count;
+  char *const *argv = args.strings;
 
-  program_t *program = find_program(program_name);
+  program_t *program = find_program(argv[0]);
   if (!program) {
     printf(
       COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
               "'help'" COL_RESET " for a list of available commands\n",
-      program_name
+      argv[0]
     );
 
     return 0;
   }
 
-  pid_t pid =
-    proc_spawn(program->entry_point, args.argc, args.argv, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(program->entry_point, argc, argv, DEFAULT_PRIORITY);
   int background = 0;// TODO
-  args_free(&args);
+  mem_free(&args);
 
   if (!background) {
     int return_value = proc_wait(pid);
