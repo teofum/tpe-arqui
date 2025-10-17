@@ -17,13 +17,6 @@ uint64_t strlen(const char *s) {
   return len;
 }
 
-const char *strsplit(char *out, const char *str, char delim) {
-  while (*str != 0 && *str != delim) { *out++ = *str++; }
-
-  *out = 0;
-  return *str == 0 ? NULL : str + 1;
-}
-
 int strcpy(char *dst, const char *src) {
   int i = 0;
   while (*src != 0) {
