@@ -11,7 +11,7 @@ struct ksem_s_t {
 typedef struct ksem_s_t *ksem_t;
 
 #define MAX_SEMAPHORES 100
-// totalmente arbitrario/ maybe cambia a variable length array
+// totalmente arbitrario/ maybe cambia a vla
 
 static ksem_t sem_references[MAX_SEMAPHORES] = {0};
 
@@ -76,5 +76,5 @@ void sem_close(sem_t sem) {
 }
 
 int sem_willblock(sem_t sem) {
-  return (sem_references[sem]->value == 0) ? 0 : 1;
+  return (sem_references[sem]->value == 0) ? 1 : 0;
 }
