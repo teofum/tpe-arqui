@@ -204,9 +204,9 @@ void init_syscalls() {
 
   /* Semaphores */
   register_syscall(0x80, sem_create);
-  register_syscall(0x81, sem_candown);
-  register_syscall(0x82, sem_down);
-  register_syscall(0x83, sem_up);
+  register_syscall(0x81, sem_willblock);
+  register_syscall(0x82, sem_wait);
+  register_syscall(0x83, sem_post);
   register_syscall(0x84, sem_close);
 
   /* Graphics module */

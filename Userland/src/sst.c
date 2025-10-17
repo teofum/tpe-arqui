@@ -263,11 +263,11 @@ int test_sem_create_basic() {
   sem_t sem = sem_create(0);
   sst_assert(sem != -1, "Failed to create semaphore\n");
 
-  int result = sem_up(sem);
-  sst_assert_equal(0, result, "sem_up failed");
+  int result = sem_post(sem);
+  sst_assert_equal(0, result, "sem_post failed");
 
-  result = sem_down(sem);
-  sst_assert_equal(0, result, "sem_down failed");
+  result = sem_wait(sem);
+  sst_assert_equal(0, result, "sem_wait failed");
 
   sem_close(sem);
   return 0;
@@ -276,35 +276,35 @@ int test_sem_create_basic() {
 
 sem_t globSem;
 
-static int sem_up_test(uint64_t argc, char *const *argv) {
+static int sem_post_test(uint64_t argc, char *const *argv) {
   printf("    Aux proc started\n");
-  sem_up(globSem);
+  sem_post(globSem);
   printf("    Aux proc finished\n");
   return 0;
 }
-int test_sem_up_from_child() {
+int test_sem_post_from_child() {
   printf("    Semaphore must synchronize between processes\n");
 
   globSem = sem_create(0);
 
   sst_assert(globSem != -1, "Failed to create semaphore\n");
 
-  char *const argv[] = {"sem_up_test"};
-  pid_t pid = proc_spawn(sem_up_test, lengthof(argv), argv, DEFAULT_PRIORITY);
+  char *const argv[] = {"sem_post_test"};
+  pid_t pid = proc_spawn(sem_post_test, lengthof(argv), argv, DEFAULT_PRIORITY);
   int return_code = proc_wait(pid);
 
   sst_assert_equal(0, return_code, "Child process failed");
 
-  int result = sem_down(globSem);
-  sst_assert_equal(0, result, "sem_down failed after child sem_up");
+  int result = sem_wait(globSem);
+  sst_assert_equal(0, result, "sem_wait failed after child sem_post");
 
   sem_close(globSem);
   return 0;
 }
 
-static int sem_down_test(uint64_t argc, char *const *argv) {
+static int sem_wait_test(uint64_t argc, char *const *argv) {
   printf("    Aux proc started\n");
-  sem_down(globSem);
+  sem_wait(globSem);
   printf("    Aux proc finished\n");
   return 0;
 }
@@ -313,11 +313,11 @@ int test_sem_child_wait() {
   globSem = sem_create(0);
   sst_assert(globSem != -1, "Failed to create semaphore\n");
 
-  char *const argv[] = {"sem_down_test"};
-  pid_t pid = proc_spawn(sem_down_test, lengthof(argv), argv, DEFAULT_PRIORITY);
+  char *const argv[] = {"sem_wait_test"};
+  pid_t pid = proc_spawn(sem_wait_test, lengthof(argv), argv, DEFAULT_PRIORITY);
 
   printf("    Desbloqueando el aux...\n");
-  sem_up(globSem);// se desbloquea el aux proc
+  sem_post(globSem);// se desbloquea el aux proc
   printf("    Desbloquedo aux\n");
 
   int return_code = proc_wait(pid);
@@ -336,7 +336,7 @@ test_fn_t tests[] = {test_sanity_check,     test_mem_alloc,
                      test_mem_exclusive,    test_mem_free,
                      test_proc_spawn_wait,  test_proc_getpid,
                      test_proc_args,        test_proc_args_copy,
-                     test_sem_create_basic, test_sem_up_from_child,
+                     test_sem_create_basic, test_sem_post_from_child,
                      test_sem_child_wait};
 
 int sst_run_tests() {

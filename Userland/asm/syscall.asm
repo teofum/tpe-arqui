@@ -72,9 +72,9 @@ define_syscall yield, 0x77
 
 ; Semaphore system calls
 define_syscall sem_create, 0x80
-define_syscall sem_candown, 0x81
-define_syscall sem_down, 0x82
-define_syscall sem_up, 0x83
+define_syscall sem_willblock, 0x81
+define_syscall sem_wait, 0x82
+define_syscall sem_post, 0x83
 define_syscall sem_close, 0x84
 
 ; Graphics system calls

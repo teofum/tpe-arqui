@@ -35,7 +35,7 @@ sem_t sem_create(int initial) {
   return index;
 }
 
-int sem_down(sem_t sem) {
+int sem_wait(sem_t sem) {
   _cli();
 
   ksem_t cur_sem = sem_references[sem];
@@ -53,7 +53,7 @@ int sem_down(sem_t sem) {
 }
 
 
-int sem_up(sem_t sem) {
+int sem_post(sem_t sem) {
   _cli();
 
   ksem_t cur_sem = sem_references[sem];
@@ -75,4 +75,6 @@ void sem_close(sem_t sem) {
   sem_references[sem] = NULL;
 }
 
-int sem_candown(sem_t sem) { return (sem_references[sem]->value == 0) ? 0 : 1; }
+int sem_willblock(sem_t sem) {
+  return (sem_references[sem]->value == 0) ? 0 : 1;
+}

@@ -6,11 +6,11 @@ typedef int sem_t;
 
 sem_t sem_create(int initial);
 
-int sem_candown(sem_t sem);
+int sem_willblock(sem_t sem);
 
-int sem_down(sem_t sem);
+int sem_wait(sem_t sem);
 
-int sem_up(sem_t sem);
+int sem_post(sem_t sem);
 
 void sem_close(sem_t sem);
 
