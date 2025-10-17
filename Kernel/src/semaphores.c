@@ -37,31 +37,28 @@ sem_t sem_create(int initial) {
 
 int sem_wait(sem_t sem) {
   _cli();
-
   ksem_t cur_sem = sem_references[sem];
 
-  if (cur_sem->value == 0) {
+  if ((cur_sem->value--) < 0) {
     pqueue_enqueue(cur_sem->waiters, proc_running_pid);
     _sti();
     proc_block();
     _cli();
   }
 
-  cur_sem->value--;
   _sti();
-  return 0;
 }
 
 
 int sem_post(sem_t sem) {
   _cli();
-
   ksem_t cur_sem = sem_references[sem];
 
-  if (cur_sem->value++ == 0 && !pqueue_empty(cur_sem->waiters)) {
-    scheduler_enqueue(pqueue_dequeue(cur_sem->waiters));
-    proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
-    pcb->state = PROC_STATE_RUNNING;
+  ++cur_sem->value;
+  if (!pqueue_empty(cur_sem->waiters)) {
+    pid_t pid = pqueue_dequeue(cur_sem->waiters);
+    scheduler_enqueue(pid);
+    (&proc_control_table[pid])->state = PROC_STATE_RUNNING;
   }
   _sti();
   return 0;
