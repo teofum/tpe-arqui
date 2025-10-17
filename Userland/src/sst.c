@@ -318,6 +318,7 @@ int test_sem_child_wait() {
 
   printf("    Desbloqueando el aux...\n");
   sem_up(globSem);// se desbloquea el aux proc
+  printf("    Desbloquedo aux\n");
 
   int return_code = proc_wait(pid);
   sst_assert_equal(0, return_code, "Child process failed");
