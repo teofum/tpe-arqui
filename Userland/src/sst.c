@@ -277,8 +277,9 @@ int test_sem_create_basic() {
 sem_t globSem;
 
 static int sem_up_test(uint64_t argc, char *const *argv) {
-  //sem_up((sem_t) argv[1]);
+  printf("    Aux proc started\n");
   sem_up(globSem);
+  printf("    Aux proc finished\n");
   return 0;
 }
 int test_sem_up_from_child() {
@@ -301,10 +302,11 @@ int test_sem_up_from_child() {
   return 0;
 }
 
-void sem_down_test(uint64_t argc, char *const *argv) {
+static int sem_down_test(uint64_t argc, char *const *argv) {
   printf("    Aux proc started\n");
   sem_down(globSem);
   printf("    Aux proc finished\n");
+  return 0;
 }
 int test_sem_child_wait() {
   printf("    Semaphore must synchronize between processes 2\n");
@@ -316,7 +318,6 @@ int test_sem_child_wait() {
 
   printf("    Desbloqueando el aux...\n");
   sem_up(globSem);// se desbloquea el aux proc
-
 
   int return_code = proc_wait(pid);
   sst_assert_equal(0, return_code, "Child process failed");
