@@ -1,7 +1,8 @@
 #ifndef SEMAPHORE_H
 #define SEMAPHORE_H
 
-typedef void *sem_t;
+typedef struct sem_cdt_t *sem_t;
+
 
 sem_t sem_create(int initial);
 

@@ -257,7 +257,7 @@ int test_proc_args_copy() {
   return 0;
 }
 
-int test_sem_check_1() {
+int test_sem_create_basic() {
   printf("    Semaphore operations must work correctly\n");
 
   sem_t sem = sem_create(0);
@@ -281,7 +281,7 @@ static int sem_up_test(uint64_t argc, char *const *argv) {
   sem_up(globSem);
   return 0;
 }
-int test_sem_check_2() {
+int test_sem_up_from_child() {
   printf("    Semaphore must synchronize between processes\n");
 
   globSem = sem_create(0);
@@ -303,10 +303,10 @@ int test_sem_check_2() {
 
 void sem_down_test(uint64_t argc, char *const *argv) {
   printf("    Aux proc started\n");
-  sem_down(argv[1]);
+  sem_down(globSem);
   printf("    Aux proc finished\n");
 }
-int test_sem_check_3() {
+int test_sem_child_wait() {
   printf("    Semaphore must synchronize between processes 2\n");
   globSem = sem_create(0);
   sst_assert(globSem != NULL, "Failed to create semaphore\n");
@@ -314,13 +314,15 @@ int test_sem_check_3() {
   char *const argv[] = {"sem_down_test"};
   pid_t pid = proc_spawn(sem_down_test, lengthof(argv), argv, DEFAULT_PRIORITY);
 
-  printf("    Desbloquea el aux...\n");
+  printf("    Desbloqueando el aux...\n");
   sem_up(globSem);// se desbloquea el aux proc
+
 
   int return_code = proc_wait(pid);
   sst_assert_equal(0, return_code, "Child process failed");
 
   printf("OK\n");
+  sem_close(globSem);
   return 0;
 }
 
@@ -328,12 +330,12 @@ int test_sem_check_3() {
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
-                     test_mem_exclusive,   test_mem_free,
-                     test_proc_spawn_wait, test_proc_getpid,
-                     test_proc_args,       test_proc_args_copy,
-                     test_sem_check_1,     test_sem_check_2,
-                     test_sem_check_3};
+test_fn_t tests[] = {test_sanity_check,     test_mem_alloc,
+                     test_mem_exclusive,    test_mem_free,
+                     test_proc_spawn_wait,  test_proc_getpid,
+                     test_proc_args,        test_proc_args_copy,
+                     test_sem_create_basic, test_sem_up_from_child,
+                     test_sem_child_wait};
 
 int sst_run_tests() {
   int result = 0;

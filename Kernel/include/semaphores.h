@@ -4,7 +4,7 @@
 #include <pqueue.h>
 #include <process.h>
 
-typedef struct ksem *sem_t;
+typedef struct sem_cdt_t *sem_t;
 
 
 sem_t sem_create(int initial);

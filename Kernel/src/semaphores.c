@@ -3,20 +3,20 @@
 #include <scheduler.h>
 #include <semaphores.h>
 
-typedef struct ksem {
+typedef struct sem_cdt_t {
   int value;
   pqueue_t waiters;
-} ksem_t;
+} sem_cdt_t;
 
 
 sem_t sem_create(int initial) {
-  sem_t newSem = (sem_t) mem_alloc(sizeof(ksem_t));
-  if (!newSem) return NULL;
+  sem_t new_sem = (sem_t) mem_alloc(sizeof(sem_cdt_t));
+  if (!new_sem) return NULL;
 
-  newSem->value = initial;
-  newSem->waiters = pqueue_create();
+  new_sem->value = initial;
+  new_sem->waiters = pqueue_create();
 
-  return newSem;
+  return new_sem;
 }
 
 int sem_down(sem_t sem) {
@@ -38,9 +38,11 @@ int sem_down(sem_t sem) {
 int sem_up(sem_t sem) {
   _cli();
 
-  if (sem->value++ == 0 && !pqueue_empty(sem->waiters))
+  if (sem->value++ == 0 && !pqueue_empty(sem->waiters)) {
     scheduler_enqueue(pqueue_dequeue(sem->waiters));
-
+    proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+    pcb->state = PROC_STATE_RUNNING;
+  }
   _sti();
   return 0;
 }
@@ -51,4 +53,4 @@ void sem_close(sem_t sem) {
   mem_free(sem);
 }
 
-int sem_candown(sem_t sem) { return (sem->value == 0) ? 0 : -1; }
+int sem_candown(sem_t sem) { return (sem->value == 0) ? 0 : 1; }
