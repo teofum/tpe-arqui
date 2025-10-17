@@ -284,7 +284,7 @@ static int sem_post_test(uint64_t argc, char *const *argv) {
   printf("    Aux proc finished\n");
   return 0;
 }
-static int test_sem_sync_test() {
+int test_sem_sync_test() {
   printf("    Semaphore must synchronize bsync_tests\n");
 
   globSem = sem_create(0);
