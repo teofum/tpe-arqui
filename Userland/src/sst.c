@@ -257,7 +257,7 @@ int test_proc_args_copy() {
   return 0;
 }
 
-int test_sem_create_basic() {
+int test_sem_ops() {
   printf("    Semaphore operations must work correctly\n");
 
   sem_t sem = sem_create(0);
@@ -274,29 +274,32 @@ int test_sem_create_basic() {
 }
 
 
-sem_t globSem;
-sem_t globSem2;
+sem_t global_sem;
+sem_t global_sem2;
 
 static int sem_post_test(uint64_t argc, char *const *argv) {
   printf("    Aux proc started\n");
-  sem_wait(globSem2);
-  sem_post(globSem);
+  sem_wait(global_sem2);
+  sem_post(global_sem);
   printf("    Aux proc finished\n");
   return 0;
 }
-int test_sem_sync_test() {
-  printf("    Semaphore must synchronize bsync_tests\n");
 
-  globSem = sem_create(0);
-  globSem2 = sem_create(0);
+int test_sem_sync() {
+  printf("    Semaphore must synchronize between processes\n");
+
+  global_sem = sem_create(0);
+  global_sem2 = sem_create(0);
 
   pid_t pid = proc_spawn(sem_post_test, 0, NULL, DEFAULT_PRIORITY);
 
-  sem_post(globSem2);
-  sem_wait(globSem);
+  sem_post(global_sem2);
+  sem_wait(global_sem);
 
-  sem_close(globSem);
-  sem_close(globSem2);
+  proc_wait(pid);
+
+  sem_close(global_sem);
+  sem_close(global_sem2);
 
   printf("    OK\n");
   return 0;
@@ -306,11 +309,11 @@ int test_sem_sync_test() {
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {test_sanity_check,     test_mem_alloc,
-                     test_mem_exclusive,    test_mem_free,
-                     test_proc_spawn_wait,  test_proc_getpid,
-                     test_proc_args,        test_proc_args_copy,
-                     test_sem_create_basic, test_sem_sync_test};
+test_fn_t tests[] = {test_sanity_check,  test_mem_alloc,
+                     test_mem_exclusive, test_mem_free,
+                     test_proc_spawn_wait, test_proc_getpid,
+                     test_proc_args,     test_proc_args_copy,
+                     test_sem_ops,       test_sem_sync};
 
 int sst_run_tests() {
   int result = 0;

@@ -3,19 +3,19 @@
 #include <scheduler.h>
 #include <semaphores.h>
 
-struct ksem_s_t {
+struct sem_cdt {
   int value;
   pqueue_t waiters;
-} ksem_s_t;
+};
 
-typedef struct ksem_s_t *ksem_t;
+typedef struct sem_cdt *sem_cdt_t;
 
 #define MAX_SEMAPHORES 100
 // totalmente arbitrario/ maybe cambia a vla
 
-static ksem_t sem_references[MAX_SEMAPHORES] = {0};
+static sem_cdt_t sem_references[MAX_SEMAPHORES] = {0};
 
-int sr_get_first_free() {
+int get_free_sem() {
   for (int i = 0; i < MAX_SEMAPHORES; ++i) {
     if (sem_references[i] == NULL) { return i; }
   }
@@ -23,13 +23,13 @@ int sr_get_first_free() {
 }
 
 sem_t sem_create(int initial) {
-  ksem_t new_sem = (ksem_t) mem_alloc(sizeof(ksem_s_t));
+  sem_cdt_t new_sem = (sem_cdt_t) mem_alloc(sizeof(struct sem_cdt));
   if (!new_sem) return -1;
 
   new_sem->value = initial;
   new_sem->waiters = pqueue_create();
 
-  int index = sr_get_first_free();
+  int index = get_free_sem();
 
   sem_references[index] = new_sem;
   return index;
@@ -37,10 +37,10 @@ sem_t sem_create(int initial) {
 
 int sem_wait(sem_t sem) {
   _cli();
-  ksem_t cur_sem = sem_references[sem];
+  sem_cdt_t curr_sem = sem_references[sem];
 
-  if ((cur_sem->value--) < 0) {
-    pqueue_enqueue(cur_sem->waiters, proc_running_pid);
+  if ((curr_sem->value--) < 0) {
+    pqueue_enqueue(curr_sem->waiters, proc_running_pid);
     _sti();
     proc_block();
     _cli();
@@ -52,11 +52,11 @@ int sem_wait(sem_t sem) {
 
 int sem_post(sem_t sem) {
   _cli();
-  ksem_t cur_sem = sem_references[sem];
+  sem_cdt_t curr_sem = sem_references[sem];
 
-  ++cur_sem->value;
-  if (!pqueue_empty(cur_sem->waiters)) {
-    pid_t pid = pqueue_dequeue(cur_sem->waiters);
+  ++curr_sem->value;
+  if (!pqueue_empty(curr_sem->waiters)) {
+    pid_t pid = pqueue_dequeue(curr_sem->waiters);
     scheduler_enqueue(pid);
     (&proc_control_table[pid])->state = PROC_STATE_RUNNING;
   }
@@ -66,9 +66,9 @@ int sem_post(sem_t sem) {
 
 
 void sem_close(sem_t sem) {
-  ksem_t cur_sem = sem_references[sem];
-  pqueue_destroy(cur_sem->waiters);
-  mem_free(cur_sem);
+  sem_cdt_t curr_sem = sem_references[sem];
+  pqueue_destroy(curr_sem->waiters);
+  mem_free(curr_sem);
   sem_references[sem] = NULL;
 }
 
