@@ -261,7 +261,7 @@ int test_sem_create_basic() {
   printf("    Semaphore operations must work correctly\n");
 
   sem_t sem = sem_create(0);
-  sst_assert(sem != NULL, "Failed to create semaphore\n");
+  sst_assert(sem != -1, "Failed to create semaphore\n");
 
   int result = sem_up(sem);
   sst_assert_equal(0, result, "sem_up failed");
@@ -286,7 +286,7 @@ int test_sem_up_from_child() {
 
   globSem = sem_create(0);
 
-  sst_assert(globSem != NULL, "Failed to create semaphore\n");
+  sst_assert(globSem != -1, "Failed to create semaphore\n");
 
   char *const argv[] = {"sem_up_test"};
   pid_t pid = proc_spawn(sem_up_test, lengthof(argv), argv, DEFAULT_PRIORITY);
@@ -309,7 +309,7 @@ void sem_down_test(uint64_t argc, char *const *argv) {
 int test_sem_child_wait() {
   printf("    Semaphore must synchronize between processes 2\n");
   globSem = sem_create(0);
-  sst_assert(globSem != NULL, "Failed to create semaphore\n");
+  sst_assert(globSem != -1, "Failed to create semaphore\n");
 
   char *const argv[] = {"sem_down_test"};
   pid_t pid = proc_spawn(sem_down_test, lengthof(argv), argv, DEFAULT_PRIORITY);

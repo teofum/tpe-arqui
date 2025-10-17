@@ -3,33 +3,51 @@
 #include <scheduler.h>
 #include <semaphores.h>
 
-typedef struct sem_cdt_t {
+struct ksem_s_t {
   int value;
   pqueue_t waiters;
-} sem_cdt_t;
+} ksem_s_t;
 
+typedef struct ksem_s_t *ksem_t;
+
+#define MAX_SEMAPHORES 100
+// totalmente arbitrario/ maybe cambia a variable length array
+
+static ksem_t sem_references[MAX_SEMAPHORES] = {0};
+
+int sr_get_first_free() {
+  for (int i = 0; i < MAX_SEMAPHORES; ++i) {
+    if (sem_references[i] == NULL) { return i; }
+  }
+  return -1;
+}
 
 sem_t sem_create(int initial) {
-  sem_t new_sem = (sem_t) mem_alloc(sizeof(sem_cdt_t));
-  if (!new_sem) return NULL;
+  ksem_t new_sem = (ksem_t) mem_alloc(sizeof(ksem_s_t));
+  if (!new_sem) return -1;
 
   new_sem->value = initial;
   new_sem->waiters = pqueue_create();
 
-  return new_sem;
+  int index = sr_get_first_free();
+
+  sem_references[index] = new_sem;
+  return index;
 }
 
 int sem_down(sem_t sem) {
   _cli();
 
-  if (sem->value == 0) {
-    pqueue_enqueue(sem->waiters, proc_running_pid);
+  ksem_t cur_sem = sem_references[sem];
+
+  if (cur_sem->value == 0) {
+    pqueue_enqueue(cur_sem->waiters, proc_running_pid);
     _sti();
     proc_block();
     _cli();
   }
 
-  sem->value--;
+  cur_sem->value--;
   _sti();
   return 0;
 }
@@ -38,8 +56,10 @@ int sem_down(sem_t sem) {
 int sem_up(sem_t sem) {
   _cli();
 
-  if (sem->value++ == 0 && !pqueue_empty(sem->waiters)) {
-    scheduler_enqueue(pqueue_dequeue(sem->waiters));
+  ksem_t cur_sem = sem_references[sem];
+
+  if (cur_sem->value++ == 0 && !pqueue_empty(cur_sem->waiters)) {
+    scheduler_enqueue(pqueue_dequeue(cur_sem->waiters));
     proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
     pcb->state = PROC_STATE_RUNNING;
   }
@@ -49,8 +69,10 @@ int sem_up(sem_t sem) {
 
 
 void sem_close(sem_t sem) {
-  pqueue_destroy(sem->waiters);
-  mem_free(sem);
+  ksem_t cur_sem = sem_references[sem];
+  pqueue_destroy(cur_sem->waiters);
+  mem_free(cur_sem);
+  sem_references[sem] = NULL;
 }
 
-int sem_candown(sem_t sem) { return (sem->value == 0) ? 0 : 1; }
+int sem_candown(sem_t sem) { return (sem_references[sem]->value == 0) ? 0 : 1; }
