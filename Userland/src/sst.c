@@ -273,45 +273,54 @@ int test_sem_check_1() {
   return 0;
 }
 
+
+sem_t globSem;
+
 static int sem_up_test(uint64_t argc, char *const *argv) {
-  sem_up((sem_t) argv[1]);
+  //sem_up((sem_t) argv[1]);
+  sem_up(globSem);
   return 0;
 }
-
 int test_sem_check_2() {
   printf("    Semaphore must synchronize between processes\n");
 
-  sem_t sem = sem_create(0);
-  sst_assert(sem != NULL, "Failed to create semaphore\n");
+  globSem = sem_create(0);
 
-  char *const argv[] = {"sem_up_test", (char *) sem};
+  sst_assert(globSem != NULL, "Failed to create semaphore\n");
+
+  char *const argv[] = {"sem_up_test"};
   pid_t pid = proc_spawn(sem_up_test, lengthof(argv), argv, DEFAULT_PRIORITY);
   int return_code = proc_wait(pid);
 
   sst_assert_equal(0, return_code, "Child process failed");
 
-  int result = sem_down(sem);
+  int result = sem_down(globSem);
   sst_assert_equal(0, result, "sem_down failed after child sem_up");
 
-  sem_close(sem);
+  sem_close(globSem);
   return 0;
 }
 
 void sem_down_test(uint64_t argc, char *const *argv) {
+  printf("    Aux proc started\n");
   sem_down(argv[1]);
-  printf(" Aux proc finished\n");
+  printf("    Aux proc finished\n");
 }
 int test_sem_check_3() {
-  sem_t sem = sem_create(0);
-  printf("    Created sem {0}\n");
+  printf("    Semaphore must synchronize between processes 2\n");
+  globSem = sem_create(0);
+  sst_assert(globSem != NULL, "Failed to create semaphore\n");
 
-  char *const argv[] = {sem};
-  pid_t test_pid =
-    proc_spawn(sem_down_test, lengthof(argv), argv, 4);// se bloquea
+  char *const argv[] = {"sem_down_test"};
+  pid_t pid = proc_spawn(sem_down_test, lengthof(argv), argv, DEFAULT_PRIORITY);
 
-  sem_up(sem);// se desbloquea el aux proc
-  proc_wait(test_pid);
-  printf(" OK\n");
+  printf("    Desbloquea el aux...\n");
+  sem_up(globSem);// se desbloquea el aux proc
+
+  int return_code = proc_wait(pid);
+  sst_assert_equal(0, return_code, "Child process failed");
+
+  printf("OK\n");
   return 0;
 }
 
@@ -319,12 +328,12 @@ int test_sem_check_3() {
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {
-  test_sanity_check, test_mem_alloc,       test_mem_exclusive,
-  test_mem_free,     test_proc_spawn_wait, test_proc_getpid,
-  test_proc_args,    test_proc_args_copy,  test_sem_check_1,
-  test_sem_check_2,
-};
+test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
+                     test_mem_exclusive,   test_mem_free,
+                     test_proc_spawn_wait, test_proc_getpid,
+                     test_proc_args,       test_proc_args_copy,
+                     test_sem_check_1,     test_sem_check_2,
+                     test_sem_check_3};
 
 int sst_run_tests() {
   int result = 0;
