@@ -18,7 +18,7 @@ static sem_cdt_t sem_references[MAX_SEMAPHORES + 1] = {0};
 /**
  * Returns 0 if invalid 1 if valid
  */
-int test_sem(sem_t sem) {
+int valid_sem(sem_t sem) {
   if (sem > MAX_SEMAPHORES || sem < 0 || sem_references[sem] == NULL) return 0;
   return 1;
 }
@@ -45,7 +45,7 @@ sem_t sem_create(int initial) {
 
 int sem_wait(sem_t sem) {
   _cli();
-  if (!test_sem(sem)) return -1;
+  if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
 
   if ((curr_sem->value--) < 0) {
@@ -62,7 +62,7 @@ int sem_wait(sem_t sem) {
 
 int sem_post(sem_t sem) {
   _cli();
-  if (!test_sem(sem)) return -1;
+  if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
 
   ++curr_sem->value;
@@ -77,7 +77,7 @@ int sem_post(sem_t sem) {
 
 
 void sem_close(sem_t sem) {
-  if (!test_sem(sem)) return -1;
+  if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
   pqueue_destroy(curr_sem->waiters);
   mem_free(curr_sem);
@@ -85,6 +85,6 @@ void sem_close(sem_t sem) {
 }
 
 int sem_willblock(sem_t sem) {
-  if (!test_sem(sem)) return -1;
+  if (!valid_sem(sem)) return -1;
   return (sem_references[sem]->value == 0) ? 1 : 0;
 }
