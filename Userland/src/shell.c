@@ -26,6 +26,30 @@ extern const char *mascot;
 /*
  * Command parsing
  */
+typedef struct {
+  uint64_t count;
+  char **cmds;
+
+  int background : 1;
+} command_group_t;
+
+static command_group_t parse_command(char *cmd) {
+  size_t len = strlen(cmd);
+  int background = cmd[len - 1] == '&';
+  if (background) cmd[len - 1] = 0;
+
+  split_result_t cmds = strsplit(cmd, '|');
+
+  for (size_t i = 0; i < cmds.count; i++) {
+    cmds.strings[i] = strtrim(cmds.strings[i], ' ');
+  }
+
+  return (command_group_t) {
+    .count = cmds.count,
+    .cmds = cmds.strings,
+    .background = background,
+  };
+}
 
 /*
  * Simple programs
@@ -307,37 +331,59 @@ static program_t *find_program(const char *cmd_name) {
   for (int i = 0; i < n_commands; i++)
     if (strcmp(cmd_name, commands[i].cmd) == 0) return &commands[i];
 
+  printf(
+    COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
+            "'help'" COL_RESET " for a list of available commands\n",
+    cmd_name
+  );
   return NULL;
 }
 
-static int run_command(const char *cmd) {
-  split_result_t args = strsplit(cmd, ' ');
-  uint64_t argc = args.count;
-  char *const *argv = args.strings;
+static int run_commands(command_group_t *cmds) {
+  size_t programs_size = cmds->count * sizeof(program_t *);
+  size_t args_size = cmds->count * sizeof(split_result_t);
+  void *scratch = mem_alloc(programs_size + args_size);
+  if (!scratch) return 0;
 
-  program_t *program = find_program(argv[0]);
-  if (!program) {
-    printf(
-      COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
-              "'help'" COL_RESET " for a list of available commands\n",
-      argv[0]
-    );
+  program_t **programs = scratch;
+  split_result_t *args = scratch + programs_size;
 
-    return 0;
+  // Parse args for each command, store them, and find the program
+  for (size_t i = 0; i < cmds->count; i++) {
+    args[i] = strsplit(cmds->cmds[i], ' ');
+    programs[i] = find_program(args[i].strings[0]);
+
+    // If any program in the pipeline is invalid, abort
+    if (!programs[i]) {
+      for (size_t j = 0; j <= i; j++) mem_free(args[j].strings);
+      mem_free(scratch);
+      mem_free((void *) cmds->cmds);
+      return 0;
+    }
   }
 
-  pid_t pid = proc_spawn(program->entry_point, argc, argv, DEFAULT_PRIORITY);
-  int background = 0;// TODO
-  mem_free(&args);
+  // Run the programs
+  pid_t first_pid = -1;
+  for (size_t i = 0; i < cmds->count; i++) {
+    pid_t pid = proc_spawn(
+      programs[i]->entry_point, args[i].count, args[i].strings, DEFAULT_PRIORITY
+    );
+    if (i == 0) first_pid = pid;
 
-  if (!background) {
-    int return_value = proc_wait(pid);
+    mem_free((void *) args[i].strings);
+  }
+
+  // Wait for the first program in the pipeline, if it's meant to run in foreground
+  if (!cmds->background) {
+    int return_value = proc_wait(first_pid);
     prompt_length = 2;
     if (return_value != 0) {
       prompt_length += printf("[" COL_RED "%u" COL_RESET "] ", return_value);
     }
   }
 
+  mem_free(scratch);
+  mem_free((void *) cmds->cmds);
   return 0;
 }
 
@@ -356,7 +402,8 @@ int cash() {
   while (!exit) {
     write_prompt();
     read_command(cmd_buf);
-    exit = run_command(cmd_buf);
+    command_group_t cmds = parse_command(cmd_buf);
+    exit = run_commands(&cmds);
   }
 
   // Return to kernel

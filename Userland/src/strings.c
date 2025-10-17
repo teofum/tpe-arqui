@@ -35,6 +35,24 @@ int memcpy(char *dst, const char *src, size_t len) {
   return 0;
 }
 
+char *strtrim(char *str, char delim) {
+  // trim start
+  while (*str == delim) str++;
+  char *start = str;
+
+  // trim end
+  char *end = str;
+  while (*str != 0) {
+    if (*str != delim) end = str;
+    str++;
+  }
+
+  end++;
+  *end = 0;
+
+  return start;
+}
+
 split_result_t strsplit(const char *str, char delim) {
   uint64_t strings_count = 1;
   size_t srt_len = 0;
