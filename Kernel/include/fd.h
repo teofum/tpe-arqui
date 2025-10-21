@@ -3,13 +3,26 @@
 
 #include <stdint.h>
 
-#define FD_NONE -1
-#define FD_TTY 0
-
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
 
-typedef int32_t fd_t;
+typedef enum {
+  FD_NONE,
+  FD_TTY,
+  FD_PIPE,
+} fd_type_t;
+
+typedef struct {
+  fd_type_t type;
+  void *data;
+} fd_t;
+
+#define create_empty_fd()                                                      \
+  (fd_t) { .type = FD_NONE, .data = NULL }
+#define create_tty_fd()                                                        \
+  (fd_t) { .type = FD_TTY, .data = NULL }
+#define create_pipe_fd(data)                                                   \
+  (fd_t) { .type = FD_PIPE, .data = (data) }
 
 #endif

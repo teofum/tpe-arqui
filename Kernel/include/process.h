@@ -8,9 +8,9 @@
 #include <types.h>
 
 /*
- * Support up to 4096 processes
+ * Support up to 2048 processes
  */
-#define MAX_PID 0xfff
+#define MAX_PID 0x7ff
 #define IDLE_PID 0
 
 #define FD_COUNT 64

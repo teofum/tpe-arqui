@@ -36,7 +36,8 @@ proc_start(proc_entrypoint_t entry_point, uint64_t argc, char *const *argv) {
 
 static void proc_initialize_fds(proc_control_block_t *pcb) {
   for (uint32_t i = 0; i < FD_COUNT; i++) {
-    pcb->file_descriptors[i] = i <= STDERR ? FD_TTY : FD_NONE;
+    pcb->file_descriptors[i] =
+      i <= STDERR ? create_tty_fd() : create_empty_fd();
   }
 }
 
