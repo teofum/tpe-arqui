@@ -276,12 +276,12 @@ int test_sem_ops() {
 
 sem_t global_sem;
 sem_t global_sem2;
+int check = 0;
 
 static int sem_post_test(uint64_t argc, char *const *argv) {
-  printf("    Aux proc started\n");
   sem_wait(global_sem2);
+  check = 2;
   sem_post(global_sem);
-  printf("    Aux proc finished\n");
   return 0;
 }
 
@@ -293,16 +293,15 @@ int test_sem_sync() {
 
   pid_t pid = proc_spawn(sem_post_test, 0, NULL, DEFAULT_PRIORITY);
 
+  check = 1;
   sem_post(global_sem2);
   sem_wait(global_sem);
 
-  proc_wait(pid);
+  sst_assert_equal(2, check, "sem sync failed");
 
+  proc_wait(pid);
   sem_close(global_sem);
   sem_close(global_sem2);
-
-  printf("    OK\n");
-  return 0;
 }
 
 /* ========================================================================= *
