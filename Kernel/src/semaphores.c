@@ -52,7 +52,7 @@ int sem_wait(sem_t sem) {
   sem_cdt_t curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
 
-  if ((--curr_sem->value) < 0) {
+  if (curr_sem->value == 0) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
     lock_release(curr_sem->lock);
     proc_block();
@@ -69,12 +69,14 @@ int sem_post(sem_t sem) {
   sem_cdt_t curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
 
-  ++curr_sem->value;
   if (!pqueue_empty(curr_sem->waiters)) {
     pid_t pid = pqueue_dequeue(curr_sem->waiters);
     scheduler_enqueue(pid);
     (&proc_control_table[pid])->state = PROC_STATE_RUNNING;
+  } else {
+    ++curr_sem->value;
   }
+
   lock_release(curr_sem->lock);
   return 0;
 }
