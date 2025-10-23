@@ -2,9 +2,11 @@
 #include <mem.h>
 #include <scheduler.h>
 #include <semaphores.h>
+#include <spinlock.h>
 
 struct sem_cdt {
   int value;
+  lock_t lock;
   pqueue_t waiters;
 };
 
@@ -30,11 +32,13 @@ int get_free_sem() {
   return -1;
 }
 
+
 sem_t sem_create(int initial) {
   sem_cdt_t new_sem = (sem_cdt_t) mem_alloc(sizeof(struct sem_cdt));
   if (!new_sem) return -1;
 
   new_sem->value = initial;
+  new_sem->lock = lock_create();
   new_sem->waiters = pqueue_create();
 
   int index = get_free_sem();
@@ -44,26 +48,26 @@ sem_t sem_create(int initial) {
 }
 
 int sem_wait(sem_t sem) {
-  _cli();
   if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
+  lock_acquire(curr_sem->lock);
 
   if ((curr_sem->value--) < 0) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
-    _sti();
+    lock_release(curr_sem->lock);
     proc_block();
-    _cli();
+    lock_acquire(curr_sem->lock);
   }
 
-  _sti();
+  lock_release(curr_sem->lock);
   return 0;
 }
 
 
 int sem_post(sem_t sem) {
-  _cli();
   if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
+  lock_acquire(curr_sem->lock);
 
   ++curr_sem->value;
   if (!pqueue_empty(curr_sem->waiters)) {
@@ -71,7 +75,7 @@ int sem_post(sem_t sem) {
     scheduler_enqueue(pid);
     (&proc_control_table[pid])->state = PROC_STATE_RUNNING;
   }
-  _sti();
+  lock_release(curr_sem->lock);
   return 0;
 }
 
@@ -80,6 +84,7 @@ void sem_close(sem_t sem) {
   if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
   pqueue_destroy(curr_sem->waiters);
+  lock_destroy(curr_sem->lock);
   mem_free(curr_sem);
   sem_references[sem] = NULL;
 }
