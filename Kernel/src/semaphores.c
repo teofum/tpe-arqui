@@ -52,7 +52,7 @@ int sem_wait(sem_t sem) {
   sem_cdt_t curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
 
-  if ((curr_sem->value--) < 0) {
+  if ((--curr_sem->value) < 0) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
     lock_release(curr_sem->lock);
     proc_block();

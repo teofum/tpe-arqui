@@ -302,6 +302,7 @@ int test_sem_sync() {
   proc_wait(pid);
   sem_close(global_sem);
   sem_close(global_sem2);
+  return 0;
 }
 
 /* ========================================================================= *
