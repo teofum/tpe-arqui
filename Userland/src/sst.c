@@ -265,7 +265,7 @@ int test_sem_ops() {
 
   int result = sem_post(sem);
   sst_assert_equal(0, result, "sem_post failed");
-
+  printf("flag\n");
   result = sem_wait(sem);
   sst_assert_equal(0, result, "sem_wait failed");
 
@@ -309,11 +309,11 @@ int test_sem_sync() {
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {test_sanity_check,  test_mem_alloc,
-                     test_mem_exclusive, test_mem_free,
+test_fn_t tests[] = {test_sanity_check,    test_mem_alloc,
+                     test_mem_exclusive,   test_mem_free,
                      test_proc_spawn_wait, test_proc_getpid,
-                     test_proc_args,     test_proc_args_copy,
-                     test_sem_ops,       test_sem_sync};
+                     test_proc_args,       test_proc_args_copy,
+                     test_sem_ops,         test_sem_sync};
 
 int sst_run_tests() {
   int result = 0;
