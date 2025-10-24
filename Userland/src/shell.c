@@ -1,11 +1,13 @@
+#include <fd.h>
 #include <gfxdemo.h>
 #include <golf_game.h>
 #include <io.h>
 #include <kbd.h>
 #include <mem.h>
 #include <print.h>
+#include <proc.h>
 #include <process.h>
-#include <ps.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -40,7 +42,7 @@ static uint32_t prompt_length = 2;
 static int echo(uint64_t argc, char *const *argv) {
   if (argc > 1) {
     for (size_t i = 1; i < argc; i++) { printf("%s ", argv[i]); }
-    write("\n", 1);
+    write(STDOUT, "\n", 1);
   }
 
   return 0;
@@ -177,63 +179,24 @@ static int music() {
 }
 
 static int print_mascot() {
-  writes(mascot);
+  writes(STDOUT, mascot);
   return 0;
 }
 
-static uint32_t parse_uint(const char *s) {
-  uint32_t r = 0;
-  while (*s >= '0' && *s <= '9') {
-    r *= 10;
-    r += *s - '0';
-    s++;
-  }
-  return r;
-}
+static int mem() {
+  size_t total, used, free;
+  mem_status(&total, &used, &free);
 
-static int make_foreground(uint64_t argc, char *const *argv) {
-  if (argc < 2) {
-    printf("Usage: fg <pid>\n");
-    return 0;
-  }
-  pid_t pid = parse_uint(argv[1]);
+  size_t used_pct = (used * 100) / total;
+  size_t free_pct = (free * 100) / total;
 
-  if (pid < 2) {
-    printf(COL_RED "Cannot bring a system process to foreground\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot bring the shell process to foreground\n");
-    return 1;
-  }
+  printf(
+    COL_GRAY "Total: " COL_RESET "%lu bytes\n" COL_GREEN "Used:  " COL_RESET
+             "%lu bytes (%lu%%)\n" COL_BLUE "Free:  " COL_RESET
+             "%lu bytes (%lu%%)\n",
+    total, used, used_pct, free, free_pct
+  );
 
-  // TODO fail if pid does not exist
-
-  proc_wait_for_foreground();
-  return proc_wait(pid);
-}
-
-static int kill(uint64_t argc, char *const *argv) {
-  if (argc < 2) {
-    printf("Usage: kill <pid>\n");
-    return 0;
-  }
-  pid_t pid = parse_uint(argv[1]);
-
-  if (pid < 2) {
-    printf(COL_RED "Cannot kill a system process\n");
-    return 1;
-  }
-  if (pid == 2) {
-    printf(COL_RED "Cannot kill the shell process\n");
-    return 1;
-  }
-
-  // TODO fail if pid does not exist
-
-  proc_kill(pid);
-  proc_wait_for_foreground();
-  proc_wait(pid);
   return 0;
 }
 
@@ -244,7 +207,7 @@ static int print_test() {
     kbd_get_key_event();
     printf("%u\n", i);
   }
-  write("\n", 1);
+  write(STDOUT, "\n", 1);
 
   return 0;
 }
@@ -257,13 +220,13 @@ static int timer_test(uint64_t argc, char *const *argv) {
     for (uint32_t j = 0; j < 5000; j++) yield();
     printf("%u %s\n", i++, argv[1]);
   }
-  write("\n", 1);
+  write(STDOUT, "\n", 1);
 
   return 0;
 }
 
 static int help();
-program_t commands[] = {
+static program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
   {"clear", "Clear stdout", clear},
@@ -277,13 +240,12 @@ program_t commands[] = {
   {"except", "Test exceptions", exception_test},
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
+  {"mem", "Display memory status", mem},
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
-  {"fg", "Bring a process to foreground", make_foreground},
-  {"ps", "List all running processes", ps},
-  {"kill", "Kill a process", kill},
+  {"proc", "Manage processes", proc},
 };
-size_t n_commands = sizeof(commands) / sizeof(program_t);
+static size_t n_commands = sizeof(commands) / sizeof(program_t);
 
 static int help() {
   printf("Available commands:\n\n");
@@ -309,7 +271,7 @@ static void read_command(char *cmd) {
 
   while (!input_end) {
     // Wait for input on stdin
-    read(temp, 1);
+    read(STDIN, temp, 1);
 
     // Iterate the input and add to internal buffer, handling special characters
     char c = temp[0];
@@ -368,14 +330,14 @@ static void read_command(char *cmd) {
 
     // Reset the cursor position and print the command so far to stdout
     io_blank_from(prompt_length);
-    writes(cmd);
+    writes(STDOUT, cmd);
     io_setcursor(back ? IO_CURSOR_BLOCK : IO_CURSOR_UNDER);
     io_movecursor(-back);
   }
 
   // Insert a newline and reset the cursor
   static char newline = '\n';
-  write(&newline, 1);
+  write(STDOUT, &newline, 1);
   io_setcursor(IO_CURSOR_UNDER);
 
   // Store the entered command in history, if it is different from the most recent one
@@ -428,7 +390,7 @@ static args_t make_args(const char *cmd) {
   }
   arg_str[i] = 0;
 
-  return (args_t){
+  return (args_t) {
     .argc = argc,
     .argv = argv,
     .background = background,

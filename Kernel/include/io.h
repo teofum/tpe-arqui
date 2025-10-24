@@ -15,12 +15,12 @@ void io_init();
 
 void io_blank_from(uint32_t x);
 
-uint32_t io_writes(const char *str);
-uint32_t io_write(const char *str, uint32_t len);
+uint32_t io_writes(uint32_t fd, const char *str);
+uint32_t io_write(uint32_t fd, const char *str, uint32_t len);
 
 void io_clear();
 
-uint32_t io_read(char *buf, uint32_t len);
+uint32_t io_read(uint32_t fd, char *buf, uint32_t len);
 
 void io_setfont(vga_font_t font);
 

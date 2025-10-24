@@ -1,7 +1,6 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <scheduler.h>
 #include <stddef.h>
 #include <stdint.h>
 /*
@@ -73,5 +72,16 @@ void yield();
  * Get information about a process. Returns 0 if the process does not exist.
  */
 int proc_info(pid_t pid, proc_info_t *out_info);
+
+/*
+ * Blocks a process by PID and yields control to the scheduler.
+ */
+void proc_block(pid_t pid);
+
+/*
+ * Set a blocked process to running. The process is likely to block itself
+ * again (eg if it's waiting on i/o or foreground)
+ */
+void proc_run(pid_t pid);
 
 #endif

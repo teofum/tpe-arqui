@@ -59,6 +59,7 @@ define_syscall time, 0x50
 define_syscall mem_alloc, 0x60
 define_syscall mem_free, 0x61
 define_syscall mem_check, 0x62
+define_syscall mem_status, 0x63
 
 ; Process system calls
 define_syscall proc_spawn, 0x70
@@ -69,6 +70,8 @@ define_syscall proc_wait_for_foreground, 0x74
 define_syscall proc_info, 0x75
 define_syscall proc_kill, 0x76
 define_syscall yield, 0x77
+define_syscall proc_block, 0x78
+define_syscall proc_run, 0x79
 
 ; Semaphore system calls
 define_syscall sem_create, 0x80

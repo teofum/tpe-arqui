@@ -11,9 +11,9 @@ typedef enum {
   IO_CURSOR_BLOCK,
 } io_cursor_t;
 
-uint32_t read(char *buf, uint32_t len);
-uint32_t writes(const char *str);
-uint32_t write(const char *str, uint32_t len);
+uint32_t read(uint32_t fd, char *buf, uint32_t len);
+uint32_t writes(uint32_t fd, const char *str);
+uint32_t write(uint32_t fd, const char *str, uint32_t len);
 
 void io_clear();
 

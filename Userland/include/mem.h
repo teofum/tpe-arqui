@@ -21,4 +21,9 @@ void mem_free(void *mem);
  */
 int mem_check(void *mem);
 
+/*
+ * Get memory status
+ */
+void mem_status(size_t *total, size_t *used, size_t *free);
+
 #endif

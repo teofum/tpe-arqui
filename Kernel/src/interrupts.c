@@ -191,6 +191,7 @@ void init_syscalls() {
   register_syscall(0x60, mem_alloc);
   register_syscall(0x61, mem_free);
   register_syscall(0x62, mem_check);
+  register_syscall(0x63, mem_status);
 
   /* Processes */
   register_syscall(0x70, proc_spawn);
@@ -201,6 +202,8 @@ void init_syscalls() {
   register_syscall(0x75, proc_info);
   register_syscall(0x76, proc_kill);
   register_syscall(0x77, proc_yield);
+  register_syscall(0x78, proc_blockpid);
+  register_syscall(0x79, proc_runpid);
 
   /* Semaphores */
   register_syscall(0x80, sem_create);

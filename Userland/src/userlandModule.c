@@ -1,7 +1,9 @@
+#include "fd.h"
 #include <io.h>
 #include <kbd.h>
 #include <print.h>
 #include <process.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <sst.h>
 #include <stdint.h>
@@ -51,17 +53,17 @@ int main() {
       test_result
     );
   } else {
-    writes("[" COL_GREEN "SST OK" COL_RESET "] All tests passed!\n");
+    writes(STDOUT, "[" COL_GREEN "SST OK" COL_RESET "] All tests passed!\n");
   }
 
-  writes("Press any key to continue\n");
+  writes(STDOUT, "Press any key to continue\n");
 
   kbd_get_key_event();
 #endif
 
   io_clear();
-  writes(mascot);
-  writes("\n\n");
+  writes(STDOUT, mascot);
+  writes(STDOUT, "\n\n");
 
   char *shell_args[] = {"cash"};
   pid_t shell_pid =

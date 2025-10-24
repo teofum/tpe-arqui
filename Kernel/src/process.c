@@ -1,3 +1,4 @@
+#include <fd.h>
 #include <lib.h>
 #include <mem.h>
 #include <pqueue.h>
@@ -33,6 +34,12 @@ proc_start(proc_entrypoint_t entry_point, uint64_t argc, char *const *argv) {
   proc_exit(ret);
 }
 
+static void proc_initialize_fds(proc_control_block_t *pcb) {
+  for (uint32_t i = 0; i < FD_COUNT; i++) {
+    pcb->file_descriptors[i] = i <= STDERR ? FD_TTY : FD_NONE;
+  }
+}
+
 static void proc_initialize_process(
   pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
   priority_t priority
@@ -54,6 +61,8 @@ static void proc_initialize_process(
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
   pcb->priority = priority;
+
+  proc_initialize_fds(pcb);
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
@@ -98,8 +107,8 @@ void proc_init(proc_entrypoint_t entry_point) {
    * Initialize the idle process, but don't run it
    */
   char *const idle_argv[1] = {"idle"};
-  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, -1);
-  //priority -1 pq no deberia entrar en la cola
+  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, MAX_PRIORITY + 1);
+  //invalid priority pq no deberia entrar en la cola
 
   /*
    * Initialize and start the init process. We "bootstrap" the process
@@ -117,6 +126,8 @@ void proc_init(proc_entrypoint_t entry_point) {
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
 
+  proc_initialize_fds(pcb);
+
   proc_running_pid = new_pid;
   proc_foreground_pid = new_pid;
   _proc_init(entry_point, (void *) pcb->rsp);
@@ -132,6 +143,21 @@ void proc_block() {
   pcb->state = PROC_STATE_BLOCKED;
 
   proc_yield();
+}
+
+void proc_blockpid(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  pcb->state = PROC_STATE_BLOCKED;
+
+  // TODO remove from scheduler
+}
+
+void proc_runpid(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  if (pcb->state == PROC_STATE_BLOCKED) {
+    pcb->state = PROC_STATE_RUNNING;
+    scheduler_enqueue(pid);
+  }
 }
 
 pid_t proc_spawn(
@@ -245,9 +271,14 @@ int proc_info(pid_t pid, proc_info_t *out_info) {
   out_info->pid = pid;
   out_info->description = pcb->description;
   out_info->state = pcb->state;
-  out_info->priority = 0;// TODO
+  out_info->priority = pcb->priority;
   out_info->rsp = pcb->rsp;
   out_info->foreground = pid == proc_foreground_pid;
 
   return 1;
+}
+
+fd_t proc_get_fd(uint32_t fd) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  return pcb->file_descriptors[fd];
 }
