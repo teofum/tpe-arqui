@@ -25,6 +25,9 @@ int valid_sem(sem_t sem) {
   return 1;
 }
 
+/**
+ * Returns the first available semaphore index
+ */
 int get_free_sem() {
   for (int i = 0; i < MAX_SEMAPHORES; ++i) {
     if (sem_references[i] == NULL) { return i; }
@@ -32,7 +35,9 @@ int get_free_sem() {
   return -1;
 }
 
-
+/**
+ * Creates new semaphore and returns handle, NULL if it fails
+ */
 sem_t sem_create(int initial) {
   sem_cdt_t new_sem = (sem_cdt_t) mem_alloc(sizeof(struct sem_cdt));
   if (!new_sem) return NULL;
@@ -51,6 +56,10 @@ sem_t sem_create(int initial) {
   return index;
 }
 
+/**
+ * Attempts to decrement semaphore, will block if unable to
+ * returns -1 if invalid
+ */
 int sem_wait(sem_t sem) {
   if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
@@ -67,7 +76,10 @@ int sem_wait(sem_t sem) {
   return 0;
 }
 
-
+/**
+ * Will encrese the semaphore, and unblock waiting process
+ * returns -1 if invalid
+ */
 int sem_post(sem_t sem) {
   if (!valid_sem(sem)) return -1;
   sem_cdt_t curr_sem = sem_references[sem];
@@ -85,9 +97,11 @@ int sem_post(sem_t sem) {
   return 0;
 }
 
-
+/**
+ * Will free all memory and destroy the semaphore
+ */
 void sem_close(sem_t sem) {
-  if (!valid_sem(sem)) return -1;
+  if (!valid_sem(sem)) return;
   sem_cdt_t curr_sem = sem_references[sem];
   pqueue_destroy(curr_sem->waiters);
   lock_destroy(curr_sem->lock);
@@ -95,7 +109,10 @@ void sem_close(sem_t sem) {
   sem_references[sem] = NULL;
 }
 
+/**
+ * Returns 1 if calling sem_wait() would block, 0 if not
+ */
 int sem_willblock(sem_t sem) {
-  if (!valid_sem(sem)) return -1;
+  if (!valid_sem(sem)) return 0;
   return (sem_references[sem]->value == 0) ? 1 : 0;
 }
