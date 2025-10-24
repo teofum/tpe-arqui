@@ -35,7 +35,7 @@ int get_free_sem() {
 
 sem_t sem_create(int initial) {
   sem_cdt_t new_sem = (sem_cdt_t) mem_alloc(sizeof(struct sem_cdt));
-  if (!new_sem) return -1;
+  if (!new_sem) return NULL;
 
   new_sem->value = initial;
   new_sem->lock = lock_create();
@@ -44,7 +44,7 @@ sem_t sem_create(int initial) {
   int index = get_free_sem();
   if (index == -1 || new_sem->lock == -1 || new_sem->waiters == NULL) {
     sem_close(new_sem);
-    return -1;
+    return NULL;
   }
 
   sem_references[index] = new_sem;
