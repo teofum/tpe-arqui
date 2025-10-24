@@ -7,6 +7,7 @@
 #include <mem.h>
 #include <print.h>
 #include <process.h>
+#include <semaphores.h>
 #include <status.h>
 #include <stdint.h>
 #include <time.h>
@@ -203,6 +204,13 @@ void init_syscalls() {
   register_syscall(0x77, proc_yield);
   register_syscall(0x78, proc_blockpid);
   register_syscall(0x79, proc_runpid);
+
+  /* Semaphores */
+  register_syscall(0x80, sem_create);
+  register_syscall(0x81, sem_willblock);
+  register_syscall(0x82, sem_wait);
+  register_syscall(0x83, sem_post);
+  register_syscall(0x84, sem_close);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);

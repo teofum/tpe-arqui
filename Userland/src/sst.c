@@ -3,6 +3,7 @@
 #include <print.h>
 #include <process.h>
 #include <scheduler.h>
+#include <semaphores.h>
 #include <shell.h>
 #include <sst.h>
 #include <stdint.h>
@@ -294,15 +295,72 @@ int test_proc_write_unset_fd() {
   return 0;
 }
 
+int test_sem_ops() {
+  printf("    Semaphore operations must work correctly\n");
+
+  sem_t sem = sem_create(0);
+  sst_assert(sem != -1, "Failed to create semaphore\n");
+
+  int result = sem_post(sem);
+  sst_assert_equal(0, result, "sem_post failed");
+  printf("flag\n");
+  result = sem_wait(sem);
+  sst_assert_equal(0, result, "sem_wait failed");
+
+  sem_close(sem);
+  return 0;
+}
+
+
+sem_t global_sem;
+sem_t global_sem2;
+int check = 0;
+
+static int sem_post_test(uint64_t argc, char *const *argv) {
+  sem_wait(global_sem2);
+  check = 2;
+  sem_post(global_sem);
+  return 0;
+}
+
+int test_sem_sync() {
+  printf("    Semaphore must synchronize between processes\n");
+
+  global_sem = sem_create(0);
+  global_sem2 = sem_create(0);
+
+  pid_t pid = proc_spawn(sem_post_test, 0, NULL, DEFAULT_PRIORITY);
+
+  check = 1;
+  sem_post(global_sem2);
+  sem_wait(global_sem);
+
+  sst_assert_equal(2, check, "sem sync failed");
+
+  proc_wait(pid);
+  sem_close(global_sem);
+  sem_close(global_sem2);
+  return 0;
+}
+
 /* ========================================================================= *
  * Tests end here                                                            *
  * ========================================================================= */
 
-test_fn_t tests[] = {test_sanity_check,       test_mem_alloc,
-                     test_mem_exclusive,      test_mem_free,
-                     test_proc_spawn_wait,    test_proc_getpid,
-                     test_proc_args,          test_proc_args_copy,
-                     test_proc_read_unset_fd, test_proc_write_unset_fd};
+test_fn_t tests[] = {
+  test_sanity_check,
+  test_mem_alloc,
+  test_mem_exclusive,
+  test_mem_free,
+  test_proc_spawn_wait,
+  test_proc_getpid,
+  test_proc_args,
+  test_proc_args_copy,
+  test_proc_read_unset_fd,
+  test_proc_write_unset_fd,
+  test_sem_ops,
+  test_sem_sync
+};
 
 int sst_run_tests() {
   int result = 0;
