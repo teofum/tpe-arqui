@@ -42,6 +42,10 @@ sem_t sem_create(int initial) {
   new_sem->waiters = pqueue_create();
 
   int index = get_free_sem();
+  if (index == -1 || new_sem->lock == -1 || new_sem->waiters == NULL) {
+    sem_close(new_sem);
+    return -1;
+  }
 
   sem_references[index] = new_sem;
   return index;
