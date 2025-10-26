@@ -3,7 +3,8 @@
 
 lock_t lock_create() {
   lock_t lock = mem_alloc(sizeof(int));
-  if (lock == NULL) { return -1; }
+  if (lock == NULL) return NULL;
+
   *lock = 0;
   return lock;
 };
