@@ -218,6 +218,7 @@ static void proc_make_foreground(pid_t pid) {
 
 int proc_wait(pid_t pid) {
   proc_control_block_t *waiting_pcb = &proc_control_table[pid];
+  if (waiting_pcb == NULL) return -1;
 
   if (proc_foreground_pid == proc_running_pid) proc_make_foreground(pid);
 
