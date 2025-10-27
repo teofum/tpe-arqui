@@ -10,6 +10,8 @@
  */
 #define MAX_PID 0xfff
 
+#define FD_COUNT 64
+
 typedef int priority_t;// TODO: esto no va ak
 
 typedef int16_t pid_t;
@@ -35,13 +37,15 @@ typedef struct {
   uint32_t fd;
   fd_type_t type;
   pipe_t pipe;
+  pipe_end_t mode;
 } proc_fd_descriptor_t;
 
 typedef struct {
   priority_t priority;
   uint32_t n_fds;
-  proc_fd_descriptor_t fds[];
+  proc_fd_descriptor_t fds[FD_COUNT];
 } proc_descriptor_t;
+
 
 /*
  * Spawn a process.

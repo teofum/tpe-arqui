@@ -18,4 +18,11 @@ typedef struct {
   void *data;
 } fd_t;
 
+#define create_empty_fd()                                                      \
+  (fd_t) { .type = FD_NONE, .data = NULL }
+#define create_tty_fd()                                                        \
+  (fd_t) { .type = FD_TTY, .data = NULL }
+#define create_pipe_fd(x)                                                      \
+  (fd_t) { .type = FD_PIPE, .data = x }
+
 #endif

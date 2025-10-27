@@ -1,3 +1,4 @@
+#include "pipe.h"
 #include <fd.h>
 #include <lib.h>
 #include <mem.h>
@@ -36,18 +37,22 @@ proc_start(proc_entrypoint_t entry_point, uint64_t argc, char *const *argv) {
 
 static void
 proc_initialize_fds(proc_control_block_t *pcb, proc_descriptor_t *desc) {
-  for (uint32_t i = 0; i < FD_COUNT; i++) {
-    pcb->file_descriptors[i] =
-      i <= STDERR ? create_tty_fd() : create_empty_fd();
-  }
-
   if (desc != NULL) {
     for (int i = 0; i < desc->n_fds; i++) {
       proc_fd_descriptor_t *fd_desc = &desc->fds[i];
       pcb->file_descriptors[fd_desc->fd] = (fd_t) {
         .type = fd_desc->type,
-        .data = fd_desc->type == FD_PIPE ? fd_desc->pipe : NULL,
+        .data = fd_desc->pipe,
       };
+
+      if (fd_desc->type == FD_PIPE) {
+        pipe_connect(fd_desc->pipe, fd_desc->mode);
+      }
+    }
+  } else {
+    for (uint32_t i = 0; i < FD_COUNT; i++) {
+      pcb->file_descriptors[i] =
+        i <= STDERR ? create_tty_fd() : create_empty_fd();
     }
   }
 }

@@ -80,6 +80,9 @@ define_syscall sem_wait, 0x82
 define_syscall sem_post, 0x83
 define_syscall sem_close, 0x84
 
+; Pipe system calls
+define_syscall pipe_create, 0x90
+
 ; Graphics system calls
 define_syscall gfx_clear, 0xA0
 define_syscall gfx_draw_primitives, 0xA1

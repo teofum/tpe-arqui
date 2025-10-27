@@ -1,3 +1,4 @@
+#include "pipe.h"
 #include <fd.h>
 #include <gfxdemo.h>
 #include <golf_game.h>
@@ -196,6 +197,14 @@ static int history() {
   return 0;
 }
 
+static int red() {
+  char c;
+  while (read(STDIN, &c, 1) && c != '\n') printf(COL_RED "%c", c);
+
+  write(STDOUT, "\n", 1);
+  return 0;
+}
+
 static int help();
 static program_t commands[] = {
   {"help", "Display this help message", help},
@@ -215,6 +224,7 @@ static program_t commands[] = {
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
   {"proc", "Manage processes", proc},
+  {"red", "a red", red},
 };
 static size_t n_commands = sizeof(commands) / sizeof(program_t);
 
@@ -362,16 +372,47 @@ static int run_commands(command_group_t *cmds) {
     }
   }
 
+  // Create any pipes we might need
+  pipe_t *pipes = NULL;
+  if (cmds->count > 1) {
+    pipes = mem_alloc(sizeof(pipe_t) * cmds->count - 1);
+    for (int i = 1; i < cmds->count; i++) pipes[i] = pipe_create();
+  }
+
   // Run the programs
   pid_t first_pid = -1;
   for (size_t i = 0; i < cmds->count; i++) {
-    pid_t pid = proc_spawn(
-      programs[i]->entry_point, args[i].count, args[i].strings, NULL
-    );
+    proc_entrypoint_t ep = programs[i]->entry_point;
+    pid_t pid;
+
+    if (cmds->count > 1) {
+      proc_descriptor_t desc =
+        {.priority = DEFAULT_PRIORITY,
+         .n_fds = 2,
+         .fds = {
+           (proc_fd_descriptor_t) {
+             .fd = STDIN,
+             .type = i == 0 ? FD_TTY : FD_PIPE,
+             .pipe = i == 0 ? NULL : pipes[i - 1],
+             .mode = PIPE_READ,
+           },
+           (proc_fd_descriptor_t) {
+             .fd = STDOUT,
+             .type = i == cmds->count - 1 ? FD_TTY : FD_PIPE,
+             .pipe = i == cmds->count - 1 ? NULL : pipes[i],
+             .mode = PIPE_WRITE,
+           },
+         }};
+      pid = proc_spawn(ep, args[i].count, args[i].strings, &desc);
+    } else {
+      pid = proc_spawn(ep, args[i].count, args[i].strings, NULL);
+    }
     if (i == 0) first_pid = pid;
 
     mem_free((void *) args[i].strings);
   }
+
+  mem_free(pipes);
 
   // Wait for the first program in the pipeline, if it's meant to run in foreground
   if (!cmds->background) {
