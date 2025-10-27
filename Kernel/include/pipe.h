@@ -3,7 +3,6 @@
 
 #include <fd.h>
 #include <stdint.h>
-#include <types.h>
 
 typedef enum {
   PIPE_WRITE,

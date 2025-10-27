@@ -164,7 +164,7 @@ int test_proc_spawn_wait() {
   printf("    Process must start and exit successfully\n");
 
   char *const argv[1] = {"test"};
-  pid_t pid = proc_spawn(dummy_process, 1, argv, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(dummy_process, 1, argv, NULL);
   int return_code = proc_wait(pid);
 
   printf("    Process with pid %u exited with code %u\n", pid, return_code);
@@ -185,7 +185,7 @@ int test_proc_getpid() {
   printf("    getpid() must return the running process PID\n");
 
   char *const argv[1] = {"pid_process"};
-  pid_t pid = proc_spawn(pid_process, 1, argv, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(pid_process, 1, argv, NULL);
   int return_code = proc_wait(pid);
 
   printf("    Process with pid %u exited with code %u\n", pid, return_code);
@@ -216,7 +216,7 @@ int test_proc_args() {
   printf("    Process must receive arguments as sent\n");
 
   char *const argv[] = {"args_process", "foo", "bar"};
-  pid_t pid = proc_spawn(args_process, lengthof(argv), argv, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(args_process, lengthof(argv), argv, NULL);
   int return_code = proc_wait(pid);
 
   printf("    Process with pid %u exited with code %u\n", pid, return_code);
@@ -246,13 +246,13 @@ int test_proc_args_copy() {
 
   printf("    Process must not be able to replace its arguments\n");
   printf("    Spawning process with argv[1] = 'foo'\n");
-  pid_t pid = proc_spawn(evil, lengthof(argv), argv, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(evil, lengthof(argv), argv, NULL);
   proc_wait(pid);
   sst_assert_streq("foo", argv[1], "Process replaced an argument");
 
   printf("    Process must not be able to modify its arguments\n");
   printf("    Spawning process with argv[1] = 'foo'\n");
-  pid = proc_spawn(evil2, lengthof(argv), argv, DEFAULT_PRIORITY);
+  pid = proc_spawn(evil2, lengthof(argv), argv, NULL);
   proc_wait(pid);
   sst_assert_streq("foo", argv[1], "Process modified an argument");
 
@@ -270,7 +270,7 @@ int test_proc_read_unset_fd() {
   char *const argv[] = {"reader"};
 
   printf("    Process must not be able to read from an unset FD\n");
-  pid_t pid = proc_spawn(reader, lengthof(argv), argv, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(reader, lengthof(argv), argv, NULL);
   int ret = proc_wait(pid);
   sst_assert_equal(-1, ret, "Process succesfully read from unset FD 42");
 
@@ -288,7 +288,7 @@ int test_proc_write_unset_fd() {
   char *const argv[] = {"writer"};
 
   printf("    Process must not be able to write to an unset FD\n");
-  pid_t pid = proc_spawn(writer, lengthof(argv), argv, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(writer, lengthof(argv), argv, NULL);
   int ret = proc_wait(pid);
   sst_assert_equal(-1, ret, "Process succesfully wrote to unset FD 42");
 
@@ -329,7 +329,7 @@ int test_sem_sync() {
   global_sem = sem_create(0);
   global_sem2 = sem_create(0);
 
-  pid_t pid = proc_spawn(sem_post_test, 0, NULL, DEFAULT_PRIORITY);
+  pid_t pid = proc_spawn(sem_post_test, 0, NULL, NULL);
 
   check = 1;
   sem_post(global_sem2);

@@ -1,6 +1,8 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <fd.h>
+#include <pipe.h>
 #include <stddef.h>
 #include <stdint.h>
 /*
@@ -29,12 +31,24 @@ typedef struct {
   int foreground : 1;
 } proc_info_t;
 
+typedef struct {
+  uint32_t fd;
+  fd_type_t type;
+  pipe_t pipe;
+} proc_fd_descriptor_t;
+
+typedef struct {
+  priority_t priority;
+  uint32_t n_fds;
+  proc_fd_descriptor_t fds[];
+} proc_descriptor_t;
+
 /*
  * Spawn a process.
  */
 pid_t proc_spawn(
   proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
-  priority_t priority
+  proc_descriptor_t *desc
 );
 
 /*

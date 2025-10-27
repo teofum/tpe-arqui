@@ -366,7 +366,7 @@ static int run_commands(command_group_t *cmds) {
   pid_t first_pid = -1;
   for (size_t i = 0; i < cmds->count; i++) {
     pid_t pid = proc_spawn(
-      programs[i]->entry_point, args[i].count, args[i].strings, DEFAULT_PRIORITY
+      programs[i]->entry_point, args[i].count, args[i].strings, NULL
     );
     if (i == 0) first_pid = pid;
 
