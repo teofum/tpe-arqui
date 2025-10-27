@@ -37,23 +37,23 @@ static int get_free_sem() {
  */
 sem_t sem_create(int initial) {
   int index = get_free_sem();
-  if (index == -1) return NULL;
+  if (index == -1) return -1;
 
   semaphore_t *new_sem = mem_alloc(sizeof(semaphore_t));
-  if (!new_sem) return NULL;
+  if (!new_sem) return -1;
 
   new_sem->value = initial;
   new_sem->lock = lock_create();
   if (new_sem->lock == NULL) {
     mem_free(new_sem);
-    return NULL;
+    return -1;
   }
 
   new_sem->waiters = pqueue_create();
   if (new_sem->lock == NULL) {
     lock_destroy(new_sem->lock);
     mem_free(new_sem);
-    return NULL;
+    return -1;
   }
 
   sem_references[index] = new_sem;
@@ -74,10 +74,12 @@ int sem_wait(sem_t sem) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
     lock_release(curr_sem->lock);
     proc_block();
-    lock_acquire(curr_sem->lock);
+  } else {
+    lock_release(curr_sem->lock);
   }
 
-  lock_release(curr_sem->lock);
+  curr_sem->value--;
+
   return 0;
 }
 
@@ -90,12 +92,11 @@ int sem_post(sem_t sem) {
   semaphore_t *curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
 
+  curr_sem->value++;
   if (!pqueue_empty(curr_sem->waiters)) {
     pid_t pid = pqueue_dequeue(curr_sem->waiters);
     scheduler_enqueue(pid);
     (&proc_control_table[pid])->state = PROC_STATE_RUNNING;
-  } else {
-    ++curr_sem->value;
   }
 
   lock_release(curr_sem->lock);

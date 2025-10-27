@@ -18,8 +18,8 @@ fd_t pipe_connect(pipe_t pipe, pipe_end_t end);
 
 void pipe_disconnect(pipe_t pipe, pipe_end_t end);
 
-uint32_t pipe_read(pipe_t pipe, char *buf, uint32_t len);
+int32_t pipe_read(pipe_t pipe, char *buf, uint32_t len);
 
-uint32_t pipe_write(pipe_t pipe, char *buf, uint32_t len);
+int32_t pipe_write(pipe_t pipe, const char *buf, uint32_t len);
 
 #endif

@@ -6,6 +6,8 @@
 
 #define PIPE_SIZE 1024
 
+#define advance(x) x = (x + 1) % PIPE_SIZE
+
 typedef struct pipe_cdt_t {
   uint32_t can_read : 1;
   uint32_t can_write : 1;
@@ -57,21 +59,33 @@ void pipe_disconnect(pipe_t pipe, pipe_end_t end) {
   }
 }
 
-uint32_t pipe_read(pipe_t pipe, char *buf, uint32_t len) {
+int32_t pipe_read(pipe_t pipe, char *buf, uint32_t len) {
   if (!pipe->can_read) return 0;
 
-  return 0;//TODO
-  // Advance read head until we read len bytes
-  // If we hit write head...
-  //    Block if write end is still connected
-  //    Otherwise, destroy the pipe and return (EOF)
+  uint32_t read = 0;
+  while (read < len) {
+    if (pipe->write_cursor == pipe->read_cursor && !pipe->can_write) break;
+
+    sem_wait(pipe->sem);
+    *buf++ = pipe->data[pipe->read_cursor];
+    advance(pipe->read_cursor);
+  }
+
+  return read;
 }
 
-uint32_t pipe_write(pipe_t pipe, char *buf, uint32_t len) {
+int32_t pipe_write(pipe_t pipe, const char *buf, uint32_t len) {
   // Don't allow writing to a pipe if the reading end is closed
-  if (!pipe->can_write || !pipe->can_read) return 0;
+  if (!pipe->can_write || !pipe->can_read) return -1;
 
-  return 0;//TODO
-  // Advance write head until we wrote len bytes
-  // If we hit read head, block until read
+  uint32_t written = 0;
+  while (written < len) {
+    if (pipe->write_cursor == pipe->read_cursor) break;
+
+    pipe->data[pipe->write_cursor] = *buf++;
+    advance(pipe->write_cursor);
+    sem_post(pipe->sem);
+  }
+
+  return written;
 }

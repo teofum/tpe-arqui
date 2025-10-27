@@ -1,6 +1,7 @@
 #include <fd.h>
 #include <io.h>
 #include <kbd.h>
+#include <pipe.h>
 #include <process.h>
 #include <status.h>
 #include <stdint.h>
@@ -212,7 +213,7 @@ uint32_t io_writes(uint32_t fd, const char *str) {
     case FD_TTY:
       return io_writes_tty(str);
     case FD_PIPE:
-      return -1;// Not implemented
+      return -1;// Unsupported operation
   }
 }
 
@@ -252,7 +253,7 @@ uint32_t io_write(uint32_t fd, const char *str, uint32_t len) {
     case FD_TTY:
       return io_write_tty(str, len);
     case FD_PIPE:
-      return -1;// Not implemented
+      return pipe_write(src.data, str, len);
   }
 }
 
@@ -321,7 +322,7 @@ uint32_t io_read(uint32_t fd, char *buf, uint32_t len) {
     case FD_TTY:
       return io_read_tty(buf, len);
     case FD_PIPE:
-      return -1;// Not implemented
+      return pipe_read(src.data, buf, len);
   }
 }
 
