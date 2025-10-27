@@ -191,24 +191,6 @@ pid_t proc_spawn(
   return new_pid;
 }
 
-void proc_exit(int return_code) {
-  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
-
-  pcb->state = PROC_STATE_EXITED;
-  pcb->return_code = return_code;
-
-  while (!pqueue_empty(pcb->waiting_processes)) {
-    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
-
-    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
-    waiting_pcb->state = PROC_STATE_RUNNING;
-
-    scheduler_enqueue(waiting_pid);
-  }
-
-  proc_yield();
-}
-
 static void proc_destroy(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
@@ -220,6 +202,28 @@ static void proc_destroy(pid_t pid) {
   pcb->description = NULL;
   pcb->stack = NULL;
   pqueue_destroy(pcb->waiting_processes);
+}
+
+void proc_exit(int return_code) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  pcb->state = PROC_STATE_EXITED;
+  pcb->return_code = return_code;
+
+  if (pcb->n_waiting_processes == 0) {
+    proc_destroy(proc_running_pid);
+  } else {
+    while (!pqueue_empty(pcb->waiting_processes)) {
+      pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
+
+      proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
+      waiting_pcb->state = PROC_STATE_RUNNING;
+
+      scheduler_enqueue(waiting_pid);
+    }
+  }
+
+  proc_yield();
 }
 
 static void proc_make_foreground(pid_t pid) {
