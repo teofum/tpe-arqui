@@ -302,7 +302,7 @@ static inline int kbd_next_event(kbd_event_t *ev) {
 uint64_t kbd_poll_events() {
   memcpy(kbd_last_state, kbd_state, sizeof(kbd_state));
 
-  uint64_t e;
+  uint64_t e = 0;
   while (kbd_buffer.read_pos != kbd_buffer.write_pos) {
     if (kbd_next_event(NULL)) e++;
   }

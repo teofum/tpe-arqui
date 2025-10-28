@@ -121,7 +121,8 @@ static int proc_idle() {
     _hlt();
   }
 
-  // Never returns
+  // Never returns, but gcc is too dumb to figure that out and errors
+  return 0;
 }
 
 void proc_init(proc_entrypoint_t entry_point) {

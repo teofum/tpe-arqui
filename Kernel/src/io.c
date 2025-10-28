@@ -215,6 +215,8 @@ uint32_t io_writes(uint32_t fd, const char *str) {
     case FD_PIPE:
       return -1;// Unsupported operation
   }
+
+  return -1;// Shut up gcc
 }
 
 static uint32_t io_write_tty(const char *str, uint32_t len) {
@@ -255,6 +257,8 @@ uint32_t io_write(uint32_t fd, const char *str, uint32_t len) {
     case FD_PIPE:
       return pipe_write(src.data, str, len);
   }
+
+  return -1;// Shut up gcc
 }
 
 void io_clear() {
@@ -324,6 +328,8 @@ uint32_t io_read(uint32_t fd, char *buf, uint32_t len) {
     case FD_PIPE:
       return pipe_read(src.data, buf, len);
   }
+
+  return -1;// Shut up gcc
 }
 
 void io_setfont(vga_font_t font) {

@@ -41,6 +41,7 @@ fd_t pipe_connect(pipe_t pipe, pipe_end_t end) {
       pipe->can_write = 1;
       return create_pipe_fd(pipe);
   }
+  return (fd_t) {};
 }
 
 void pipe_disconnect(pipe_t pipe, pipe_end_t end) {

@@ -86,8 +86,10 @@ static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
             break;
           case 'd':
             t_i64 = islong ? va_arg(args, int64_t) : va_arg(args, int32_t);
+            // TODO
+            t_u64 = utostr(buffer, t_i64, base, minLength, padding);
+            for (int i = 0; i < t_u64; i++) buf[len++] = buffer[i];
             done = 1;
-            // TODO: signed integer support
             break;
           case 'u':
           case 'x':
