@@ -198,7 +198,7 @@ static void proc_destroy(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
   mem_free(pcb->stack);
-  for (int i = 0; i < pcb->argc; i++) mem_free(pcb->argv[0]);
+  for (int i = 0; i < pcb->argc; i++) mem_free(pcb->argv[i]);
   mem_free((void *) pcb->argv);
   pcb->argc = 0;
   pcb->argv = NULL;
