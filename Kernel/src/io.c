@@ -381,3 +381,5 @@ void io_movecursor(int32_t dx) {
   vga_present();
   vga_set_framebuffer(current_fb);
 }
+
+vga_framebuffer_t io_get_default_framebuffer() { return io_framebuffer; }

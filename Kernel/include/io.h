@@ -28,4 +28,6 @@ void io_setcursor(io_cursor_t cursor);
 
 void io_movecursor(int32_t dx);
 
+vga_framebuffer_t io_get_default_framebuffer();
+
 #endif

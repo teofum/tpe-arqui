@@ -737,3 +737,5 @@ vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height) {
 
   return fb;
 }
+
+vga_framebuffer_t vga_get_default_framebuffer() { return default_framebuffer; }
