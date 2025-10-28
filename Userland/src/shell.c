@@ -199,7 +199,7 @@ static int history() {
 
 static int red() {
   char c;
-  while (read(STDIN, &c, 1)) printf(COL_RED "%c", c);
+  while (read(STDIN, &c, 1) > 0) printf(COL_RED "%c", c);
 
   write(STDOUT, "\n", 1);
   return 0;

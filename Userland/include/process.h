@@ -8,7 +8,7 @@
 /*
  * Support up to 4096 processes
  */
-#define MAX_PID 0xfff
+#define MAX_PID 0x7ff
 
 #define FD_COUNT 64
 
