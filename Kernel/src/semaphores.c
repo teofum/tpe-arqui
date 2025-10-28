@@ -109,6 +109,7 @@ int sem_post(sem_t sem) {
 void sem_close(sem_t sem) {
   if (!valid_sem(sem)) return;
   semaphore_t *curr_sem = sem_references[sem];
+
   pqueue_destroy(curr_sem->waiters);
   lock_destroy(curr_sem->lock);
   mem_free(curr_sem);

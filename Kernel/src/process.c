@@ -207,11 +207,25 @@ static void proc_destroy(pid_t pid) {
   pqueue_destroy(pcb->waiting_processes);
 }
 
+static void proc_close_fds(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+
+  for (int i = 0; i < FD_COUNT; i++) {
+    if (pcb->file_descriptors[i].type == FD_PIPE) {
+      pipe_disconnect(
+        pcb->file_descriptors[i].data, i == STDIN ? PIPE_READ : PIPE_WRITE
+      );
+    }
+  }
+}
+
 void proc_exit(int return_code) {
   proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
 
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = return_code;
+
+  proc_close_fds(proc_running_pid);
 
   while (!pqueue_empty(pcb->waiting_processes)) {
     pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
@@ -263,6 +277,8 @@ void proc_kill(pid_t pid) {
 
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = RETURN_KILLED;
+
+  proc_close_fds(pid);
 
   while (!pqueue_empty(pcb->waiting_processes)) {
     pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
