@@ -147,7 +147,7 @@ $(VMDK): $(IMG) | out
 $(QCOW2): $(IMG) | out
 	qemu-img convert -f raw -O qcow2 $(IMG) $(QCOW2)
 
-$(PACKEDKERNEL): $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) $(MP) | out
+$(PACKEDKERNEL): $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) $(MP) $(KERNEL_DEBUG_ELF) $(USER_DEBUG_ELF) | out
 	$(MP) $(KERNEL) $(USERLAND) $(USERLAND_ASSETS_PATH) -o $(PACKEDKERNEL)
 
 # =============================================================================

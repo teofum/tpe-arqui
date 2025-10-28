@@ -1,2 +1,7 @@
+-Wall
+-Werror
+-ffreestanding
+-nostdlib
+-fno-common
 -Iinclude
 -IUserlandModule/include

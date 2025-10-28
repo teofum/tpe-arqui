@@ -1,5 +1,7 @@
+#include <fd.h>
 #include <io.h>
 #include <kbd.h>
+#include <pipe.h>
 #include <process.h>
 #include <status.h>
 #include <stdint.h>
@@ -205,9 +207,16 @@ static uint32_t io_writes_tty(const char *str) {
 
 uint32_t io_writes(uint32_t fd, const char *str) {
   fd_t src = proc_get_fd(fd);
-  if (src != FD_TTY) return -1;// Not implemented
+  switch (src.type) {
+    case FD_NONE:
+      return -1;
+    case FD_TTY:
+      return io_writes_tty(str);
+    case FD_PIPE:
+      return -1;// Unsupported operation
+  }
 
-  return io_writes_tty(str);
+  return -1;// Shut up gcc
 }
 
 static uint32_t io_write_tty(const char *str, uint32_t len) {
@@ -240,9 +249,16 @@ static uint32_t io_write_tty(const char *str, uint32_t len) {
 
 uint32_t io_write(uint32_t fd, const char *str, uint32_t len) {
   fd_t src = proc_get_fd(fd);
-  if (src != FD_TTY) return -1;// Not implemented
+  switch (src.type) {
+    case FD_NONE:
+      return -1;
+    case FD_TTY:
+      return io_write_tty(str, len);
+    case FD_PIPE:
+      return pipe_write(src.data, str, len);
+  }
 
-  return io_write_tty(str, len);
+  return -1;// Shut up gcc
 }
 
 void io_clear() {
@@ -304,9 +320,16 @@ static uint32_t io_read_tty(char *buf, uint32_t len) {
 
 uint32_t io_read(uint32_t fd, char *buf, uint32_t len) {
   fd_t src = proc_get_fd(fd);
-  if (src != FD_TTY) return -1;// Not implemented
+  switch (src.type) {
+    case FD_NONE:
+      return -1;
+    case FD_TTY:
+      return io_read_tty(buf, len);
+    case FD_PIPE:
+      return pipe_read(src.data, buf, len);
+  }
 
-  return io_read_tty(buf, len);
+  return -1;// Shut up gcc
 }
 
 void io_setfont(vga_font_t font) {

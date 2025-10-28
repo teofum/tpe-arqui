@@ -51,18 +51,6 @@ unsigned int minutes_elapsed() { return (seconds_elapsed() / 60) % 60; }
 /* hours elapsed in tick timer */
 unsigned int hours_elapsed() { return (minutes_elapsed() / 60) % 24; }
 
-/* get HMS from timer tick in one struct */
-static time_t get_time_elapsed(unsigned int ticks) {
-  time_t t;
-  unsigned int total_seconds = ticks / TICKS_PER_SECOND;
-
-  t.hours = (total_seconds / 3600) % 24;
-  t.minutes = (total_seconds % 3600) / 60;
-  t.seconds = total_seconds % 60;
-
-  return t;
-}
-
 /* Fetches actual UTC real time */
 uint8_t rtc_get_time(int descriptor) {
   uint8_t rtc_time = _rtc_get_time(descriptor);

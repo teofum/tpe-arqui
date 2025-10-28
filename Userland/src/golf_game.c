@@ -342,10 +342,7 @@ static void update_player(physics_object_t *obj, keycode_t keys[4]) {
 * Actualiza el estado sin aplicarle una aceleracion
 */
 static void update_object(physics_object_t *obj) {
-  float oldvx = obj->vx;// es para que no oscile dont worry about it
-  float oldvy = obj->vy;
-
-  float oldx = obj->x;//para bounds
+  float oldx = obj->x;
   float oldy = obj->y;
 
   //add drag

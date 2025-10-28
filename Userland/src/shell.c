@@ -1,3 +1,4 @@
+#include "pipe.h"
 #include <fd.h>
 #include <gfxdemo.h>
 #include <golf_game.h>
@@ -8,6 +9,7 @@
 #include <proc.h>
 #include <process.h>
 #include <scheduler.h>
+#include <setfont.h>
 #include <shell.h>
 #include <sound.h>
 #include <status.h>
@@ -22,23 +24,37 @@
 
 extern const char *mascot;
 
+/*
+ * Command parsing
+ */
 typedef struct {
-  const char *cmd;
-  const char *desc;
-  proc_entrypoint_t entry_point;
-} program_t;
-
-typedef struct {
-  uint64_t argc;
-  char *const *argv;
+  uint64_t count;
+  char **cmds;
 
   int background : 1;
-} args_t;
+} command_group_t;
 
-static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
-static uint32_t history_pointer = 0;
-static uint32_t prompt_length = 2;
+static command_group_t parse_command(char *cmd) {
+  size_t len = strlen(cmd);
+  int background = cmd[len - 1] == '&';
+  if (background) cmd[len - 1] = 0;
 
+  split_result_t cmds = strsplit(cmd, '|');
+
+  for (size_t i = 0; i < cmds.count; i++) {
+    cmds.strings[i] = strtrim(cmds.strings[i], ' ');
+  }
+
+  return (command_group_t) {
+    .count = cmds.count,
+    .cmds = cmds.strings,
+    .background = background,
+  };
+}
+
+/*
+ * Simple programs
+ */
 static int echo(uint64_t argc, char *const *argv) {
   if (argc > 1) {
     for (size_t i = 1; i < argc; i++) { printf("%s ", argv[i]); }
@@ -50,70 +66,6 @@ static int echo(uint64_t argc, char *const *argv) {
 
 static int clear() {
   io_clear();
-  return 0;
-}
-
-typedef struct {
-  const char *name;
-  vga_font_t id;
-} font_entry_t;
-
-font_entry_t fonts[] = {
-  {"default", VGA_FONT_DEFAULT},
-  {"tiny", VGA_FONT_TINY},
-  {"tiny bold", VGA_FONT_TINY_BOLD},
-  {"small", VGA_FONT_SMALL},
-  {"large", VGA_FONT_LARGE},
-  {"alt", VGA_FONT_ALT},
-  {"alt bold", VGA_FONT_ALT_BOLD},
-  {"future", VGA_FONT_FUTURE},
-  {"old", VGA_FONT_OLD},
-};
-size_t n_fonts = sizeof(fonts) / sizeof(font_entry_t);
-
-static int setfont(uint64_t argc, char *const *argv) {
-  if (argc < 2) {
-    printf(COL_RED "Missing font name\n" COL_RESET
-                   "Usage: setfont <font name>\n"
-                   "Hint: Type " COL_YELLOW "'setfont ls'" COL_RESET
-                   " for a list of fonts\n");
-    return 1;
-  }
-
-  if (strcmp(argv[1], "ls") == 0) {
-    for (int i = 0; i < n_fonts; i++) {
-      printf(COL_BLUE "%s\n", fonts[i].name);
-    }
-    return 0;
-  }
-
-  char name[CMD_BUF_LEN];
-  char *w = name;
-  for (size_t i = 1; i < argc; i++) {
-    w += sprintf(w, "%s", argv[i]);
-    if (i < argc - 1) w += sprintf(w, " ");
-  }
-
-  for (int i = 0; i < n_fonts; i++) {
-    if (strcmp(name, fonts[i].name) == 0) {
-      io_setfont(fonts[i].id);
-      return 0;
-    }
-  }
-
-  printf(
-    COL_RED "Unknown font name '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
-            "'setfont ls'" COL_RESET " for a list of fonts\n",
-    name
-  );
-
-  return 2;
-}
-
-static int history() {
-  for (int i = 0; i < history_pointer; i++) {
-    printf("%s\n", command_history[i]);
-  }
   return 0;
 }
 
@@ -225,6 +177,34 @@ static int timer_test(uint64_t argc, char *const *argv) {
   return 0;
 }
 
+/*
+ * Shell
+ */
+typedef struct {
+  const char *cmd;
+  const char *desc;
+  proc_entrypoint_t entry_point;
+} program_t;
+
+static char command_history[HISTORY_SIZE][CMD_BUF_LEN];
+static uint32_t history_pointer = 0;
+static uint32_t prompt_length = 2;
+
+static int history() {
+  for (int i = 0; i < history_pointer; i++) {
+    printf("%s\n", command_history[i]);
+  }
+  return 0;
+}
+
+static int red() {
+  char c;
+  while (read(STDIN, &c, 1) > 0) printf(COL_RED "%c", c);
+
+  write(STDOUT, "\n", 1);
+  return 0;
+}
+
 static int help();
 static program_t commands[] = {
   {"help", "Display this help message", help},
@@ -244,6 +224,7 @@ static program_t commands[] = {
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
   {"proc", "Manage processes", proc},
+  {"red", "a red", red},
 };
 static size_t n_commands = sizeof(commands) / sizeof(program_t);
 
@@ -360,96 +341,110 @@ static program_t *find_program(const char *cmd_name) {
   for (int i = 0; i < n_commands; i++)
     if (strcmp(cmd_name, commands[i].cmd) == 0) return &commands[i];
 
+  printf(
+    COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
+            "'help'" COL_RESET " for a list of available commands\n",
+    cmd_name
+  );
   return NULL;
 }
 
-static args_t make_args(const char *cmd) {
-  uint64_t argc = 1;
+static int run_commands(command_group_t *cmds) {
+  size_t programs_size = cmds->count * sizeof(program_t *);
+  size_t args_size = cmds->count * sizeof(split_result_t);
+  void *scratch = mem_alloc(programs_size + args_size);
+  if (!scratch) return 0;
 
-  for (size_t i = 0; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ' && cmd[i + 1] != '&') argc++;
-  }
+  program_t **programs = scratch;
+  split_result_t *args = scratch + programs_size;
 
-  char **argv = mem_alloc(argc * sizeof(char *));
-  char *arg_str = mem_alloc(CMD_BUF_LEN);
+  // Parse args for each command, store them, and find the program
+  for (size_t i = 0; i < cmds->count; i++) {
+    args[i] = strsplit(cmds->cmds[i], ' ');
+    programs[i] = find_program(args[i].strings[0]);
 
-  int background = 0;
-  int i = 0, j = 0;
-  argv[0] = arg_str;
-  for (; cmd[i] != 0; i++) {
-    if (cmd[i] == ' ') {
-      arg_str[i] = 0;
-      if (cmd[i + 1] == '&') {
-        background = 1;
-      } else {
-        argv[++j] = &arg_str[i + 1];
-      }
-    } else {
-      arg_str[i] = cmd[i];
+    // If any program in the pipeline is invalid, abort
+    if (!programs[i]) {
+      for (size_t j = 0; j <= i; j++) mem_free(args[j].strings);
+      mem_free(scratch);
+      mem_free((void *) cmds->cmds);
+      return 0;
     }
   }
-  arg_str[i] = 0;
 
-  return (args_t) {
-    .argc = argc,
-    .argv = argv,
-    .background = background,
-  };
-}
-
-static void free_args(args_t *args) {
-  mem_free(args->argv[0]);
-  mem_free((void *) args->argv);
-}
-
-static int run_command(const char *cmd) {
-  char program_name[CMD_BUF_LEN];
-  strsplit(program_name, cmd, ' ');
-
-  if (program_name[0] == 0) return 0;
-
-  program_t *program = find_program(program_name);
-  if (!program) {
-    printf(
-      COL_RED "Unknown command '%s'\n" COL_RESET "Hint: Type " COL_YELLOW
-              "'help'" COL_RESET " for a list of available commands\n",
-      program_name
-    );
-
-    return 0;
+  // Create any pipes we might need
+  pipe_t *pipes = NULL;
+  if (cmds->count > 1) {
+    pipes = mem_alloc(sizeof(pipe_t) * cmds->count - 1);
+    for (int i = 0; i < cmds->count - 1; i++) pipes[i] = pipe_create();
   }
 
-  char *const *argv;
-  args_t args = make_args(cmd);
+  // Run the programs
+  pid_t first_pid = -1;
+  for (size_t i = 0; i < cmds->count; i++) {
+    proc_entrypoint_t ep = programs[i]->entry_point;
+    pid_t pid;
 
-  pid_t pid =
-    proc_spawn(program->entry_point, args.argc, args.argv, DEFAULT_PRIORITY);
-  int background = args.background;
-  free_args(&args);
+    if (cmds->count > 1) {
+      proc_descriptor_t desc =
+        {.priority = DEFAULT_PRIORITY,
+         .n_fds = 2,
+         .fds = {
+           (proc_fd_descriptor_t) {
+             .fd = STDIN,
+             .type = i == 0 ? FD_TTY : FD_PIPE,
+             .pipe = i == 0 ? NULL : pipes[i - 1],
+             .mode = PIPE_READ,
+           },
+           (proc_fd_descriptor_t) {
+             .fd = STDOUT,
+             .type = i == cmds->count - 1 ? FD_TTY : FD_PIPE,
+             .pipe = i == cmds->count - 1 ? NULL : pipes[i],
+             .mode = PIPE_WRITE,
+           },
+         }};
+      pid = proc_spawn(ep, args[i].count, args[i].strings, &desc);
+    } else {
+      pid = proc_spawn(ep, args[i].count, args[i].strings, NULL);
+    }
+    if (i == 0) first_pid = pid;
 
-  if (!background) {
-    int return_value = proc_wait(pid);
+    mem_free((void *) args[i].strings);
+  }
+
+  mem_free(pipes);
+
+  // Wait for the first program in the pipeline, if it's meant to run in foreground
+  if (!cmds->background) {
+    int return_value = proc_wait(first_pid);
     prompt_length = 2;
     if (return_value != 0) {
       prompt_length += printf("[" COL_RED "%u" COL_RESET "] ", return_value);
     }
   }
 
+  mem_free(scratch);
+  mem_free((void *) cmds->cmds);
   return 0;
+}
+
+static void print_welcome_msg() {
+  printf("Welcome to " COL_GREEN "carpinchOS\n");
+  printf("cash v" SHELL_VERSION " | " COL_GREEN "Capybara Shell\n");
 }
 
 int cash() {
   char cmd_buf[CMD_BUF_LEN];
 
-  printf("Welcome to " COL_GREEN "carpinchOS\n");
-  printf("cash v" SHELL_VERSION " | " COL_GREEN "Capybara Shell\n");
+  print_welcome_msg();
 
   // Run the shell
   int exit = 0;
   while (!exit) {
     write_prompt();
     read_command(cmd_buf);
-    exit = run_command(cmd_buf);
+    command_group_t cmds = parse_command(cmd_buf);
+    exit = run_commands(&cmds);
   }
 
   // Return to kernel

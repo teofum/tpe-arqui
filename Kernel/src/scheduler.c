@@ -37,7 +37,6 @@ pid_t scheduler_next() {
     scheduler_queue = spl.groups[i];
 
     if (!pqueue_empty(scheduler_queue)) {
-
       pid_t next_pid = pqueue_dequeue(scheduler_queue);
 
       proc_running_pid = next_pid;

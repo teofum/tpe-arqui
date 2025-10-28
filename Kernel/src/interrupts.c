@@ -5,6 +5,7 @@
 #include <kbd.h>
 #include <lib.h>
 #include <mem.h>
+#include <pipe.h>
 #include <print.h>
 #include <process.h>
 #include <semaphores.h>
@@ -211,6 +212,9 @@ void init_syscalls() {
   register_syscall(0x82, sem_wait);
   register_syscall(0x83, sem_post);
   register_syscall(0x84, sem_close);
+
+  /* Pipes */
+  register_syscall(0x90, pipe_create);
 
   /* Graphics module */
   register_syscall(0xA0, gfx_clear);

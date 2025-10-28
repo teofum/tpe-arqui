@@ -1,3 +1,4 @@
+#include "pipe.h"
 #include <fd.h>
 #include <lib.h>
 #include <mem.h>
@@ -34,19 +35,38 @@ proc_start(proc_entrypoint_t entry_point, uint64_t argc, char *const *argv) {
   proc_exit(ret);
 }
 
-static void proc_initialize_fds(proc_control_block_t *pcb) {
-  for (uint32_t i = 0; i < FD_COUNT; i++) {
-    pcb->file_descriptors[i] = i <= STDERR ? FD_TTY : FD_NONE;
+static void
+proc_initialize_fds(proc_control_block_t *pcb, proc_descriptor_t *desc) {
+  if (desc != NULL) {
+    for (int i = 0; i < desc->n_fds; i++) {
+      proc_fd_descriptor_t *fd_desc = &desc->fds[i];
+
+      if (fd_desc->type == FD_PIPE) {
+        pcb->file_descriptors[fd_desc->fd] =
+          pipe_connect(fd_desc->pipe, fd_desc->mode);
+      } else {
+        pcb->file_descriptors[fd_desc->fd] = (fd_t) {
+          .type = fd_desc->type,
+          .data = NULL,
+        };
+      }
+    }
+  } else {
+    for (uint32_t i = 0; i < FD_COUNT; i++) {
+      pcb->file_descriptors[i] =
+        i <= STDERR ? create_tty_fd() : create_empty_fd();
+    }
   }
 }
 
 static void proc_initialize_process(
   pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
-  priority_t priority
+  proc_descriptor_t *desc
 ) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
-  char **argv_copy = mem_alloc(argc * sizeof(char *));
+  char **argv_copy = NULL;
+  if (argc > 0) argv_copy = mem_alloc(argc * sizeof(char *));
   for (int i = 0; i < argc; i++) {
     argv_copy[i] = mem_alloc(strlen(argv[i]));
     strcpy(argv_copy[i], argv[i]);
@@ -60,9 +80,11 @@ static void proc_initialize_process(
   pcb->state = PROC_STATE_RUNNING;
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
+
+  priority_t priority = desc != NULL ? desc->priority : DEFAULT_PRIORITY;
   pcb->priority = priority;
 
-  proc_initialize_fds(pcb);
+  proc_initialize_fds(pcb, desc);
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
@@ -99,7 +121,8 @@ static int proc_idle() {
     _hlt();
   }
 
-  // Never returns
+  // Never returns, but gcc is too dumb to figure that out and errors
+  return 0;
 }
 
 void proc_init(proc_entrypoint_t entry_point) {
@@ -107,8 +130,7 @@ void proc_init(proc_entrypoint_t entry_point) {
    * Initialize the idle process, but don't run it
    */
   char *const idle_argv[1] = {"idle"};
-  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, MAX_PRIORITY + 1);
-  //invalid priority pq no deberia entrar en la cola
+  proc_initialize_process(IDLE_PID, proc_idle, 1, idle_argv, NULL);
 
   /*
    * Initialize and start the init process. We "bootstrap" the process
@@ -126,7 +148,7 @@ void proc_init(proc_entrypoint_t entry_point) {
   pcb->waiting_processes = pqueue_create();
   pcb->n_waiting_processes = 0;
 
-  proc_initialize_fds(pcb);
+  proc_initialize_fds(pcb, NULL);
 
   proc_running_pid = new_pid;
   proc_foreground_pid = new_pid;
@@ -162,15 +184,40 @@ void proc_runpid(pid_t pid) {
 
 pid_t proc_spawn(
   proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
-  priority_t priority
+  proc_descriptor_t *desc
 ) {
   pid_t new_pid = get_first_unused_pid();
 
-  proc_initialize_process(new_pid, entry_point, argc, argv, priority);
+  proc_initialize_process(new_pid, entry_point, argc, argv, desc);
   scheduler_enqueue(new_pid);
   proc_yield();
 
   return new_pid;
+}
+
+static void proc_destroy(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+
+  mem_free(pcb->stack);
+  for (int i = 0; i < pcb->argc; i++) mem_free(pcb->argv[i]);
+  mem_free((void *) pcb->argv);
+  pcb->argc = 0;
+  pcb->argv = NULL;
+  pcb->description = NULL;
+  pcb->stack = NULL;
+  pqueue_destroy(pcb->waiting_processes);
+}
+
+static void proc_close_fds(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+
+  for (int i = 0; i < FD_COUNT; i++) {
+    if (pcb->file_descriptors[i].type == FD_PIPE) {
+      pipe_disconnect(
+        pcb->file_descriptors[i].data, i == STDIN ? PIPE_READ : PIPE_WRITE
+      );
+    }
+  }
 }
 
 void proc_exit(int return_code) {
@@ -178,6 +225,8 @@ void proc_exit(int return_code) {
 
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = return_code;
+
+  proc_close_fds(proc_running_pid);
 
   while (!pqueue_empty(pcb->waiting_processes)) {
     pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
@@ -189,19 +238,6 @@ void proc_exit(int return_code) {
   }
 
   proc_yield();
-}
-
-static void proc_destroy(pid_t pid) {
-  proc_control_block_t *pcb = &proc_control_table[pid];
-
-  mem_free(pcb->stack);
-  for (int i = 0; i < pcb->argc; i++) mem_free(pcb->argv[0]);
-  mem_free((void *) pcb->argv);
-  pcb->argc = 0;
-  pcb->argv = NULL;
-  pcb->description = NULL;
-  pcb->stack = NULL;
-  pqueue_destroy(pcb->waiting_processes);
 }
 
 static void proc_make_foreground(pid_t pid) {
@@ -242,6 +278,8 @@ void proc_kill(pid_t pid) {
 
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = RETURN_KILLED;
+
+  proc_close_fds(pid);
 
   while (!pqueue_empty(pcb->waiting_processes)) {
     pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
