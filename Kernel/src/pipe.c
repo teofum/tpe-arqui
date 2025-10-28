@@ -69,6 +69,7 @@ int32_t pipe_read(pipe_t pipe, char *buf, uint32_t len) {
     sem_wait(pipe->sem);
     *buf++ = pipe->data[pipe->read_cursor];
     advance(pipe->read_cursor);
+    read++;
   }
 
   return read;
@@ -76,15 +77,14 @@ int32_t pipe_read(pipe_t pipe, char *buf, uint32_t len) {
 
 int32_t pipe_write(pipe_t pipe, const char *buf, uint32_t len) {
   // Don't allow writing to a pipe if the reading end is closed
-  if (!pipe->can_write || !pipe->can_read) return -1;
+  if (!pipe->can_write) return -1;
 
   uint32_t written = 0;
   while (written < len) {
-    if (pipe->write_cursor == pipe->read_cursor) break;
-
     pipe->data[pipe->write_cursor] = *buf++;
     advance(pipe->write_cursor);
     sem_post(pipe->sem);
+    written++;
   }
 
   return written;

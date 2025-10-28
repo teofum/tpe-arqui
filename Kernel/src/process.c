@@ -40,13 +40,15 @@ proc_initialize_fds(proc_control_block_t *pcb, proc_descriptor_t *desc) {
   if (desc != NULL) {
     for (int i = 0; i < desc->n_fds; i++) {
       proc_fd_descriptor_t *fd_desc = &desc->fds[i];
-      pcb->file_descriptors[fd_desc->fd] = (fd_t) {
-        .type = fd_desc->type,
-        .data = fd_desc->pipe,
-      };
 
       if (fd_desc->type == FD_PIPE) {
-        pipe_connect(fd_desc->pipe, fd_desc->mode);
+        pcb->file_descriptors[fd_desc->fd] =
+          pipe_connect(fd_desc->pipe, fd_desc->mode);
+      } else {
+        pcb->file_descriptors[fd_desc->fd] = (fd_t) {
+          .type = fd_desc->type,
+          .data = NULL,
+        };
       }
     }
   } else {
@@ -63,7 +65,8 @@ static void proc_initialize_process(
 ) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
-  char **argv_copy = mem_alloc(argc * sizeof(char *));
+  char **argv_copy = NULL;
+  if (argc > 0) argv_copy = mem_alloc(argc * sizeof(char *));
   for (int i = 0; i < argc; i++) {
     argv_copy[i] = mem_alloc(strlen(argv[i]));
     strcpy(argv_copy[i], argv[i]);
@@ -210,17 +213,13 @@ void proc_exit(int return_code) {
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = return_code;
 
-  if (pcb->n_waiting_processes == 0) {
-    proc_destroy(proc_running_pid);
-  } else {
-    while (!pqueue_empty(pcb->waiting_processes)) {
-      pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
+  while (!pqueue_empty(pcb->waiting_processes)) {
+    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
 
-      proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
-      waiting_pcb->state = PROC_STATE_RUNNING;
+    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
+    waiting_pcb->state = PROC_STATE_RUNNING;
 
-      scheduler_enqueue(waiting_pid);
-    }
+    scheduler_enqueue(waiting_pid);
   }
 
   proc_yield();

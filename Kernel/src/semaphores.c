@@ -95,8 +95,8 @@ int sem_post(sem_t sem) {
   curr_sem->value++;
   if (!pqueue_empty(curr_sem->waiters)) {
     pid_t pid = pqueue_dequeue(curr_sem->waiters);
-    scheduler_enqueue(pid);
     (&proc_control_table[pid])->state = PROC_STATE_RUNNING;
+    scheduler_enqueue(pid);
   }
 
   lock_release(curr_sem->lock);

@@ -376,7 +376,7 @@ static int run_commands(command_group_t *cmds) {
   pipe_t *pipes = NULL;
   if (cmds->count > 1) {
     pipes = mem_alloc(sizeof(pipe_t) * cmds->count - 1);
-    for (int i = 1; i < cmds->count; i++) pipes[i] = pipe_create();
+    for (int i = 0; i < cmds->count - 1; i++) pipes[i] = pipe_create();
   }
 
   // Run the programs
