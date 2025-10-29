@@ -156,11 +156,6 @@ typedef enum {
 } kbd_event_type_t;
 
 typedef struct {
-  uint8_t data[KBD_BUFFER_SIZE];
-  int write_pos, read_pos;
-} kbd_buffer_t;
-
-typedef struct {
   uint8_t key;
   uint8_t is_released;
 
