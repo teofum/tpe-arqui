@@ -198,8 +198,13 @@ static int history() {
 }
 
 static int red() {
-  char c;
-  while (read(STDIN, &c, 1) > 0) printf(COL_RED "%c", c);
+  char c[101];
+  int32_t read_bytes = 100;
+  while (read_bytes >= 100) {
+    read_bytes = read(STDIN, c, 100);
+    c[read_bytes] = 0;
+    printf(COL_RED "%s", c);
+  }
 
   write(STDOUT, "\n", 1);
   return 0;
