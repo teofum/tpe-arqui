@@ -230,9 +230,8 @@ void kbd_add_key_event(uint8_t sc) {
   // If we ran into the start of the queue, get rid of the older events
   if (kbd_buffer.write_pos == kbd_buffer.read_pos) next(kbd_buffer.read_pos);
 
-  // Unblock a process
-  // TODO: should we actually unblock everyone??
-  while (!pqueue_empty(kbd_pqueue)) {
+  // Unblock the first process waiting on input, if there is one
+  if (!pqueue_empty(kbd_pqueue)) {
     pid_t waiting_pid = pqueue_dequeue(kbd_pqueue);
 
     proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
