@@ -81,6 +81,7 @@ typedef struct {
 extern proc_control_block_t proc_control_table[];
 
 extern pid_t proc_running_pid;
+extern pid_t proc_foreground_pid;
 
 /*
  * Kernel-only function. Initialize the process system. Spawns a process from

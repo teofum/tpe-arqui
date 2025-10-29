@@ -292,11 +292,17 @@ void kbd_add_key_event(uint8_t scancode) {
       .capslock = kbd_capslock,
     };
 
-    kbd_buffer.data[kbd_buffer.write_pos] = ev;
-    next(kbd_buffer.write_pos);
+    // Ctrl+C: kill the current foreground process
+    if (ev.key == KEY_C && (ev.ctrl || ev.ctrl_r)) {
+      if (proc_foreground_pid > 2) proc_kill(proc_foreground_pid);
+    } else {
+      kbd_buffer.data[kbd_buffer.write_pos] = ev;
+      next(kbd_buffer.write_pos);
 
-    // If we ran into the start of the queue, get rid of the older events
-    if (kbd_buffer.write_pos == kbd_buffer.read_pos) next(kbd_buffer.read_pos);
+      // If we ran into the start of the queue, get rid of the older events
+      if (kbd_buffer.write_pos == kbd_buffer.read_pos)
+        next(kbd_buffer.read_pos);
+    }
   }
 
   unblock_next_waiting_process();
