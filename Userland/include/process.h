@@ -12,6 +12,8 @@
 
 #define FD_COUNT 64
 
+#define RETURN_KILLED -1
+
 typedef int priority_t;// TODO: esto no va ak
 
 typedef int16_t pid_t;
