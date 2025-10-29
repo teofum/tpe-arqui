@@ -101,19 +101,6 @@ typedef struct {
 } vga_copy_ex_opts_t;
 
 /*
- * Set the active framebuffer. Call with NULL to set the default framebuffer.
- * Applications may wish to use a separate framebuffer, for example to preserve
- * its contents even if other things are drawn to the screen.
- * Applications that use their own framebuffer may either present it to the
- * screen directly, or copy it to the main framebuffer using vga_copy.
- *
- * Returns the previous framebuffer, so it can be restored afterwards with
- * another call to vga_setFramebuffer. If the previous framebuffer was the
- * default buffer, returns NULL. 
- */
-vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb);
-
-/*
  * Clear VRAM with a single solid color.
  */
 void vga_clear(color_t color);
@@ -223,7 +210,7 @@ void vga_bitmap(
 );
 
 /*
- * Present the current framebuffer to the screen. 
+ * Present the current framebuffer to the screen.
  */
 void vga_present();
 

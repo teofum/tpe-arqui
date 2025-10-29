@@ -171,7 +171,6 @@ void init_syscalls() {
   register_syscall(0x28, vga_text);
   register_syscall(0x29, vga_text_wrap);
   register_syscall(0x2A, vga_present);
-  register_syscall(0x2B, vga_set_framebuffer);
   register_syscall(0x2C, vga_copy);
   register_syscall(0x2D, vga_copy_ex);
   register_syscall(0x2E, vga_bitmap);
@@ -266,7 +265,7 @@ void show_cpu_state() {
   char buf[256];
 
   int is_status_enabled = status_enabled();
-  vga_framebuffer_t current_fb = vga_set_framebuffer(NULL);
+  uint32_t current_fb = proc_set_framebuffer(FB_DEFAULT);
   if (regdump_context.flag == REGDUMP_EXCEPTION) {
     status_set_enabled(0);
     bg_colors = colors(0x500000, 0x800000);
@@ -451,7 +450,7 @@ void show_cpu_state() {
   vga_text(CENTER_X - offset, top, footer, TEXT_COLOR, 0, 0);
 
   vga_present();
-  vga_set_framebuffer(current_fb);
+  proc_set_framebuffer(current_fb);
 
   char key = 0;
   while (!key) { key = kbd_get_key_event().key; }

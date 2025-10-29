@@ -394,12 +394,12 @@ void gfx_draw_wireframe(float3 *vertices, uint64_t n, float3 c) {
     (int) (c.x * 255.0f), (int) (c.y * 255.0f), (int) (c.z * 255.0f), 0xff
   );
 
-  vga_set_framebuffer(_gfx_framebuffer);
+  // vga_set_framebuffer(_gfx_framebuffer);
   for (uint64_t i = 0; i < n; i++) {
     draw_wireframe_impl(vertices, indices, color);
     vertices += 3;
   }
-  vga_set_framebuffer(NULL);
+  // vga_set_framebuffer(NULL);
 }
 
 void gfx_draw_wireframe_indexed(
@@ -409,12 +409,12 @@ void gfx_draw_wireframe_indexed(
     (int) (c.x * 255.0f), (int) (c.y * 255.0f), (int) (c.z * 255.0f), 0xff
   );
 
-  vga_set_framebuffer(_gfx_framebuffer);
+  // vga_set_framebuffer(_gfx_framebuffer);
   for (uint64_t i = 0; i < n; i++) {
     draw_wireframe_impl(vertices, indices, color);
     indices += 3;
   }
-  vga_set_framebuffer(NULL);
+  // vga_set_framebuffer(NULL);
 }
 
 void gfx_set_light(gfx_light_setting_t which, float3 *data) {

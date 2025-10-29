@@ -605,7 +605,7 @@ static void setup_game_render(float4x4 *view) {
 
 static void render_terrain(terrain_t *terrain) {
   // Draw background
-  vga_set_framebuffer(gfx_get_framebuffer());
+  // vga_set_framebuffer(gfx_get_framebuffer());
   vga_gradient(
     0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
     colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
@@ -614,7 +614,7 @@ static void render_terrain(terrain_t *terrain) {
     0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
     VGA_ALPHA_BLEND
   );
-  vga_set_framebuffer(NULL);
+  // vga_set_framebuffer(NULL);
 
   // Set transform to identity
   float4x4 model = mat_scale(1, 1, 1);
@@ -818,7 +818,7 @@ static int show_title_screen(game_settings_t *settings) {
 
     // Pass the graphics framebuffer to the VGA driver for 2D drawing
     // This lets us draw shapes behind the 3d graphics
-    vga_set_framebuffer(gfx_get_framebuffer());
+    // vga_set_framebuffer(gfx_get_framebuffer());
 
     // Draw a nice background
     // Sky
@@ -863,7 +863,7 @@ static int show_title_screen(game_settings_t *settings) {
     gfx_present();
 
     // Restore the default VGA framebuffer to draw on top of the 3D graphics
-    vga_set_framebuffer(NULL);
+    // vga_set_framebuffer(NULL);
 
     // Draw the title logo (it floats!)
     vga_bitmap(
