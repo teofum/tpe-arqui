@@ -84,20 +84,3 @@ define_syscall sem_close, 0x84
 
 ; Pipe system calls
 define_syscall pipe_create, 0x90
-
-; Graphics system calls
-define_syscall gfx_clear, 0xA0
-define_syscall gfx_draw_primitives, 0xA1
-define_syscall gfx_draw_primitives_indexed, 0xA2
-define_syscall gfx_draw_wireframe, 0xA3
-define_syscall gfx_draw_wireframe_indexed, 0xA4
-define_syscall gfx_set_buffers, 0xA5
-define_syscall gfx_copy, 0xA6
-define_syscall gfx_depthcopy, 0xA7
-define_syscall gfx_load_model, 0xA8
-define_syscall gfx_set_light, 0xAA
-define_syscall gfx_set_light_type, 0xAB
-define_syscall gfx_set_matrix, 0xAC
-define_syscall gfx_set_flag, 0xAD
-define_syscall gfx_get_framebuffer, 0xAE
-define_syscall gfx_present, 0xAF

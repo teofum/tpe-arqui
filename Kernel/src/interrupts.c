@@ -1,5 +1,4 @@
 #include <audio.h>
-#include <graphics.h>
 #include <interrupts.h>
 #include <io.h>
 #include <kbd.h>
@@ -217,23 +216,6 @@ void init_syscalls() {
 
   /* Pipes */
   register_syscall(0x90, pipe_create);
-
-  /* Graphics module */
-  register_syscall(0xA0, gfx_clear);
-  register_syscall(0xA1, gfx_draw_primitives);
-  register_syscall(0xA2, gfx_draw_primitives_indexed);
-  register_syscall(0xA3, gfx_draw_wireframe);
-  register_syscall(0xA4, gfx_draw_wireframe_indexed);
-  register_syscall(0xA5, gfx_set_buffers);
-  register_syscall(0xA6, gfx_copy);
-  register_syscall(0xA7, gfx_depthcopy);
-  register_syscall(0xA8, gfx_load_model);
-  register_syscall(0xAA, gfx_set_light);
-  register_syscall(0xAB, gfx_set_light_type);
-  register_syscall(0xAC, gfx_set_matrix);
-  register_syscall(0xAD, gfx_set_flag);
-  register_syscall(0xAE, gfx_get_framebuffer);
-  register_syscall(0xAF, gfx_present);
 }
 
 typedef struct {

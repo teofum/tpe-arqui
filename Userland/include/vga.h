@@ -234,14 +234,4 @@ void vga_copy_ex(
  */
 vbe_info_t vga_get_vbe_info();
 
-/*
- * Allocate and return a new framebuffer to be used for drawing.
- * Width and height parameters define the size of the framebuffer in pixels.
- * A value of zero, or a negative value, is interpreted as an offset from the
- * display dimensions. Use zero or VGA_AUTO to get a display-sized framebuffer.
- *
- * The created framebuffer can be destroyed by simply freeing it.
- */
-vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height);
-
 #endif
