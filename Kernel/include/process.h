@@ -52,6 +52,7 @@ typedef struct {
   int waiting_for_foreground;
 
   vga_framebuffer_t framebuffers[FB_COUNT];
+  vga_framebuffer_t external_framebuffer;
   uint32_t active_framebuffer;
 } proc_control_block_t;
 
@@ -164,6 +165,13 @@ fd_t proc_get_fd(uint32_t fd);
  * or -1 if the provided handle is invalid.
  */
 int32_t proc_set_framebuffer(uint32_t fb_handle);
+
+/*
+ * Set an external framebuffer. This will temporarily override the active
+ * framebuffer for the process, until `proc_set_external_framebuffer` is called
+ * again with `NULL` as a parameter or `proc_set_framebuffer` is called.
+ */
+vga_framebuffer_t proc_set_external_framebuffer(vga_framebuffer_t fb);
 
 /*
  * Request a new framebuffer from the video driver.

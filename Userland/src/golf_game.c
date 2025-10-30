@@ -4,6 +4,7 @@
 #include <kbd.h>
 #include <mem.h>
 #include <print.h>
+#include <process.h>
 #include <rng.h>
 #include <sound.h>
 #include <status.h>
@@ -579,16 +580,13 @@ static void setup_game_render(game_t *game, float4x4 *view) {
 
 static void render_terrain(game_t *game, terrain_t *terrain) {
   // Draw background
-  // vga_set_framebuffer(gfx_get_framebuffer());
-  // vga_gradient(
-  //   0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
-  //   colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
-  // );
-  // vga_shade(
-  //   0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1, 0x50000080,
-  //   VGA_ALPHA_BLEND
-  // );
-  // vga_set_framebuffer(NULL);
+  uint2 size = gfx_get_resolution(game->ctx);
+  proc_set_external_framebuffer(gfx_get_framebuffer(game->ctx));
+  vga_gradient(
+    0, 0, VGA_WIDTH - 1, VGA_HEIGHT - 1, colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
+  );
+  vga_shade(0, 0, VGA_WIDTH - 1, VGA_HEIGHT - 1, 0x50000080, VGA_ALPHA_BLEND);
+  proc_set_external_framebuffer(NULL);
 
   // Set transform to identity
   float4x4 model = mat_scale(1, 1, 1);
@@ -804,24 +802,24 @@ static int show_title_screen(game_t *game, game_settings_t *settings) {
 
     // Pass the graphics framebuffer to the VGA driver for 2D drawing
     // This lets us draw shapes behind the 3d graphics
-    // vga_set_framebuffer(gfx_get_framebuffer());
+    proc_set_external_framebuffer(gfx_get_framebuffer(game->ctx));
 
     // Draw a nice background
     // Sky
-    // vga_gradient(
-    //   0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1,
-    //   colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
-    // );
-    // vga_shade(
-    //   0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1, 0x50000080,
-    //   VGA_ALPHA_BLEND
-    // );
+    vga_gradient(
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1,
+      colors(0x1a32e6, 0x07d0f8), VGA_GRAD_V
+    );
+    vga_shade(
+      0, 0, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 2) - 1, 0x50000080,
+      VGA_ALPHA_BLEND
+    );
 
-    // // Grass
-    // vga_gradient(
-    //   0, VGA_HEIGHT >> 2, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
-    //   colors(0x83fa00, 0x008f00), VGA_GRAD_V
-    // );
+    // Grass
+    vga_gradient(
+      0, VGA_HEIGHT >> 2, (VGA_WIDTH >> 1) - 1, (VGA_HEIGHT >> 1) - 1,
+      colors(0x83fa00, 0x008f00), VGA_GRAD_V
+    );
 
     // 3D graphics
     // Create a model matrix and set it
@@ -852,7 +850,7 @@ static int show_title_screen(game_t *game, game_settings_t *settings) {
     gfx_present(game->ctx);
 
     // Restore the default VGA framebuffer to draw on top of the 3D graphics
-    // vga_set_framebuffer(NULL);
+    proc_set_external_framebuffer(NULL);
 
     // Draw the title logo (it floats!)
     vga_bitmap(
@@ -1564,11 +1562,8 @@ int gg_start_game() {
   };
 
   // Initialize background framebuffers
-  uint2 size = gfx_get_resolution(game.ctx);
-  game.bg_framebuffer =
-    gfx_create_framebuffer(game.ctx, size.x / 2, size.y / 2);
-  game.bg_depthbuffer =
-    gfx_create_depthbuffer(game.ctx, size.x / 2, size.y / 2);
+  game.bg_framebuffer = gfx_create_framebuffer(game.ctx, VGA_AUTO, VGA_AUTO);
+  game.bg_depthbuffer = gfx_create_depthbuffer(game.ctx, VGA_AUTO, VGA_AUTO);
 
   // Initialize RNG
   pcg32_random_t rng;

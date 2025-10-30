@@ -67,6 +67,7 @@ static void proc_initialize_fbs(proc_control_block_t *pcb) {
   pcb->framebuffers[FB_TTY] = io_get_default_framebuffer();
 
   pcb->active_framebuffer = 0;
+  pcb->external_framebuffer = NULL;
 }
 
 static void proc_initialize_process(
@@ -340,6 +341,16 @@ int32_t proc_set_framebuffer(uint32_t fb_handle) {
 
   int32_t old = pcb->active_framebuffer;
   pcb->active_framebuffer = fb_handle;
+  pcb->external_framebuffer = NULL;
+
+  return old;
+}
+
+vga_framebuffer_t proc_set_external_framebuffer(vga_framebuffer_t fb) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  vga_framebuffer_t old = pcb->external_framebuffer;
+  pcb->external_framebuffer = fb;
 
   return old;
 }

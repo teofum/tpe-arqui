@@ -74,6 +74,7 @@ define_syscall proc_run, 0x79
 define_syscall proc_set_framebuffer, 0x7A
 define_syscall proc_request_framebuffer, 0x7B
 define_syscall proc_release_framebuffer, 0x7C
+define_syscall proc_set_external_framebuffer, 0x7D
 
 ; Semaphore system calls
 define_syscall sem_create, 0x80

@@ -153,4 +153,6 @@ gfx_create_depthbuffer(gfx_context_t ctx, int32_t width, int32_t height);
 
 uint2 gfx_get_resolution(gfx_context_t ctx);
 
+vga_framebuffer_t gfx_get_framebuffer(gfx_context_t ctx);
+
 #endif

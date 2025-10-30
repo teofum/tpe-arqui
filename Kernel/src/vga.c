@@ -152,7 +152,12 @@ static inline vga_framebuffer_t get_active_framebuffer() {
   proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
   if (!pcb) return default_framebuffer;
 
-  vga_framebuffer_t fb = pcb->framebuffers[pcb->active_framebuffer];
+  // Use external framebuffer, if available
+  vga_framebuffer_t fb = pcb->external_framebuffer;
+  if (fb) return fb;
+
+  // Otherwise use active framebuffer
+  fb = pcb->framebuffers[pcb->active_framebuffer];
   if (!fb) return default_framebuffer;
 
   return fb;

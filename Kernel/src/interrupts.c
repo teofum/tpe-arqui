@@ -205,7 +205,8 @@ void init_syscalls() {
   register_syscall(0x79, proc_runpid);
   register_syscall(0x7A, proc_set_framebuffer);
   register_syscall(0x7B, proc_request_framebuffer);
-  register_syscall(0x79, proc_release_framebuffer);
+  register_syscall(0x7C, proc_release_framebuffer);
+  register_syscall(0x7D, proc_set_external_framebuffer);
 
   /* Semaphores */
   register_syscall(0x80, sem_create);

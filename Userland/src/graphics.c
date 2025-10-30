@@ -506,8 +506,10 @@ void gfx_set_buffers(
   gfx_context_t ctx, gfx_framebuffer_t framebuffer,
   gfx_depthbuffer_t depthbuffer
 ) {
-  ctx->framebuffer = framebuffer == NULL ? ctx->framebuffer : framebuffer;
-  ctx->depthbuffer = depthbuffer == NULL ? ctx->depthbuffer : depthbuffer;
+  ctx->framebuffer =
+    framebuffer == NULL ? ctx->default_framebuffer : framebuffer;
+  ctx->depthbuffer =
+    depthbuffer == NULL ? ctx->default_depthbuffer : depthbuffer;
 }
 
 static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
@@ -568,4 +570,8 @@ uint2 gfx_get_resolution(gfx_context_t ctx) {
     .x = ctx->render_width,
     .y = ctx->render_height,
   };
+}
+
+vga_framebuffer_t gfx_get_framebuffer(gfx_context_t ctx) {
+  return (vga_framebuffer_t) ctx->framebuffer;
 }
