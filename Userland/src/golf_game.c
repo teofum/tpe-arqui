@@ -1132,7 +1132,6 @@ static int play_game(
    * Game loop
    */
   int loop = 1;
-  kbd_event_t ev = {0};
   float t = 0;// Timer for win/lose animation
   while (loop) {
     // Update the timer
@@ -1406,16 +1405,13 @@ static int play_game(
       vga_font(oldfont);
 
       // Process input
-      ev = kbd_get_key_event();
-      switch (ev.key) {
-        case KEY_RETURN:
-          // Show scoreboard for last hole
-          if (nHole == settings->n_holes - 1) {
-            game_state = GG_GAME_SCOREBOARD;
-          } else {
-            loop = 0;
-          }
-          break;
+      if (kbd_poll_events() && kbd_keypressed(KEY_RETURN)) {
+        // Show scoreboard for last hole
+        if (nHole == settings->n_holes - 1) {
+          game_state = GG_GAME_SCOREBOARD;
+        } else {
+          loop = 0;
+        }
       }
     } else if (game_state == GG_GAME_SCOREBOARD) {
       uint16_t x0 = CENTER_X - 192, x1 = x0 + 383;
@@ -1497,12 +1493,7 @@ static int play_game(
       vga_font(oldfont);
 
       // Process input
-      ev = kbd_get_key_event();
-      switch (ev.key) {
-        case KEY_RETURN:
-          loop = 0;
-          break;
-      }
+      if (kbd_poll_events() && kbd_keypressed(KEY_RETURN)) loop = 0;
     }
 
     if (game_state != GG_GAME_RUNNING) {
