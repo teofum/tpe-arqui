@@ -6,7 +6,6 @@
 #include <print.h>
 #include <process.h>
 #include <rng.h>
-#include <sound.h>
 #include <status.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -49,7 +48,7 @@
 #define BRAKING 0.9
 
 // Hit debounce so it doesn't register multiple times in a row
-#define HIT_DEBOUNCE_MS 100
+#define HIT_DEBOUNCE_MS 200
 
 // Number of holes per game
 #define DEFAULT_HOLES 3
@@ -1170,9 +1169,6 @@ static int play_game(
             if (hit && i == j && iframes[i] == 0) {
               hits[i]++;
               iframes[i] = HIT_DEBOUNCE_MS;
-              sound_ball_hit();
-            } else if (hit && i != j) {
-              sound_ball_hit();// Se puede poner otro sonido
             }
           }
 
