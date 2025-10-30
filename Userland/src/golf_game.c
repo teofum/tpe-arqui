@@ -214,7 +214,7 @@ static float3 n_walls[] = {
 static uint32_t ni_walls[] = {
   0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
 };
-static uint32_t pc_walls = sizeof(vi_walls) / sizeof(uint32_t);
+static uint32_t pc_walls = 8;
 
 
 typedef struct {
