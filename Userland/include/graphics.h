@@ -151,4 +151,6 @@ gfx_create_framebuffer(gfx_context_t ctx, int32_t width, int32_t height);
 gfx_depthbuffer_t
 gfx_create_depthbuffer(gfx_context_t ctx, int32_t width, int32_t height);
 
+uint2 gfx_get_resolution(gfx_context_t ctx);
+
 #endif

@@ -557,7 +557,7 @@ static inline void putpixels(
 }
 
 void vga_bitmap(
-  uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
+  uint16_t x0, uint16_t y0, const uint8_t *data, uint16_t scale, uint8_t flags
 ) {
   vga_framebuffer_t fb = get_active_framebuffer();
 

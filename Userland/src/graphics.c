@@ -562,3 +562,10 @@ gfx_create_depthbuffer(gfx_context_t ctx, int32_t width, int32_t height) {
 
   return db;
 }
+
+uint2 gfx_get_resolution(gfx_context_t ctx) {
+  return (uint2) {
+    .x = ctx->render_width,
+    .y = ctx->render_height,
+  };
+}

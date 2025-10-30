@@ -260,7 +260,7 @@ void vga_text_wrap(
  * Flags are currently unused, parameter is reserved.
  */
 void vga_bitmap(
-  uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
+  uint16_t x0, uint16_t y0, const uint8_t *data, uint16_t scale, uint8_t flags
 );
 
 /*
