@@ -359,7 +359,7 @@ int32_t proc_request_framebuffer(int32_t width, int32_t height) {
   proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
 
   int32_t handle = 0;
-  while (pcb->framebuffers[handle] == NULL) {
+  while (pcb->framebuffers[handle] != NULL) {
     handle++;
     if (handle == FB_COUNT) return -1;
   }
