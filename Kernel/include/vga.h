@@ -150,22 +150,6 @@ typedef struct {
 void vga_init();
 
 /*
- * Set the active framebuffer. Call with NULL to set the default framebuffer.
- * Applications may wish to use a separate framebuffer, for example to preserve
- * its contents even if other things are drawn to the screen.
- * Because of a lack of dynamic memory allocation, the driver is not able to
- * provide new framebuffers. Instead, the application must reserve enough
- * memory for its own framebuffer.
- * Applications that use their own framebuffer may either present it to the
- * screen directly, or copy it to the main framebuffer using vga_copy.
- *
- * Returns a pointer to the previous framebuffer, so it can be restored after
- * with another call to vga_setFramebuffer. If the previous framebuffer was the
- * default buffer, returns NULL. 
- */
-vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb);
-
-/*
  * Clear VRAM with a single solid color.
  */
 void vga_clear(color_t color);
@@ -276,11 +260,11 @@ void vga_text_wrap(
  * Flags are currently unused, parameter is reserved.
  */
 void vga_bitmap(
-  uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
+  uint16_t x0, uint16_t y0, const uint8_t *data, uint16_t scale, uint8_t flags
 );
 
 /*
- * Present the current framebuffer to the screen. 
+ * Present the current framebuffer to the screen.
  */
 void vga_present();
 
@@ -313,5 +297,10 @@ vbe_info_t vga_get_vbe_info();
  * The created framebuffer can be destroyed by simply freeing it.
  */
 vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height);
+
+/*
+ * Get a pointer to the default framebuffer. Kernel only function.
+ */
+vga_framebuffer_t vga_get_default_framebuffer();
 
 #endif

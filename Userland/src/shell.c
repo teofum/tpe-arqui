@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <strings.h>
 
-#define SHELL_VERSION "1.1.0"
+#define SHELL_VERSION "1.3.0"
 
 #define CMD_BUF_LEN 64
 #define HISTORY_SIZE 64
@@ -198,8 +198,13 @@ static int history() {
 }
 
 static int red() {
-  char c;
-  while (read(STDIN, &c, 1) > 0) printf(COL_RED "%c", c);
+  char c[101];
+  int32_t read_bytes = 100;
+  while (read_bytes >= 100) {
+    read_bytes = read(STDIN, c, 100);
+    c[read_bytes] = 0;
+    printf(COL_RED "%s", c);
+  }
 
   write(STDOUT, "\n", 1);
   return 0;
@@ -350,6 +355,8 @@ static program_t *find_program(const char *cmd_name) {
 }
 
 static int run_commands(command_group_t *cmds) {
+  prompt_length = 2;
+
   size_t programs_size = cmds->count * sizeof(program_t *);
   size_t args_size = cmds->count * sizeof(split_result_t);
   void *scratch = mem_alloc(programs_size + args_size);
@@ -417,8 +424,9 @@ static int run_commands(command_group_t *cmds) {
   // Wait for the first program in the pipeline, if it's meant to run in foreground
   if (!cmds->background) {
     int return_value = proc_wait(first_pid);
-    prompt_length = 2;
-    if (return_value != 0) {
+    if (return_value == RETURN_KILLED) {
+      prompt_length += printf("[" COL_RED "Killed" COL_RESET "] ");
+    } else if (return_value != 0) {
       prompt_length += printf("[" COL_RED "%u" COL_RESET "] ", return_value);
     }
   }

@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <types.h>
+#include <vga.h>
 
 /*
  * Support up to 2048 processes
@@ -15,6 +16,10 @@
 #define IDLE_PID 0
 
 #define FD_COUNT 64
+#define FB_COUNT 16
+
+#define FB_DEFAULT 0
+#define FB_TTY 1
 
 #define RETURN_KILLED -1
 
@@ -45,6 +50,10 @@ typedef struct {
   priority_t priority;
 
   int waiting_for_foreground;
+
+  vga_framebuffer_t framebuffers[FB_COUNT];
+  vga_framebuffer_t external_framebuffer;
+  uint32_t active_framebuffer;
 } proc_control_block_t;
 
 typedef struct {
@@ -73,6 +82,7 @@ typedef struct {
 extern proc_control_block_t proc_control_table[];
 
 extern pid_t proc_running_pid;
+extern pid_t proc_foreground_pid;
 
 /*
  * Kernel-only function. Initialize the process system. Spawns a process from
@@ -148,5 +158,35 @@ int proc_info(pid_t pid, proc_info_t *out_info);
  * Kernel only function, get the contents of a file descriptor.
  */
 fd_t proc_get_fd(uint32_t fd);
+
+/*
+ * Set the active framebuffer for this process.
+ * Returns a handle to the previous framebuffer, so it can be restored,
+ * or -1 if the provided handle is invalid.
+ */
+int32_t proc_set_framebuffer(uint32_t fb_handle);
+
+/*
+ * Set an external framebuffer. This will temporarily override the active
+ * framebuffer for the process, until `proc_set_external_framebuffer` is called
+ * again with `NULL` as a parameter or `proc_set_framebuffer` is called.
+ */
+vga_framebuffer_t proc_set_external_framebuffer(vga_framebuffer_t fb);
+
+/*
+ * Request a new framebuffer from the video driver.
+ * Width and height parameters define the size of the framebuffer in pixels.
+ * A value of zero, or a negative value, is interpreted as an offset from the
+ * display dimensions. Use zero or VGA_AUTO to get a display-sized framebuffer.
+ *
+ * Returns a handle to the new framebuffer, or -1 if it could not be created.
+ */
+int32_t proc_request_framebuffer(int32_t width, int32_t height);
+
+/*
+ * Release a framebuffer used by this process.
+ * Returns -1 if the provided handle is invalid.
+ */
+int32_t proc_release_framebuffer(uint32_t fb_handle);
 
 #endif

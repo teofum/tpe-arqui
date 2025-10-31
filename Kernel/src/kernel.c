@@ -1,4 +1,3 @@
-#include <graphics.h>
 #include <interrupts.h>
 #include <io.h>
 #include <kbd.h>
@@ -72,7 +71,6 @@ int main() {
   timer_init();
   kbd_init();
   vga_init();
-  gfx_init();
   io_init();
   scheduler_init();
 

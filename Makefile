@@ -83,7 +83,7 @@ $(USER_DEBUG_ELF): $(USER_LOADEROBJECT) $(USER_OBJECTS) $(USER_STATICLIBS) $(USE
 	$(LD) $(LDFLAGS) -T $(USERLAND_DIR)/userlandModule.ld --oformat=elf64-x86-64 -o $(USER_DEBUG_ELF) $(USER_LOADEROBJECT) $(USER_OBJECTS) $(USER_OBJECTS_ASM)
 
 $(USERLAND_DIR)/build/%.o: $(USERLAND_DIR)/src/%.c $(USER_HEADERS) | $(USERLAND_DIR)/build
-	$(GCC) $(GCCFLAGS) -I$(USERLAND_DIR)/include -c $< -o $@
+	$(GCC) $(GCCFLAGS) -O1 -I$(USERLAND_DIR)/include -c $< -o $@
 
 $(USERLAND_DIR)/build/%.o: $(USERLAND_DIR)/asm/%.asm $(USER_HEADERS) | $(USERLAND_DIR)/build
 	$(ASM) $(ASMFLAGS) $< -o $@

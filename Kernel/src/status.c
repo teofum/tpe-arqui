@@ -1,4 +1,5 @@
 #include <print.h>
+#include <process.h>
 #include <status.h>
 #include <stddef.h>
 #include <time.h>
@@ -17,11 +18,8 @@ const char *months[] = {"January",   "February", "March",    "April",
 
 void status_draw_statusbar() {
   if (!_status_enabled) return;
+  uint32_t current_fb = proc_set_framebuffer(FB_DEFAULT);
 
-  // Set the current framebuffer to default FB
-  vga_framebuffer_t current_fb = vga_set_framebuffer(NULL);
-
-  // Get local time
   char buf[64];
   int32_t len;
   datetime_t t = rtc_get_local_time();
@@ -56,8 +54,7 @@ void status_draw_statusbar() {
   vga_font(oldfont);
   vga_present();
 
-  // Restore the current framebuffer
-  vga_set_framebuffer(current_fb);
+  proc_set_framebuffer(current_fb);
 }
 
 uint8_t status_enabled() { return _status_enabled; }

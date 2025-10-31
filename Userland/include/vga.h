@@ -101,19 +101,6 @@ typedef struct {
 } vga_copy_ex_opts_t;
 
 /*
- * Set the active framebuffer. Call with NULL to set the default framebuffer.
- * Applications may wish to use a separate framebuffer, for example to preserve
- * its contents even if other things are drawn to the screen.
- * Applications that use their own framebuffer may either present it to the
- * screen directly, or copy it to the main framebuffer using vga_copy.
- *
- * Returns the previous framebuffer, so it can be restored afterwards with
- * another call to vga_setFramebuffer. If the previous framebuffer was the
- * default buffer, returns NULL. 
- */
-vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb);
-
-/*
  * Clear VRAM with a single solid color.
  */
 void vga_clear(color_t color);
@@ -219,11 +206,11 @@ void vga_text_wrap(
  * Flags are currently unused, parameter is reserved.
  */
 void vga_bitmap(
-  uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
+  uint16_t x0, uint16_t y0, const uint8_t *data, uint16_t scale, uint8_t flags
 );
 
 /*
- * Present the current framebuffer to the screen. 
+ * Present the current framebuffer to the screen.
  */
 void vga_present();
 
@@ -246,15 +233,5 @@ void vga_copy_ex(
  * Return information about the display device.
  */
 vbe_info_t vga_get_vbe_info();
-
-/*
- * Allocate and return a new framebuffer to be used for drawing.
- * Width and height parameters define the size of the framebuffer in pixels.
- * A value of zero, or a negative value, is interpreted as an offset from the
- * display dimensions. Use zero or VGA_AUTO to get a display-sized framebuffer.
- *
- * The created framebuffer can be destroyed by simply freeing it.
- */
-vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height);
 
 #endif

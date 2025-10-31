@@ -1,5 +1,4 @@
 #include <audio.h>
-#include <graphics.h>
 #include <interrupts.h>
 #include <io.h>
 #include <kbd.h>
@@ -171,7 +170,6 @@ void init_syscalls() {
   register_syscall(0x28, vga_text);
   register_syscall(0x29, vga_text_wrap);
   register_syscall(0x2A, vga_present);
-  register_syscall(0x2B, vga_set_framebuffer);
   register_syscall(0x2C, vga_copy);
   register_syscall(0x2D, vga_copy_ex);
   register_syscall(0x2E, vga_bitmap);
@@ -205,6 +203,10 @@ void init_syscalls() {
   register_syscall(0x77, proc_yield);
   register_syscall(0x78, proc_blockpid);
   register_syscall(0x79, proc_runpid);
+  register_syscall(0x7A, proc_set_framebuffer);
+  register_syscall(0x7B, proc_request_framebuffer);
+  register_syscall(0x7C, proc_release_framebuffer);
+  register_syscall(0x7D, proc_set_external_framebuffer);
 
   /* Semaphores */
   register_syscall(0x80, sem_create);
@@ -215,23 +217,6 @@ void init_syscalls() {
 
   /* Pipes */
   register_syscall(0x90, pipe_create);
-
-  /* Graphics module */
-  register_syscall(0xA0, gfx_clear);
-  register_syscall(0xA1, gfx_draw_primitives);
-  register_syscall(0xA2, gfx_draw_primitives_indexed);
-  register_syscall(0xA3, gfx_draw_wireframe);
-  register_syscall(0xA4, gfx_draw_wireframe_indexed);
-  register_syscall(0xA5, gfx_set_buffers);
-  register_syscall(0xA6, gfx_copy);
-  register_syscall(0xA7, gfx_depthcopy);
-  register_syscall(0xA8, gfx_load_model);
-  register_syscall(0xAA, gfx_set_light);
-  register_syscall(0xAB, gfx_set_light_type);
-  register_syscall(0xAC, gfx_set_matrix);
-  register_syscall(0xAD, gfx_set_flag);
-  register_syscall(0xAE, gfx_get_framebuffer);
-  register_syscall(0xAF, gfx_present);
 }
 
 typedef struct {
@@ -263,7 +248,7 @@ void show_cpu_state() {
   char buf[256];
 
   int is_status_enabled = status_enabled();
-  vga_framebuffer_t current_fb = vga_set_framebuffer(NULL);
+  uint32_t current_fb = proc_set_framebuffer(FB_DEFAULT);
   if (regdump_context.flag == REGDUMP_EXCEPTION) {
     status_set_enabled(0);
     bg_colors = colors(0x500000, 0x800000);
@@ -448,7 +433,7 @@ void show_cpu_state() {
   vga_text(CENTER_X - offset, top, footer, TEXT_COLOR, 0, 0);
 
   vga_present();
-  vga_set_framebuffer(current_fb);
+  proc_set_framebuffer(current_fb);
 
   char key = 0;
   while (!key) { key = kbd_get_key_event().key; }

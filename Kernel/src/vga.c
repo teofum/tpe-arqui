@@ -1,5 +1,5 @@
 #include <mem.h>
-#include <stdlib.h>
+#include <process.h>
 #include <string.h>
 #include <vga.h>
 
@@ -8,7 +8,6 @@
 
 #define VGA_PHYSICAL_FRAMEBUFFER                                               \
   (vga_framebuffer_t)(uint64_t) vbe_mode_info->framebuffer
-#define VGA_FRAMEBUFFER active_framebuffer
 
 #define pixel_offset(x, y) ((x) * OFFSET_X + (y) * OFFSET_Y)
 
@@ -60,14 +59,6 @@ struct vga_framebuffer_cdt_t {
  * its contents even if other things are drawn to the screen.
  */
 static vga_framebuffer_t default_framebuffer;
-
-/*
- * Pointer to the active framebuffer. This is the framebuffer being drawn to
- * and presented to the screen.
- * Applications that use their own framebuffer may either present it to the
- * screen directly, or copy it to the main framebuffer using vga_copy.
- */
-static vga_framebuffer_t active_framebuffer;
 
 /*
  * Font data
@@ -157,6 +148,21 @@ const vga_font_data_t *vga_fonts[] = {
  */
 vga_font_t vga_active_font = VGA_FONT_DEFAULT;
 
+static inline vga_framebuffer_t get_active_framebuffer() {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  if (!pcb) return default_framebuffer;
+
+  // Use external framebuffer, if available
+  vga_framebuffer_t fb = pcb->external_framebuffer;
+  if (fb) return fb;
+
+  // Otherwise use active framebuffer
+  fb = pcb->framebuffers[pcb->active_framebuffer];
+  if (!fb) return default_framebuffer;
+
+  return fb;
+}
+
 /*
  * Alpha premultiply using evil bit manipulation tricks.
  * Ref: https://arxiv.org/pdf/2202.02864
@@ -199,7 +205,7 @@ static inline void blendpixel(
  */
 static void
 vga_hline(uint16_t x0, uint16_t x1, uint16_t y, color_t color, uint8_t flags) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
   uint64_t step = OFFSET_X;
 
   uint64_t offset = pixel_offset(x0, y);
@@ -214,7 +220,7 @@ vga_hline(uint16_t x0, uint16_t x1, uint16_t y, color_t color, uint8_t flags) {
  */
 static void
 vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color, uint8_t flags) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
   uint64_t step = OFFSET_Y;
 
   uint64_t offset = pixel_offset(x, y0);
@@ -230,7 +236,7 @@ vga_vline(uint16_t x, uint16_t y0, uint16_t y1, color_t color, uint8_t flags) {
 static void vga_line_lo(
   int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color, uint8_t flags
 ) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
 
   int16_t dx = x1 - x0, dy = y1 - y0;
   int16_t yi = 1;
@@ -241,7 +247,6 @@ static void vga_line_lo(
   }
 
   int16_t D = 2 * dy - dx;
-  int16_t y = y0;
 
   uint64_t offset = pixel_offset(x0, y0);
   for (int16_t x = x0; x <= x1; x++) {
@@ -249,7 +254,6 @@ static void vga_line_lo(
 
     offset += OFFSET_X;
     if (D > 0) {
-      y += yi;
       offset += OFFSET_Y * yi;
       D += 2 * (dy - dx);
     } else {
@@ -264,7 +268,7 @@ static void vga_line_lo(
 static void vga_line_hi(
   int16_t x0, int16_t y0, int16_t x1, int16_t y1, color_t color, uint8_t flags
 ) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
 
   int16_t dx = x1 - x0, dy = y1 - y0;
   int16_t xi = 1;
@@ -275,7 +279,6 @@ static void vga_line_hi(
   }
 
   int16_t D = 2 * dx - dy;
-  int16_t x = x0;
 
   uint64_t offset = pixel_offset(x0, y0);
   for (int16_t y = y0; y <= y1; y++) {
@@ -283,7 +286,6 @@ static void vga_line_hi(
 
     offset += OFFSET_Y;
     if (D > 0) {
-      x += xi;
       offset += OFFSET_X * xi;
       D += 2 * (dx - dy);
     } else {
@@ -294,19 +296,12 @@ static void vga_line_hi(
 
 void vga_init() {
   default_framebuffer = vga_create_framebuffer(VGA_AUTO, VGA_AUTO);
-  active_framebuffer = default_framebuffer;
-}
-
-vga_framebuffer_t vga_set_framebuffer(vga_framebuffer_t fb) {
-  vga_framebuffer_t last = active_framebuffer;
-  active_framebuffer = fb == NULL ? default_framebuffer : fb;
-
-  return last == default_framebuffer ? NULL : last;
 }
 
 void vga_clear(color_t color) {
-  uint64_t *fb = (uint64_t *) VGA_FRAMEBUFFER->data;
-  uint64_t size = (OFFSET_Y >> 3) * vbe_mode_info->height;
+  vga_framebuffer_t fb = get_active_framebuffer();
+  uint64_t *fb_data = (uint64_t *) fb->data;
+  uint64_t size = (OFFSET_X * fb->width * fb->height) >> 3;
 
   if (vbe_mode_info->bpp == 24) {
     uint64_t c = color & 0xffffff;
@@ -317,18 +312,20 @@ void vga_clear(color_t color) {
     };
 
     for (uint64_t offset = 0; offset < size; offset += 3) {
-      fb[offset + 0] = data[0];
-      fb[offset + 1] = data[1];
-      fb[offset + 2] = data[2];
+      fb_data[offset + 0] = data[0];
+      fb_data[offset + 1] = data[1];
+      fb_data[offset + 2] = data[2];
     }
   } else {
     uint64_t data = color | ((uint64_t) color) << 32;
-    for (uint64_t offset = 0; offset < size; offset++) { fb[offset] = data; }
+    for (uint64_t offset = 0; offset < size; offset++) {
+      fb_data[offset] = data;
+    }
   }
 }
 
 void vga_pixel(uint16_t x, uint16_t y, color_t color, uint8_t flags) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
   uint64_t offset = pixel_offset(x, y);
   blendpixel(fb, offset, color, flags);
 }
@@ -372,7 +369,7 @@ void vga_rect(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
   uint8_t flags
 ) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
   uint64_t step = OFFSET_X;
 
   for (uint16_t y = y0; y <= y1; y++) {
@@ -399,7 +396,7 @@ void vga_shade(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, color_t color,
   uint8_t flags
 ) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
   uint64_t step = OFFSET_X * 2;
 
   for (uint16_t y = y0; y <= y1; y++) {
@@ -416,7 +413,7 @@ void vga_gradient(
   uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint64_t colors,
   uint8_t flags
 ) {
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
   uint64_t step = OFFSET_X;
 
   color_t color1 = colors >> 32;
@@ -447,7 +444,7 @@ void vga_char(
   // Skip non printable characters
   if (c < ' ' || c == 0x7f) return;
 
-  vga_framebuffer_t fb = VGA_FRAMEBUFFER;
+  vga_framebuffer_t fb = get_active_framebuffer();
 
   for (uint16_t y = 0; y < ACTIVE_FONT->char_height; y++) {
     uint64_t offset = pixel_offset(x0, y0 + y);
@@ -553,20 +550,22 @@ void vga_text_wrap(
   }
 }
 
-static inline void
-putpixels(uint64_t offset, uint16_t scale, color_t color, uint8_t flags) {
+static inline void putpixels(
+  vga_framebuffer_t fb, uint64_t offset, uint16_t scale, color_t color,
+  uint8_t flags
+) {
   for (int i = 0; i < scale; i++) {
     for (int j = 0; j < scale; j++) {
-      blendpixel(
-        VGA_FRAMEBUFFER, offset + i * OFFSET_Y + j * OFFSET_X, color, flags
-      );
+      blendpixel(fb, offset + i * OFFSET_Y + j * OFFSET_X, color, flags);
     }
   }
 }
 
 void vga_bitmap(
-  uint16_t x0, uint16_t y0, uint8_t *data, uint16_t scale, uint8_t flags
+  uint16_t x0, uint16_t y0, const uint8_t *data, uint16_t scale, uint8_t flags
 ) {
+  vga_framebuffer_t fb = get_active_framebuffer();
+
   // First 8 bytes of bitmap data are a header, with 4 bytes for width and height each
   uint32_t width = *(uint32_t *) data;
   data += 4;
@@ -599,7 +598,7 @@ void vga_bitmap(
       for (uint16_t y = y0; y < y1; y++) {
         for (uint16_t x = x0; x < x1; x++) {
           // Offset data pointer left by one byte so we get RGB data, alpha is thrown away.
-          putpixels(offset, scale, *(uint32_t *) (data - 1), flags);
+          putpixels(fb, offset, scale, *(uint32_t *) (data - 1), flags);
           offset += x_offset;
           data += 3;
         }
@@ -612,7 +611,7 @@ void vga_bitmap(
       for (uint16_t y = y0; y < y1; y++) {
         for (uint16_t x = x0; x < x1; x++) {
           color_t color = palette[*data++];
-          putpixels(offset, scale, color, flags);
+          putpixels(fb, offset, scale, color, flags);
           offset += x_offset;
         }
 
@@ -627,7 +626,7 @@ void vga_bitmap(
           idx = (i % 2) ? idx & 0x0f : idx >> 4;
 
           color_t color = palette[idx];
-          putpixels(offset, scale, color, flags);
+          putpixels(fb, offset, scale, color, flags);
           offset += x_offset;
           i++;
         }
@@ -657,8 +656,8 @@ static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
 
 void vga_present() {
   memcpy64(
-    (uint64_t *) VGA_PHYSICAL_FRAMEBUFFER, (uint64_t *) VGA_FRAMEBUFFER->data,
-    VGA_HEIGHT * (OFFSET_Y >> 3)
+    (uint64_t *) VGA_PHYSICAL_FRAMEBUFFER,
+    (uint64_t *) get_active_framebuffer()->data, VGA_HEIGHT * (OFFSET_Y >> 3)
   );
 }
 
@@ -737,3 +736,5 @@ vga_framebuffer_t vga_create_framebuffer(int32_t width, int32_t height) {
 
   return fb;
 }
+
+vga_framebuffer_t vga_get_default_framebuffer() { return default_framebuffer; }

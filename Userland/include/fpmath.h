@@ -1,12 +1,18 @@
 #ifndef FPMATH_H
 #define FPMATH_H
 
+#include <stdint.h>
+
 #define M_PI 3.14159265358979323846264338327950288
 #define M_INVPI 0.31830988618379067153776752674502872
 
 #define fabs(x) ((x) > 0 ? (x) : -(x))
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define max(x, y) ((x) > (y) ? (x) : (y))
+
+typedef struct {
+  uint32_t x, y;
+} uint2;
 
 /*
  * Three component vector.

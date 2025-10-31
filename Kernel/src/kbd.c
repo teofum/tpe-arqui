@@ -71,12 +71,18 @@ typedef enum {
 
 typedef uint64_t kbd_state_t[STATE_QWORDS];
 
+typedef struct {
+  kbd_event_t data[KBD_BUFFER_SIZE];
+  int write_pos, read_pos;
+} kbd_buffer_t;
+
 static kbd_buffer_t kbd_buffer = {
   .data = {0},
   .write_pos = 0,
   .read_pos = 0,
 };
 
+static kbd_state_t kbd_state_scratch = {0};
 static kbd_state_t kbd_state = {0};
 static kbd_state_t kbd_last_state = {0};
 
@@ -218,21 +224,8 @@ static uint8_t get_extended_key(uint8_t key) {
 
 void kbd_init() { kbd_pqueue = pqueue_create(); }
 
-/*
- * Called by keyboard interrupt handler.
- * Adds a scancode to the buffer, discarding oldest events if we run out of
- * space.
- */
-void kbd_add_key_event(uint8_t sc) {
-  kbd_buffer.data[kbd_buffer.write_pos] = sc;
-  next(kbd_buffer.write_pos);
-
-  // If we ran into the start of the queue, get rid of the older events
-  if (kbd_buffer.write_pos == kbd_buffer.read_pos) next(kbd_buffer.read_pos);
-
-  // Unblock a process
-  // TODO: should we actually unblock everyone??
-  while (!pqueue_empty(kbd_pqueue)) {
+static void unblock_next_waiting_process() {
+  if (!pqueue_empty(kbd_pqueue)) {
     pid_t waiting_pid = pqueue_dequeue(kbd_pqueue);
 
     proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
@@ -240,27 +233,9 @@ void kbd_add_key_event(uint8_t sc) {
 
     scheduler_enqueue(waiting_pid);
   }
-  proc_yield();
-
-  return;
 }
 
-/*
- * Consume the next event in the queue and update keyboard state.
- * Returns nonzero if the event should be handled, 0 if it should be ignored.
- */
-static inline int kbd_next_event(kbd_event_t *ev) {
-  // Get the next event and advance queue pointer
-  uint8_t scancode = kbd_buffer.data[kbd_buffer.read_pos];
-  next(kbd_buffer.read_pos);
-
-  // Handle special byte indicating two-part scancode
-  if (scancode == SC_EXT_HEADER) {
-    kbd_extended = 1;
-    return 0;
-  }
-
-  // Get the keycode
+static uint8_t get_key_from_scancode(uint8_t scancode) {
   uint8_t key = scancode_to_key(scancode);
 
   // If we're in extended mode, convert to an extended keycode
@@ -269,74 +244,112 @@ static inline int kbd_next_event(kbd_event_t *ev) {
     kbd_extended = 0;
   }
 
-  // Update keyboard state
-  set_key_state(kbd_state, key, is_release(scancode) ? 0 : 1);
+  return key;
+}
+
+static void update_state(uint8_t key, uint8_t scancode) {
+  set_key_state(kbd_state_scratch, key, is_release(scancode) ? 0 : 1);
 
   // Special handling for caps lock, it acts as a toggle
   if (key == KEY_CAPSLOCK && !is_release(scancode))
     kbd_capslock = !kbd_capslock;
+}
 
-  // Return whether event should be handled
-  int handle =
-    !is_special(key) && (is_release(scancode) ? (kbd_eventmask & KBD_EV_RELEASE)
-                                              : (kbd_eventmask & KBD_EV_PRESS));
+static int creates_event(uint8_t key, uint8_t scancode) {
+  return !is_special(key) &&
+         (is_release(scancode) ? (kbd_eventmask & KBD_EV_RELEASE)
+                               : (kbd_eventmask & KBD_EV_PRESS));
+}
 
-  // Set event properties if not null
-  if (handle && ev != NULL) {
-    ev->key = key;
-    ev->is_released = is_release(scancode);
-    ev->alt = get_key_state(kbd_state, KEY_LEFT_ALT);
-    ev->alt_r = get_key_state(kbd_state, KEY_RIGHT_ALT);
-    ev->ctrl = get_key_state(kbd_state, KEY_LEFT_CTRL);
-    ev->ctrl_r = get_key_state(kbd_state, KEY_RIGHT_CTRL);
-    ev->shift = get_key_state(kbd_state, KEY_LEFT_SHIFT);
-    ev->shift_r = get_key_state(kbd_state, KEY_RIGHT_SHIFT);
-    ev->gui = get_key_state(kbd_state, KEY_LEFT_GUI);
-    ev->gui_r = get_key_state(kbd_state, KEY_RIGHT_GUI);
-    ev->capslock = kbd_capslock;
+/*
+ * Called by keyboard interrupt handler.
+ * Adds a scancode to the buffer, discarding oldest events if we run out of
+ * space.
+ */
+void kbd_add_key_event(uint8_t scancode) {
+  // Handle special byte indicating two-part scancode
+  if (scancode == SC_EXT_HEADER) {
+    kbd_extended = 1;
+    return;
   }
 
-  return handle;
+  uint8_t key = get_key_from_scancode(scancode);
+  update_state(key, scancode);
+
+  // Set event properties if not null
+  if (creates_event(key, scancode)) {
+    kbd_event_t ev = {
+      .key = key,
+      .is_released = is_release(scancode),
+      .alt = get_key_state(kbd_state_scratch, KEY_LEFT_ALT),
+      .alt_r = get_key_state(kbd_state_scratch, KEY_RIGHT_ALT),
+      .ctrl = get_key_state(kbd_state_scratch, KEY_LEFT_CTRL),
+      .ctrl_r = get_key_state(kbd_state_scratch, KEY_RIGHT_CTRL),
+      .shift = get_key_state(kbd_state_scratch, KEY_LEFT_SHIFT),
+      .shift_r = get_key_state(kbd_state_scratch, KEY_RIGHT_SHIFT),
+      .gui = get_key_state(kbd_state_scratch, KEY_LEFT_GUI),
+      .gui_r = get_key_state(kbd_state_scratch, KEY_RIGHT_GUI),
+      .capslock = kbd_capslock,
+    };
+
+    // Ctrl+C: kill the current foreground process
+    if (ev.key == KEY_C && (ev.ctrl || ev.ctrl_r)) {
+      if (proc_foreground_pid > 2) proc_kill(proc_foreground_pid);
+    } else {
+      kbd_buffer.data[kbd_buffer.write_pos] = ev;
+      next(kbd_buffer.write_pos);
+
+      // If we ran into the start of the queue, get rid of the older events
+      if (kbd_buffer.write_pos == kbd_buffer.read_pos)
+        next(kbd_buffer.read_pos);
+    }
+  }
+
+  unblock_next_waiting_process();
 }
 
 uint64_t kbd_poll_events() {
-  memcpy(kbd_last_state, kbd_state, sizeof(kbd_state));
+  memcpy(kbd_last_state, kbd_state, sizeof(kbd_state_t));
+  memcpy(kbd_state, kbd_state_scratch, sizeof(kbd_state_t));
 
+  // Clear buffer
   uint64_t e = 0;
   while (kbd_buffer.read_pos != kbd_buffer.write_pos) {
-    if (kbd_next_event(NULL)) e++;
+    next(kbd_buffer.read_pos);
+    e++;
   }
+
   return e;
 }
 
-int kbd_keydown(uint8_t key) { return get_key_state(kbd_state, key); }
+int kbd_keydown(uint8_t key) { return get_key_state(kbd_state_scratch, key); }
 
 int kbd_keypressed(uint8_t key) {
-  return (get_key_state(kbd_state, key) && !get_key_state(kbd_last_state, key));
+  return (
+    get_key_state(kbd_state_scratch, key) && !get_key_state(kbd_last_state, key)
+  );
 }
 
 int kbd_keyreleased(uint8_t key) {
-  return (!get_key_state(kbd_state, key) && get_key_state(kbd_last_state, key));
+  return (
+    !get_key_state(kbd_state_scratch, key) && get_key_state(kbd_last_state, key)
+  );
 }
 
 kbd_event_t kbd_get_key_event() {
-  kbd_event_t event = {0};
-  event.key = 0;
-
   proc_wait_for_foreground();
 
   // Buffer empty, block this process
-  if (kbd_buffer.read_pos == kbd_buffer.write_pos) {
+  while (kbd_buffer.read_pos == kbd_buffer.write_pos) {
     pqueue_enqueue(kbd_pqueue, proc_running_pid);
     proc_block();
   }
 
-  // Read the next event
-  while (kbd_buffer.read_pos != kbd_buffer.write_pos) {
-    if (kbd_next_event(&event)) return event;
-  }
+  kbd_event_t ev = kbd_buffer.data[kbd_buffer.read_pos];
+  next(kbd_buffer.read_pos);
+  memcpy(kbd_state, kbd_state_scratch, sizeof(kbd_state_t));
 
-  return event;
+  return ev;
 }
 
 int kbd_getchar() {

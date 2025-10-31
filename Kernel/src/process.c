@@ -1,7 +1,8 @@
-#include "pipe.h"
 #include <fd.h>
+#include <io.h>
 #include <lib.h>
 #include <mem.h>
+#include <pipe.h>
 #include <pqueue.h>
 #include <process.h>
 #include <scheduler.h>
@@ -9,6 +10,7 @@
 #include <stdint.h>
 #include <strings.h>
 #include <types.h>
+#include <vga.h>
 
 #define STACK_SIZE (1024 * 64)// Give each process 64k stack
 
@@ -59,6 +61,15 @@ proc_initialize_fds(proc_control_block_t *pcb, proc_descriptor_t *desc) {
   }
 }
 
+static void proc_initialize_fbs(proc_control_block_t *pcb) {
+  for (uint32_t i = 0; i < FB_COUNT; i++) pcb->framebuffers[i] = NULL;
+  pcb->framebuffers[FB_DEFAULT] = vga_get_default_framebuffer();
+  pcb->framebuffers[FB_TTY] = io_get_default_framebuffer();
+
+  pcb->active_framebuffer = 0;
+  pcb->external_framebuffer = NULL;
+}
+
 static void proc_initialize_process(
   pid_t pid, proc_entrypoint_t entry_point, uint64_t argc, char *const *argv,
   proc_descriptor_t *desc
@@ -85,6 +96,7 @@ static void proc_initialize_process(
   pcb->priority = priority;
 
   proc_initialize_fds(pcb, desc);
+  proc_initialize_fbs(pcb);
 
   // Initialize process stack
   uint64_t *process_stack = (uint64_t *) pcb->rsp;
@@ -149,6 +161,7 @@ void proc_init(proc_entrypoint_t entry_point) {
   pcb->n_waiting_processes = 0;
 
   proc_initialize_fds(pcb, NULL);
+  proc_initialize_fbs(pcb);
 
   proc_running_pid = new_pid;
   proc_foreground_pid = new_pid;
@@ -319,4 +332,52 @@ int proc_info(pid_t pid, proc_info_t *out_info) {
 fd_t proc_get_fd(uint32_t fd) {
   proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
   return pcb->file_descriptors[fd];
+}
+
+int32_t proc_set_framebuffer(uint32_t fb_handle) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  if (pcb->framebuffers[fb_handle] == NULL) return -1;
+
+  int32_t old = pcb->active_framebuffer;
+  pcb->active_framebuffer = fb_handle;
+  pcb->external_framebuffer = NULL;
+
+  return old;
+}
+
+vga_framebuffer_t proc_set_external_framebuffer(vga_framebuffer_t fb) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  vga_framebuffer_t old = pcb->external_framebuffer;
+  pcb->external_framebuffer = fb;
+
+  return old;
+}
+
+int32_t proc_request_framebuffer(int32_t width, int32_t height) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  int32_t handle = 0;
+  while (pcb->framebuffers[handle] == NULL) {
+    handle++;
+    if (handle == FB_COUNT) return -1;
+  }
+
+  pcb->framebuffers[handle] = vga_create_framebuffer(width, height);
+  return handle;
+}
+
+int32_t proc_release_framebuffer(uint32_t fb_handle) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  if (fb_handle <= FB_TTY || pcb->framebuffers[fb_handle] == NULL) return -1;
+
+  mem_free(pcb->framebuffers[fb_handle]);
+  pcb->framebuffers[fb_handle] = NULL;
+
+  if (pcb->active_framebuffer == fb_handle)
+    pcb->active_framebuffer = FB_DEFAULT;
+
+  return 0;
 }
