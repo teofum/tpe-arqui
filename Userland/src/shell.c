@@ -1,10 +1,10 @@
-#include "pipe.h"
 #include <fd.h>
 #include <gfxdemo.h>
 #include <golf_game.h>
 #include <io.h>
 #include <kbd.h>
 #include <mem.h>
+#include <pipe.h>
 #include <print.h>
 #include <proc.h>
 #include <process.h>
@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
+#include <time.h>
 
 #define SHELL_VERSION "1.3.0"
 
@@ -152,25 +153,35 @@ static int mem() {
   return 0;
 }
 
-static int print_test() {
-  printf("my pid is %u\n", getpid());
-  for (uint32_t i = 0; i < 5; i++) {
-    printf("Press a key... ");
-    kbd_get_key_event();
-    printf("%u\n", i);
+// todo move to header
+static uint32_t parse_uint(const char *s) {
+  uint32_t r = 0;
+  while (*s >= '0' && *s <= '9') {
+    r *= 10;
+    r += *s - '0';
+    s++;
   }
-  write(STDOUT, "\n", 1);
-
-  return 0;
+  return r;
 }
 
-static int timer_test(uint64_t argc, char *const *argv) {
-  printf("my pid is %u\n", getpid());
-  uint32_t i = 0;
+static int loop(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
+    printf("Usage: loop <message> [<interval>]\n");
+    return 1;
+  }
+
+  pid_t pid = getpid();
+  const char *msg = argv[1];
+  uint32_t interval_ms = argc >= 3 ? parse_uint(argv[2]) : 1000;
+  uint32_t elapsed = time();
+
   while (1) {
-    // shitty delay TODO have a real timer
-    for (uint32_t j = 0; j < 50; j++) yield();
-    printf("%u %s\n", i++, argv[1]);
+    uint32_t now = time();
+    if (now - elapsed > interval_ms) {
+      printf("Loop [%u]: %s\n", pid, msg);
+      elapsed = now;
+    }
+    yield();
   }
   write(STDOUT, "\n", 1);
 
@@ -226,8 +237,7 @@ static program_t commands[] = {
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
   {"mem", "Display memory status", mem},
-  {"test1", "for bg testing, with kb input", print_test},
-  {"test2", "for bg testing, with timer", timer_test},
+  {"loop", "print a greeting on a timer", loop},
   {"proc", "Manage processes", proc},
   {"red", "a red", red},
 };
