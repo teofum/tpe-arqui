@@ -24,7 +24,7 @@
 #define RETURN_KILLED -1
 
 typedef int (*proc_entrypoint_t)(uint64_t argc, char *const *argv);
-typedef int priority_t;
+typedef uint32_t priority_t;
 
 typedef enum {
   PROC_STATE_RUNNING = 0,

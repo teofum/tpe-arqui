@@ -28,15 +28,13 @@ pid_t scheduler_next() {
   priority_t next = order[spl.next];
   spl.next = (spl.next + 1) % (ORDER_SIZE);
 
-  for (int i = next; i <= MAX_PRIORITY; ++i) {
-    scheduler_queue = spl.groups[i];
+  scheduler_queue = spl.groups[next];
 
-    if (!pqueue_empty(scheduler_queue)) {
-      pid_t next_pid = pqueue_dequeue(scheduler_queue);
+  if (!pqueue_empty(scheduler_queue)) {
+    pid_t next_pid = pqueue_dequeue(scheduler_queue);
 
-      proc_running_pid = next_pid;
-      return next_pid;
-    }
+    proc_running_pid = next_pid;
+    return next_pid;
   }
 
   proc_running_pid = 0;

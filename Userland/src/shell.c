@@ -169,7 +169,7 @@ static int timer_test(uint64_t argc, char *const *argv) {
   uint32_t i = 0;
   while (1) {
     // shitty delay TODO have a real timer
-    for (uint32_t j = 0; j < 5000; j++) yield();
+    for (uint32_t j = 0; j < 50; j++) yield();
     printf("%u %s\n", i++, argv[1]);
   }
   write(STDOUT, "\n", 1);
