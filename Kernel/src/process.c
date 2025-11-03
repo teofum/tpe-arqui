@@ -184,7 +184,7 @@ void proc_blockpid(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
   pcb->state = PROC_STATE_BLOCKED;
 
-  // TODO remove from scheduler
+  scheduler_remove(pid);
 }
 
 void proc_runpid(pid_t pid) {
@@ -380,4 +380,16 @@ int32_t proc_release_framebuffer(uint32_t fb_handle) {
     pcb->active_framebuffer = FB_DEFAULT;
 
   return 0;
+}
+
+int proc_set_priority(pid_t pid, priority_t new_priority) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+
+  if (new_priority == pcb->priority) return 0;
+
+  scheduler_remove(pid);
+  pcb->priority = new_priority;
+  if (pcb->state == PROC_STATE_RUNNING) scheduler_enqueue(pid);
+
+  return 1;
 }
