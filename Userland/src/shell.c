@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
+#include <test.h>
 
 #define SHELL_VERSION "1.3.0"
 
@@ -229,6 +230,7 @@ static program_t commands[] = {
   {"test1", "for bg testing, with kb input", print_test},
   {"test2", "for bg testing, with timer", timer_test},
   {"proc", "Manage processes", proc},
+  {"test", "Run tests", test},
   {"red", "a red", red},
 };
 static size_t n_commands = sizeof(commands) / sizeof(program_t);
