@@ -208,13 +208,13 @@ static int history() {
   return 0;
 }
 
-static int red() {
+static int cat() {
   char c[101];
   int32_t read_bytes = 100;
   while (read_bytes >= 100) {
     read_bytes = read(STDIN, c, 100);
     c[read_bytes] = 0;
-    printf(COL_RED "%s", c);
+    write(STDOUT, c, 100);
   }
 
   write(STDOUT, "\n", 1);
@@ -225,7 +225,8 @@ static int help();
 static program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
-  {"clear", "Clear stdout", clear},
+  {"cat", "Print stdin to stdout", cat},
+  {"clear", "Clear the terminal", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
   {"demo3d", "3d Graphics demo", demo3d},
@@ -237,9 +238,8 @@ static program_t commands[] = {
   {"golf", "Play Golf", gg_start_game},
   {"capy", "Print our cute mascot", print_mascot},
   {"mem", "Display memory status", mem},
-  {"loop", "print a greeting on a timer", loop},
+  {"loop", "Print a greeting on a timer", loop},
   {"proc", "Manage processes", proc},
-  {"red", "a red", red},
 };
 static size_t n_commands = sizeof(commands) / sizeof(program_t);
 
