@@ -213,8 +213,7 @@ static int cat() {
   int32_t read_bytes = 100;
   while (read_bytes >= 100) {
     read_bytes = read(STDIN, c, 100);
-    c[read_bytes] = 0;
-    write(STDOUT, c, 100);
+    write(STDOUT, c, read_bytes);
   }
 
   write(STDOUT, "\n", 1);
@@ -229,17 +228,17 @@ static program_t commands[] = {
   {"clear", "Clear the terminal", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
-  {"demo3d", "3d Graphics demo", demo3d},
+  {"demo3d", "3D Graphics demo", demo3d},
   {"history", "Print command history", history},
   {"status", "Turn the system status bar on or off", status},
+  {"except", "Test exceptions", exception_test},
   {"beep", "Plays a short beep", beep},
   {"music", "Plays Tetris music", music},
-  {"except", "Test exceptions", exception_test},
-  {"golf", "Play Golf", gg_start_game},
-  {"capy", "Print our cute mascot", print_mascot},
   {"mem", "Display memory status", mem},
-  {"loop", "Print a greeting on a timer", loop},
   {"proc", "Manage processes", proc},
+  {"loop", "Print a greeting on a timer", loop},
+  {"capy", "Print our cute mascot", print_mascot},
+  {"golf", "Play Golf", gg_start_game},
 };
 static size_t n_commands = sizeof(commands) / sizeof(program_t);
 
