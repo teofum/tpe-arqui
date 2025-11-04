@@ -244,12 +244,29 @@ static int filter() {
   return 0;
 }
 
+static int wc() {
+  char c[101];
+  int32_t read_bytes = 100;
+  uint32_t lines = 0;
+  while (read_bytes >= 100) {
+    read_bytes = read(STDIN, c, 100);
+
+    for (int i = 0; i < read_bytes; i++) {
+      if (c[i] == '\n') lines++;
+    }
+  }
+
+  printf("wc: %u lines\n", lines);
+  return 0;
+}
+
 static int help();
 static program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
   {"cat", "Print stdin to stdout", cat},
   {"filter", "Print stdin to stdout removing vowels", filter},
+  {"wc", "Count the number of newlines in stdin", wc},
   {"clear", "Clear the terminal", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
