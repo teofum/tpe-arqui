@@ -220,11 +220,36 @@ static int cat() {
   return 0;
 }
 
+#define isupper(c) ((c) >= 'A' && (c) <= 'Z')
+#define tolower(c) (isupper(c) ? (c) - 'A' : (c))
+
+static int filter() {
+  char c[101];
+  char c2[101];
+  int32_t read_bytes = 100;
+  while (read_bytes >= 100) {
+    read_bytes = read(STDIN, c, 100);
+
+    int j = 0;
+    for (int i = 0; i < read_bytes; i++) {
+      char l = tolower(c[i]);
+      if (l != 'a' && l != 'e' && l != 'i' && l != 'o' && l != 'u')
+        c2[j++] = c[i];
+    }
+
+    write(STDOUT, c2, j);
+  }
+
+  write(STDOUT, "\n", 1);
+  return 0;
+}
+
 static int help();
 static program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
   {"cat", "Print stdin to stdout", cat},
+  {"filter", "Print stdin to stdout removing vowels", filter},
   {"clear", "Clear the terminal", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
