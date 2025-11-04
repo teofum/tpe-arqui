@@ -1,15 +1,15 @@
 #include <mvar.h>
 #include <print.h>
 #include <process.h>
+#include <rng.h>
 #include <semaphores.h>
 #include <stdint.h>
 #include <utils.h>
 
+#define INTERVAL_MAX 20
+
 typedef struct {
   char c;
-  uint32_t reader_count;
-  sem_t reader_count_lock;
-  sem_t write_lock;
   sem_t mutex;
 } mvar_shared_t;
 
@@ -19,13 +19,18 @@ static char *const colors[] = {"",         COL_RED,     COL_GREEN, COL_BLUE,
                                COL_YELLOW, COL_MAGENTA, COL_CYAN};
 
 int writer(uint64_t argc, char *const *argv) {
+  pcg32_random_t rng;
+  // seed rng with argv address which is different for each process
+  pcg32_srand(&rng, argv[1][0], (uint32_t) (uint64_t) argv);
+
+  uint32_t interval = pcg32_rand(&rng) % INTERVAL_MAX;
+
   while (1) {
-    sem_wait(shared.write_lock);
+    while (interval-- > 0) { yield(); }
+    interval = pcg32_rand(&rng) % INTERVAL_MAX;
+
     sem_wait(shared.mutex);
-    sem_post(shared.write_lock);
-
-    shared.c = argv[1][0];
-
+    if (shared.c == 0) { shared.c = argv[1][0]; }
     sem_post(shared.mutex);
   }
 
@@ -33,19 +38,22 @@ int writer(uint64_t argc, char *const *argv) {
 }
 
 int reader(uint64_t argc, char *const *argv) {
+  pcg32_random_t rng;
+  // seed rng with argv address which is different for each process
+  pcg32_srand(&rng, argv[1][4], (uint32_t) (uint64_t) argv);
+
+  uint32_t interval = pcg32_rand(&rng) % INTERVAL_MAX;
+
   while (1) {
-    sem_wait(shared.write_lock);
-    sem_post(shared.write_lock);
+    while (interval-- > 0) { yield(); }
+    interval = pcg32_rand(&rng) % INTERVAL_MAX;
 
-    sem_wait(shared.reader_count_lock);
-    if (shared.reader_count++ == 0) sem_wait(shared.mutex);
-    sem_post(shared.reader_count_lock);
-
-    printf("%s%c", argv[1], shared.c);
-
-    sem_wait(shared.reader_count_lock);
-    if (--shared.reader_count == 0) sem_post(shared.mutex);
-    sem_post(shared.reader_count_lock);
+    sem_wait(shared.mutex);
+    if (shared.c != 0) {
+      printf("%s%c", argv[1], shared.c);
+      shared.c = 0;
+    }
+    sem_post(shared.mutex);
   }
 
   return 0;
@@ -53,10 +61,7 @@ int reader(uint64_t argc, char *const *argv) {
 
 int mvar(uint64_t argc, char *const *argv) {
   shared.c = 0;
-  shared.reader_count = 0;
   shared.mutex = sem_create(1);
-  shared.reader_count_lock = sem_create(1);
-  shared.write_lock = sem_create(1);
 
   if (argc < 3) {
     printf("Usage: mvar <n_writers> <n_readers>\n");

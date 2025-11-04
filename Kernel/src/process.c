@@ -266,7 +266,7 @@ static void proc_make_foreground(pid_t pid) {
 
 int proc_wait(pid_t pid) {
   proc_control_block_t *waiting_pcb = &proc_control_table[pid];
-  if (waiting_pcb == NULL) return -1;
+  if (waiting_pcb->stack == NULL) return -1;
 
   if (proc_foreground_pid == proc_running_pid) proc_make_foreground(pid);
 
@@ -289,11 +289,14 @@ int proc_wait(pid_t pid) {
 void proc_kill(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
+  scheduler_remove(pid);
+
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = RETURN_KILLED;
 
   proc_close_fds(pid);
 
+  pcb->n_waiting_processes = 0;
   while (!pqueue_empty(pcb->waiting_processes)) {
     pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
 
@@ -302,6 +305,7 @@ void proc_kill(pid_t pid) {
 
     scheduler_enqueue(waiting_pid);
   }
+  proc_destroy(pid);
 }
 
 pid_t proc_getpid() { return proc_running_pid; }

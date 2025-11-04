@@ -95,8 +95,6 @@ static int kill(pid_t pid) {
   // TODO fail if pid does not exist
 
   proc_kill(pid);
-  proc_wait_for_foreground();
-  proc_wait(pid);
   return 0;
 }
 
