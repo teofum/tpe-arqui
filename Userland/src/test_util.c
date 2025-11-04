@@ -1,15 +1,19 @@
 #include <print.h>
 #include <process.h>
+#include <rng.h>
 #include <stdint.h>
 #include <test_util.h>
+#include <time.h>
 
-static uint32_t m_z = 362436069;
-static uint32_t m_w = 521288629;
+static pcg32_random_t rng;
+static int rng_initialized = 0;
 
 uint32_t get_uint() {
-  m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-  m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-  return (m_z << 16) + m_w;
+  if (!rng_initialized) {
+    pcg32_srand(&rng, time(), 0);
+    rng_initialized = 1;
+  }
+  return pcg32_rand(&rng);
 }
 
 uint32_t get_uniform(uint32_t max) {
@@ -63,6 +67,6 @@ void endless_loop_print(uint64_t wait) {
 
   while (1) {
     printf("%d ", pid);
-    bussy_wait(wait);
+    busy_wait(wait);
   }
 }
