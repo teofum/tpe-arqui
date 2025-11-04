@@ -58,9 +58,25 @@ static int test_mm(uint64_t argc, char *const *argv) {
   }
 }
 
+typedef struct {
+  const char *name;
+  const char *desc;
+} test_t;
+
+static test_t tests[] = {
+  {"mm", "Memory allocator test"},
+};
+static size_t n_tests = sizeof(tests) / sizeof(test_t);
+
 static int print_help() {
   printf("Available tests:\n\n");
-  printf(COL_BLUE "mm" COL_RESET " <max_memory>\t- Memory allocator stress test\n");
+
+  for (int i = 0; i < n_tests; i++) {
+    printf(
+      COL_BLUE "%s" COL_RESET " - %s\n", tests[i].name, tests[i].desc
+    );
+  }
+
   return 0;
 }
 
