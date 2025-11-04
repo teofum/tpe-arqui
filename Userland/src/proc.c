@@ -1,9 +1,10 @@
-#include "scheduler.h"
 #include <print.h>
 #include <proc.h>
 #include <process.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <strings.h>
+#include <utils.h>
 
 #define check_pid(pid, action)                                                 \
   if ((pid) < 3) {                                                             \
@@ -121,16 +122,6 @@ static int run(pid_t pid) {
 
   proc_run(pid);
   return 0;
-}
-
-static uint32_t parse_uint(const char *s) {
-  uint32_t r = 0;
-  while (*s >= '0' && *s <= '9') {
-    r *= 10;
-    r += *s - '0';
-    s++;
-  }
-  return r;
 }
 
 int proc(uint64_t argc, char *const *argv) {

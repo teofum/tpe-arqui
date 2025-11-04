@@ -4,6 +4,7 @@
 #include <io.h>
 #include <kbd.h>
 #include <mem.h>
+#include <mvar.h>
 #include <pipe.h>
 #include <print.h>
 #include <proc.h>
@@ -17,6 +18,7 @@
 #include <stdint.h>
 #include <strings.h>
 #include <time.h>
+#include <utils.h>
 
 #define SHELL_VERSION "1.3.0"
 
@@ -153,17 +155,6 @@ static int mem() {
   return 0;
 }
 
-// todo move to header
-static uint32_t parse_uint(const char *s) {
-  uint32_t r = 0;
-  while (*s >= '0' && *s <= '9') {
-    r *= 10;
-    r += *s - '0';
-    s++;
-  }
-  return r;
-}
-
 static int loop(uint64_t argc, char *const *argv) {
   if (argc < 2) {
     printf("Usage: loop <message> [<interval>]\n");
@@ -279,6 +270,7 @@ static program_t commands[] = {
   {"mem", "Display memory status", mem},
   {"proc", "Manage processes", proc},
   {"loop", "Print a greeting on a timer", loop},
+  {"mvar", "Readers and writers sync test", mvar},
   {"capy", "Print our cute mascot", print_mascot},
   {"golf", "Play Golf", gg_start_game},
 };
