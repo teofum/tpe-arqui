@@ -47,7 +47,7 @@ int64_t satoi(char *str) {
   return res * sign;
 }
 
-void bussy_wait(uint64_t n) {
+void busy_wait(uint64_t n) {
   uint64_t i;
   for (i = 0; i < n; i++)
     ;
