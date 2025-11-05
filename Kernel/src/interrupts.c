@@ -29,6 +29,7 @@
 
 #define ID_TIMER_TICK 0x20
 #define ID_KEYBOARD 0x21
+#define ID_MOUSE 0x2C
 #define ID_SYSCALL 0x80
 
 #define MAX_INTERRUPTS 256
@@ -77,6 +78,7 @@ extern void _pic_slave_mask(uint8_t mask);
 
 extern void _irq_00_handler();
 extern void _irq_01_handler();
+extern void _irq_12_handler();
 extern void _irq_80_handler();
 
 extern void _exception_00_handler();
@@ -105,6 +107,9 @@ void load_idt() {
   // IRQ 1: Keyboard
   setup_idt_entry(ID_KEYBOARD, (uint64_t) &_irq_01_handler);
 
+  // IRQ 12: Mouse
+  setup_idt_entry(ID_MOUSE, (uint64_t) &_irq_12_handler);
+
   // Syscalls
   setup_idt_entry(ID_SYSCALL, (uint64_t) &_irq_80_handler);
 
@@ -114,8 +119,8 @@ void load_idt() {
   // Invalid Opcode (06)
   setup_idt_entry(0x06, (uint64_t) &_exception_06_handler);
 
-  _pic_master_mask(0xFC);
-  _pic_slave_mask(0xFF);
+  _pic_master_mask(0b11111000);
+  _pic_slave_mask(0b11101111);
 
   _sti();
 }

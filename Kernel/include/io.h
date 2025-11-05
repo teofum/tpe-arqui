@@ -30,4 +30,6 @@ void io_movecursor(int32_t dx);
 
 vga_framebuffer_t io_get_default_framebuffer();
 
+uint32_t io_write_tty(const char *str, uint32_t len);
+
 #endif

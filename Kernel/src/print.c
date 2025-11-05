@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 int utostr(
-  char *buf, uint64_t n, uint8_t base, uint8_t minLength, char padding
+  char *buf, uint64_t n, uint8_t base, uint8_t min_length, char padding
 ) {
   uint8_t digits[64];
   uint8_t ndigits = 0;
@@ -15,7 +15,7 @@ int utostr(
     n /= base;
   } while (n > 0);
 
-  for (int i = 0; i < minLength - ndigits; i++) buf[len++] = padding;
+  for (int i = 0; i < min_length - ndigits; i++) buf[len++] = padding;
 
   for (int i = 0; i < ndigits; i++) {
     uint8_t digit = digits[ndigits - 1 - i];
@@ -24,6 +24,18 @@ int utostr(
 
   buf[len] = 0;
   return len;
+}
+
+int itostr(
+  char *buf, int64_t n, uint8_t base, uint8_t min_length, char padding
+) {
+  if (n >= 0) {
+    return utostr(buf, n, base, min_length, padding);
+  } else {
+    buf[0] = '-';
+    return utostr(buf + 1, -n, base, min_length ? min_length - 1 : 0, padding) +
+           1;
+  }
 }
 
 static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
@@ -43,13 +55,13 @@ static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
       int done = 0;
       char padding = ' ';
       uint8_t min_length = 0;
-      int printBase = 0, islong = 0;
+      int print_base = 0, islong = 0;
 
       while (!done) {
         c = *fmt++;
 
         if (c == '#') {
-          printBase = 1;
+          print_base = 1;
           c = *fmt++;
         }
 
@@ -85,16 +97,21 @@ static int32_t vsprintf(char *buf, const char *fmt, va_list args) {
             done = 1;
             break;
           case 'd':
+            if (print_base && (c == 'x' || c == 'b')) {
+              buf[len++] = '0';
+              buf[len++] = c;
+            }
+
+            base = (c == 'x') ? 16 : (c == 'b') ? 2 : 10;
             t_i64 = islong ? va_arg(args, int64_t) : va_arg(args, int32_t);
-            // TODO
-            t_u64 = utostr(buffer, t_i64, base, min_length, padding);
+            t_u64 = itostr(buffer, t_i64, base, min_length, padding);
             for (int i = 0; i < t_u64; i++) buf[len++] = buffer[i];
             done = 1;
             break;
           case 'u':
           case 'x':
           case 'b':
-            if (printBase && (c == 'x' || c == 'b')) {
+            if (print_base && (c == 'x' || c == 'b')) {
               buf[len++] = '0';
               buf[len++] = c;
             }
@@ -132,7 +149,7 @@ int32_t printf(const char *fmt, ...) {
 
   static char buf[512];
   int32_t len = vsprintf(buf, fmt, args);
-  len = io_write(STDOUT, buf, len);
+  len = io_write_tty(buf, len);
 
   va_end(args);
   return len;

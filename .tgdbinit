@@ -163,7 +163,7 @@ gdb.execute(f'dashboard stack')
 
 # para debug docker
 # set debuginfod enabled off
-gdb.execute(f'target remote 192.168.0.152:1234')
+gdb.execute(f'target remote 10.2.68.20:1234')
 gdb.execute(f'add-symbol-file Kernel/out/kernel.elf 0x100000')
 gdb.execute(f'add-symbol-file Userland/out/userlandModule.elf 0x400000')
 gdb.execute(f'set directories Kernel:Userland:Userland/UserlandModule')

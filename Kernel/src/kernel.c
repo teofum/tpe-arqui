@@ -1,3 +1,4 @@
+#include "mouse.h"
 #include <interrupts.h>
 #include <io.h>
 #include <kbd.h>
@@ -72,6 +73,7 @@ int main() {
   kbd_init();
   vga_init();
   io_init();
+  mouse_init();
   scheduler_init();
 
   // Enable status bar

@@ -218,7 +218,7 @@ uint32_t io_writes(uint32_t fd, const char *str) {
   return -1;// Shut up gcc
 }
 
-static uint32_t io_write_tty(const char *str, uint32_t len) {
+uint32_t io_write_tty(const char *str, uint32_t len) {
   uint32_t current_fb = proc_set_framebuffer(FB_TTY);
   vga_font_t last_font = vga_font(io_text_font);
 
