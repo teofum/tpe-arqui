@@ -1,7 +1,6 @@
 #include <lib.h>
 #include <mouse.h>
 #include <print.h>
-#include <stdint.h>
 #include <vga.h>
 
 #define MOUSE_CONTROL_PORT 0x64
@@ -89,8 +88,6 @@ static void mouse_update(uint8_t data[3]) {
   if (mouse_y < 0) mouse_y = 0;
   if (mouse_y >= 768) mouse_y = 767;
 
-  color_t color = info & 0x1 ? 0x00ff00 : 0xff0000;
-  vga_rect(mouse_x, mouse_y, mouse_x + 4, mouse_y + 4, color, 0);
   vga_present();
 }
 
@@ -114,4 +111,11 @@ void mouse_handler(uint8_t byte) {
       mouse_cycle = 0;
       break;
   }
+}
+
+point_t mouse_getpos() {
+  return (point_t) {
+    .x = mouse_x,
+    .y = mouse_y,
+  };
 }

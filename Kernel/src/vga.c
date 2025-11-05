@@ -1,5 +1,7 @@
 #include <mem.h>
+#include <mouse.h>
 #include <process.h>
+#include <stdint.h>
 #include <string.h>
 #include <vga.h>
 
@@ -654,11 +656,42 @@ static void memcpy64(uint64_t *dst, uint64_t *src, uint64_t len) {
   for (uint64_t i = 0; i < len; i++) { *dst++ = *src++; }
 }
 
+static void vga_draw_cursor(point_t *pos) {
+  static uint16_t pixels[12] = {
+    0b0101000000000000, 0b0110010000000000, 0b0110100100000000,
+    0b0110101001100000, 0b0110101010010000, 0b0110101010010100,
+    0b0110101001000000, 0b0110011010010000, 0b0101100110010000,
+    0b0000000110100100, 0b0000000001100100, 0b0000000001010000,
+  };
+
+  uint8_t *fb = (uint8_t *) VGA_PHYSICAL_FRAMEBUFFER;
+  for (uint32_t y = 0; y < 12; y++) {
+    for (uint32_t x = 0; x < 7; x++) {
+      uint8_t pixel_val = (pixels[y] >> (14 - 2 * x)) & 0b11;
+      uint32_t offset = pixel_offset(x + pos->x, y + pos->y);
+
+      if (pixel_val == 1) {
+        fb[offset] = 0xff;
+        fb[offset + 1] = 0xff;
+        fb[offset + 2] = 0xff;
+      } else if (pixel_val == 2) {
+        fb[offset] = 0x00;
+        fb[offset + 1] = 0x00;
+        fb[offset + 2] = 0x00;
+      }
+    }
+  }
+}
+
 void vga_present() {
   memcpy64(
     (uint64_t *) VGA_PHYSICAL_FRAMEBUFFER,
     (uint64_t *) get_active_framebuffer()->data, VGA_HEIGHT * (OFFSET_Y >> 3)
   );
+
+  // TODO move this to compositor
+  point_t pos = mouse_getpos();
+  vga_draw_cursor(&pos);
 }
 
 void vga_copy(vga_framebuffer_t dst, vga_framebuffer_t src, uint32_t offset_y) {
