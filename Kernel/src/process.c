@@ -302,6 +302,8 @@ void proc_kill(pid_t pid) {
 
     scheduler_enqueue(waiting_pid);
   }
+
+  if (pcb->n_waiting_processes == 0) { proc_destroy(pid); }
 }
 
 pid_t proc_getpid() { return proc_running_pid; }
