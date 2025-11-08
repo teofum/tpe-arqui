@@ -59,42 +59,49 @@ static int test_mm(uint64_t argc, char *const *argv) {
   }
 }
 
-#define SEM_ID 42
+#define SEM_ID "sem"
 #define TOTAL_PAIR_PROCESSES 2
 
-static int64_t global;
+int64_t global;
 
-static void slow_inc(int64_t *p, int64_t inc) {
-  int64_t aux = *p;
+void slow_inc(int64_t *p, int64_t inc) {
+  uint64_t aux = *p;
   yield();
   aux += inc;
   *p = aux;
 }
 
-static int my_process_inc(uint64_t argc, char *const *argv) {
+uint64_t my_process_inc(uint64_t argc, char *argv[]) {
   uint64_t n;
   int8_t inc;
   int8_t use_sem;
 
-  if (argc != 4) return -1;
+  if (argc != 3) return -1;
 
   if ((n = satoi(argv[0])) <= 0) return -1;
   if ((inc = satoi(argv[1])) == 0) return -1;
   if ((use_sem = satoi(argv[2])) < 0) return -1;
 
-  sem_t sem = satoi(argv[3]);
+  if (use_sem)
+    if (!sem_open(SEM_ID, 1)) {
+      printf("test_sync: ERROR opening semaphore\n");
+      return -1;
+    }
 
-  for (uint64_t i = 0; i < n; i++) {
-    if (use_sem) sem_wait(sem);
+  uint64_t i;
+  for (i = 0; i < n; i++) {
+    if (use_sem) sem_wait(SEM_ID);
     slow_inc(&global, inc);
-    if (use_sem) sem_post(sem);
+    if (use_sem) sem_post(SEM_ID);
   }
+
+  if (use_sem) sem_close(SEM_ID);
 
   return 0;
 }
 
-static int test_sync(uint64_t argc, char *const *argv) {
-  pid_t pids[2 * TOTAL_PAIR_PROCESSES];
+uint64_t test_sync(uint64_t argc, char *argv[]) {
+  uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
 
   if (argc != 2) return -1;
 
@@ -103,35 +110,10 @@ static int test_sync(uint64_t argc, char *const *argv) {
 
   global = 0;
 
-  sem_t sem = -1;
-  uint64_t use_sem = satoi(argv[1]);
-  if (use_sem) sem = sem_create(1);
-
-  char sem_str[16];
-  char use_sem_str[4];
-
-  uint64_t sem_val = (uint64_t) sem;
-  uint64_t i = 0;
-  do {
-    sem_str[i++] = '0' + (sem_val % 10);
-    sem_val /= 10;
-  } while (sem_val > 0);
-  sem_str[i] = '\0';
-  for (uint64_t j = 0; j < i / 2; j++) {
-    char tmp = sem_str[j];
-    sem_str[j] = sem_str[i - j - 1];
-    sem_str[i - j - 1] = tmp;
-  }
-
-  strcpy(use_sem_str, argv[1]);
-
-  char *argv_dec_full[] = {"my_process_inc", argv_dec[0], argv_dec[1], use_sem_str, sem_str};
-  char *argv_inc_full[] = {"my_process_inc", argv_inc[0], argv_inc[1], use_sem_str, sem_str};
-
+  uint64_t i;
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
-    pids[i] = proc_spawn(my_process_inc, 4, &argv_dec_full[1], NULL);
-    pids[i + TOTAL_PAIR_PROCESSES] =
-      proc_spawn(my_process_inc, 4, &argv_inc_full[1], NULL);
+    pids[i] = proc_spawn(my_process_inc, 3, argv_dec, NULL);
+    pids[i + TOTAL_PAIR_PROCESSES] = proc_spawn(my_process_inc, 3, argv_inc, NULL);
   }
 
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
@@ -139,9 +121,7 @@ static int test_sync(uint64_t argc, char *const *argv) {
     proc_wait(pids[i + TOTAL_PAIR_PROCESSES]);
   }
 
-  printf("Final value: %lld\n", global);
-
-  if (use_sem) sem_close(sem);
+  printf("Final value: %d\n", global);
 
   return 0;
 }
