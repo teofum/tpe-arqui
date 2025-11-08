@@ -6,7 +6,6 @@
 #include <pqueue.h>
 #include <process.h>
 #include <scheduler.h>
-#include <spinlock.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
