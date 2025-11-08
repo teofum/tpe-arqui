@@ -184,7 +184,7 @@ void proc_blockpid(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
   pcb->state = PROC_STATE_BLOCKED;
 
-  // TODO remove from scheduler
+  scheduler_remove(pid);
 }
 
 void proc_runpid(pid_t pid) {
@@ -266,7 +266,7 @@ static void proc_make_foreground(pid_t pid) {
 
 int proc_wait(pid_t pid) {
   proc_control_block_t *waiting_pcb = &proc_control_table[pid];
-  if (waiting_pcb == NULL) return -1;
+  if (waiting_pcb->stack == NULL) return -1;
 
   if (proc_foreground_pid == proc_running_pid) proc_make_foreground(pid);
 
@@ -289,11 +289,14 @@ int proc_wait(pid_t pid) {
 void proc_kill(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
+  scheduler_remove(pid);
+
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = RETURN_KILLED;
 
   proc_close_fds(pid);
 
+  pcb->n_waiting_processes = 0;
   while (!pqueue_empty(pcb->waiting_processes)) {
     pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
 
@@ -302,6 +305,7 @@ void proc_kill(pid_t pid) {
 
     scheduler_enqueue(waiting_pid);
   }
+  proc_destroy(pid);
 }
 
 pid_t proc_getpid() { return proc_running_pid; }
@@ -380,4 +384,16 @@ int32_t proc_release_framebuffer(uint32_t fb_handle) {
     pcb->active_framebuffer = FB_DEFAULT;
 
   return 0;
+}
+
+int proc_set_priority(pid_t pid, priority_t new_priority) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+
+  if (new_priority == pcb->priority) return 0;
+
+  scheduler_remove(pid);
+  pcb->priority = new_priority;
+  if (pcb->state == PROC_STATE_RUNNING) scheduler_enqueue(pid);
+
+  return 1;
 }

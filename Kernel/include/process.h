@@ -24,7 +24,7 @@
 #define RETURN_KILLED -1
 
 typedef int (*proc_entrypoint_t)(uint64_t argc, char *const *argv);
-typedef int priority_t;
+typedef uint32_t priority_t;
 
 typedef enum {
   PROC_STATE_RUNNING = 0,
@@ -188,5 +188,7 @@ int32_t proc_request_framebuffer(int32_t width, int32_t height);
  * Returns -1 if the provided handle is invalid.
  */
 int32_t proc_release_framebuffer(uint32_t fb_handle);
+
+int proc_set_priority(pid_t pid, priority_t priority);
 
 #endif

@@ -14,4 +14,6 @@ pid_t scheduler_next();
 
 void scheduler_enqueue(pid_t pid);
 
+void scheduler_remove(pid_t pid);
+
 #endif
