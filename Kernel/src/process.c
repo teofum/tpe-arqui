@@ -6,6 +6,7 @@
 #include <pqueue.h>
 #include <process.h>
 #include <scheduler.h>
+#include <spinlock.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
@@ -47,7 +48,7 @@ proc_initialize_fds(proc_control_block_t *pcb, proc_descriptor_t *desc) {
         pcb->file_descriptors[fd_desc->fd] =
           pipe_connect(fd_desc->pipe, fd_desc->mode);
       } else {
-        pcb->file_descriptors[fd_desc->fd] = (fd_t) {
+        pcb->file_descriptors[fd_desc->fd] = (fd_t){
           .type = fd_desc->type,
           .data = NULL,
         };
@@ -185,6 +186,14 @@ void proc_blockpid(pid_t pid) {
   pcb->state = PROC_STATE_BLOCKED;
 
   // TODO remove from scheduler
+}
+
+void proc_block_release(lock_t lock) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  pcb->state = PROC_STATE_BLOCKED;
+  lock_release(lock);
+
+  proc_yield();
 }
 
 void proc_runpid(pid_t pid) {
