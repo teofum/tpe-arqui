@@ -27,7 +27,7 @@ KERNEL_HEADERS=$(wildcard $(KERNEL_DIR)/include/*.h)
 # Allocator selection
 ALLOCATOR ?= buddy
 ifeq ($(ALLOCATOR),buddy)
-	KERNEL_SOURCES=$(filter-out $(KERNEL_DIR)/src/mem_simple.c,$(wildcard $(KERNEL_DIR)/src/*.c))
+	KERNEL_SOURCES=$(filter-out $(KERNEL_DIR)/src/mem_bitmap.c,$(wildcard $(KERNEL_DIR)/src/*.c))
 else
 	KERNEL_SOURCES=$(filter-out $(KERNEL_DIR)/src/mem_buddy.c,$(wildcard $(KERNEL_DIR)/src/*.c))
 endif
@@ -132,8 +132,8 @@ IMGSIZE=16777216
 
 all: $(IMG) $(VMDK) $(QCOW2)
 
-simple:
-	$(MAKE) all ALLOCATOR=simple
+bitmap:
+	$(MAKE) all ALLOCATOR=bitmap
 
 buddy:
 	$(MAKE) all ALLOCATOR=buddy
@@ -176,4 +176,4 @@ clean:
 	rm -f Toolchain/ModulePacker/mp.bin
 	rm -rf out
 
-.PHONY: remote container run debug clean simple buddy
+.PHONY: remote container run debug clean bitmap buddy

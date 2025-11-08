@@ -1,0 +1,72 @@
+#include <print.h>
+#include <process.h>
+#include <rng.h>
+#include <stdint.h>
+#include <test_util.h>
+#include <time.h>
+
+static pcg32_random_t rng;
+static int rng_initialized = 0;
+
+uint32_t get_uint() {
+  if (!rng_initialized) {
+    pcg32_srand(&rng, time(), 0);
+    rng_initialized = 1;
+  }
+  return pcg32_rand(&rng);
+}
+
+uint32_t get_uniform(uint32_t max) {
+  uint32_t u = get_uint();
+  return (u + 1.0) * 2.328306435454494e-10 * max;
+}
+
+uint8_t memcheck(void *start, uint8_t value, uint32_t size) {
+  uint8_t *p = (uint8_t *) start;
+  uint32_t i;
+
+  for (i = 0; i < size; i++, p++)
+    if (*p != value) return 0;
+
+  return 1;
+}
+
+int64_t satoi(char *str) {
+  uint64_t i = 0;
+  int64_t res = 0;
+  int8_t sign = 1;
+
+  if (!str) return 0;
+
+  if (str[i] == '-') {
+    i++;
+    sign = -1;
+  }
+
+  for (; str[i] != '\0'; ++i) {
+    if (str[i] < '0' || str[i] > '9') return 0;
+    res = res * 10 + str[i] - '0';
+  }
+
+  return res * sign;
+}
+
+void busy_wait(uint64_t n) {
+  uint64_t i;
+  for (i = 0; i < n; i++)
+    ;
+}
+
+void endless_loop() {
+  while (1)
+    ;
+}
+
+void endless_loop_print(uint64_t wait) {
+  int64_t pid = getpid();
+
+  while (1) {
+    printf("%d ", pid);
+    busy_wait(wait);
+  }
+}

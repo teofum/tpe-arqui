@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <strings.h>
+#include <test.h>
 #include <time.h>
 #include <utils.h>
 
@@ -269,6 +270,7 @@ static program_t commands[] = {
   {"music", "Plays Tetris music", music},
   {"mem", "Display memory status", mem},
   {"proc", "Manage processes", proc},
+  {"test", "Run tests", test},
   {"loop", "Print a greeting on a timer", loop},
   {"mvar", "Readers and writers sync test", mvar},
   {"capy", "Print our cute mascot", print_mascot},
