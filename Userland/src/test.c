@@ -60,10 +60,10 @@ static int test_mm(uint64_t argc, char *const *argv) {
   }
 }
 
-//#define SEM_ID "sem"
 #define TOTAL_PAIR_PROCESSES 2
 
 int64_t global;
+int sem_id = -1;
 
 void slow_inc(int64_t *p, int64_t inc) {
   uint64_t aux = *p;
@@ -72,12 +72,10 @@ void slow_inc(int64_t *p, int64_t inc) {
   *p = aux;
 }
 
-int sem_id = -1;
-
 static int my_process_inc(uint64_t argc, char *const *argv) {
   uint64_t n;
   int8_t inc;
-  int8_t use_sem;
+  int use_sem;
 
   if (argc != 3) return -1;
 
@@ -85,22 +83,12 @@ static int my_process_inc(uint64_t argc, char *const *argv) {
   if ((inc = satoi(argv[1])) == 0) return -1;
   if ((use_sem = satoi(argv[2])) < 0) return -1;
 
-  if (use_sem) {
-    sem_id = sem_create(1);
-    if (sem_id == -1) {
-      printf("test_sync: ERROR opening semaphore\n");
-      return -1;
-    }
-  }
-
   uint64_t i;
   for (i = 0; i < n; i++) {
     if (use_sem) sem_wait(sem_id);
     slow_inc(&global, inc);
     if (use_sem) sem_post(sem_id);
   }
-
-  if (use_sem) sem_close(sem_id);
 
   return 0;
 }
@@ -115,6 +103,15 @@ uint64_t test_sync(uint64_t argc, char *argv[]) {
 
   global = 0;
 
+  int use_sem = satoi(argv[1]);
+  if (use_sem) {
+    sem_id = sem_create(1);
+    if (sem_id == -1) {
+      printf("test_sync: ERROR creating semaphore\n");
+      return -1;
+    }
+  }
+
   uint64_t i;
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
     pids[i] = proc_spawn(my_process_inc, 3, argv_dec, NULL);
@@ -126,6 +123,8 @@ uint64_t test_sync(uint64_t argc, char *argv[]) {
     proc_wait(pids[i]);
     proc_wait(pids[i + TOTAL_PAIR_PROCESSES]);
   }
+
+  if (use_sem) sem_close(sem_id);
 
   printf("Final value: %d\n", global);
 
