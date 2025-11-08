@@ -1,6 +1,7 @@
 #include <mem.h>
 #include <print.h>
 #include <process.h>
+#include <scheduler.h>
 #include <semaphores.h>
 #include <strings.h>
 #include <test.h>
@@ -204,11 +205,69 @@ typedef struct {
   const char *desc;
 } test_t;
 
+#define TOTAL_PROCESSES 3
+
+#define LOWEST 0
+#define MEDIUM 2
+#define HIGHEST 4
+
+static uint64_t max_value = 0;
+static int64_t prio[TOTAL_PROCESSES] = {LOWEST, MEDIUM, HIGHEST};
+
+static int zero_to_max(uint64_t argc, char *const *argv) {
+  uint64_t value = 0;
+  while (value++ != max_value);
+  printf("PROCESS %d DONE!\n", getpid());
+  return 0;
+}
+
+static int test_prio(uint64_t argc, char *const *argv) {
+  pid_t pids[TOTAL_PROCESSES];
+  char *ztm_argv[] = {"zero_to_max"};
+
+  if (argc != 1) return -1;
+  if ((max_value = satoi(argv[0])) <= 0) return -1;
+
+  printf("SAME PRIORITY...\n");
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
+    pids[i] = proc_spawn(zero_to_max, 1, ztm_argv, NULL);
+
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
+    proc_wait(pids[i]);
+
+  printf("SAME PRIORITY, THEN CHANGE IT...\n");
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) {
+    pids[i] = proc_spawn(zero_to_max, 1, ztm_argv, NULL);
+    proc_set_priority(pids[i], prio[i]);
+    printf("  PROCESS %d NEW PRIORITY: %lld\n", pids[i], prio[i]);
+  }
+
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
+    proc_wait(pids[i]);
+
+  printf("SAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n");
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) {
+    pids[i] = proc_spawn(zero_to_max, 1, ztm_argv, NULL);
+    proc_block(pids[i]);
+    proc_set_priority(pids[i], prio[i]);
+    printf("  PROCESS %d NEW PRIORITY: %lld\n", pids[i], prio[i]);
+  }
+
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
+    proc_run(pids[i]);
+
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
+    proc_wait(pids[i]);
+
+  return 0;
+}
+
 static test_t tests[] = {
   {"mm", "Memory allocator test"},
   {"sync", "Synchronization test with semaphores"},
   {"nosync", "Synchronization test without semaphores"},
   {"processes", "Process creation, blocking and killing test"},
+  {"prio", "Priority scheduler test"},
 };
 static size_t n_tests = sizeof(tests) / sizeof(test_t);
 
@@ -267,6 +326,14 @@ int test(uint64_t argc, char *const *argv) {
       return 1;
     }
     return test_processes(1, &argv[2]);
+  }
+
+  if (!strcmp(argv[1], "prio")) {
+    if (argc < 3) {
+      printf(COL_RED "test prio: missing max_value argument\n");
+      return 1;
+    }
+    return test_prio(1, &argv[2]);
   }
 
   printf(COL_RED "test: invalid subcommand %s\n", argv[1]);
