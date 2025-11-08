@@ -10,14 +10,9 @@ typedef struct {
   priority_t next;
 } scheduler_priority_list_t;
 
-/// this is to set custom orders for scheduling
-// todo maybe it can be changed, different for games or whatever
-#define order_size 15
-static priority_t order[order_size] = {0, 0, 1, 0, 1, 2, 0, 1,
+#define ORDER_SIZE 15
+static priority_t order[ORDER_SIZE] = {0, 0, 1, 0, 1, 2, 0, 1,
                                        2, 3, 0, 1, 2, 3, 4};
-//static priority_t order[order_size] = { 0, 1, 2, 0, 1, 2, 0, 1, 3, 0, 1, 2, 0, 1, 3, 0, 1, 4};
-//static priority_t order[] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4};
-//static priority_t order[] = {0, 1, 2, 3, 4};
 
 
 static scheduler_priority_list_t spl = {0};
@@ -31,27 +26,31 @@ void scheduler_init() {
 pid_t scheduler_next() {
   pqueue_t scheduler_queue;
   priority_t next = order[spl.next];
-  spl.next = (spl.next + 1) % (order_size);
+  spl.next = (spl.next + 1) % (ORDER_SIZE);
 
-  for (int i = next; i <= MAX_PRIORITY; ++i) {
-    scheduler_queue = spl.groups[i];
+  scheduler_queue = spl.groups[next];
 
-    if (!pqueue_empty(scheduler_queue)) {
-      pid_t next_pid = pqueue_dequeue(scheduler_queue);
+  if (!pqueue_empty(scheduler_queue)) {
+    pid_t next_pid = pqueue_dequeue(scheduler_queue);
 
-      proc_running_pid = next_pid;
-      return next_pid;
-    }
+    proc_running_pid = next_pid;
+    return next_pid;
   }
 
   proc_running_pid = 0;
   return 0;
 }
 
-
 void scheduler_enqueue(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
   pqueue_t scheduler_queue = spl.groups[pcb->priority];
 
   pqueue_enqueue(scheduler_queue, pid);
+}
+
+void scheduler_remove(pid_t pid) {
+  proc_control_block_t *pcb = &proc_control_table[pid];
+  pqueue_t scheduler_queue = spl.groups[pcb->priority];
+
+  pqueue_remove_all(scheduler_queue, pid);
 }

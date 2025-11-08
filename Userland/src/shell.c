@@ -1,10 +1,11 @@
-#include "pipe.h"
 #include <fd.h>
 #include <gfxdemo.h>
 #include <golf_game.h>
 #include <io.h>
 #include <kbd.h>
 #include <mem.h>
+#include <mvar.h>
+#include <pipe.h>
 #include <print.h>
 #include <proc.h>
 #include <process.h>
@@ -17,6 +18,8 @@
 #include <stdint.h>
 #include <strings.h>
 #include <test.h>
+#include <time.h>
+#include <utils.h>
 
 #define SHELL_VERSION "1.3.0"
 
@@ -153,25 +156,24 @@ static int mem() {
   return 0;
 }
 
-static int print_test() {
-  printf("my pid is %u\n", getpid());
-  for (uint32_t i = 0; i < 5; i++) {
-    printf("Press a key... ");
-    kbd_get_key_event();
-    printf("%u\n", i);
+static int loop(uint64_t argc, char *const *argv) {
+  if (argc < 2) {
+    printf("Usage: loop <message> [<interval>]\n");
+    return 1;
   }
-  write(STDOUT, "\n", 1);
 
-  return 0;
-}
+  pid_t pid = getpid();
+  const char *msg = argv[1];
+  uint32_t interval_ms = argc >= 3 ? parse_uint(argv[2]) : 1000;
+  uint32_t elapsed = time();
 
-static int timer_test(uint64_t argc, char *const *argv) {
-  printf("my pid is %u\n", getpid());
-  uint32_t i = 0;
   while (1) {
-    // shitty delay TODO have a real timer
-    for (uint32_t j = 0; j < 5000; j++) yield();
-    printf("%u %s\n", i++, argv[1]);
+    uint32_t now = time();
+    if (now - elapsed > interval_ms) {
+      printf("Loop [%u]: %s\n", pid, msg);
+      elapsed = now;
+    }
+    yield();
   }
   write(STDOUT, "\n", 1);
 
@@ -198,16 +200,55 @@ static int history() {
   return 0;
 }
 
-static int red() {
+static int cat() {
   char c[101];
   int32_t read_bytes = 100;
   while (read_bytes >= 100) {
     read_bytes = read(STDIN, c, 100);
-    c[read_bytes] = 0;
-    printf(COL_RED "%s", c);
+    write(STDOUT, c, read_bytes);
   }
 
   write(STDOUT, "\n", 1);
+  return 0;
+}
+
+#define isupper(c) ((c) >= 'A' && (c) <= 'Z')
+#define tolower(c) (isupper(c) ? (c) - 'A' : (c))
+
+static int filter() {
+  char c[101];
+  char c2[101];
+  int32_t read_bytes = 100;
+  while (read_bytes >= 100) {
+    read_bytes = read(STDIN, c, 100);
+
+    int j = 0;
+    for (int i = 0; i < read_bytes; i++) {
+      char l = tolower(c[i]);
+      if (l != 'a' && l != 'e' && l != 'i' && l != 'o' && l != 'u')
+        c2[j++] = c[i];
+    }
+
+    write(STDOUT, c2, j);
+  }
+
+  write(STDOUT, "\n", 1);
+  return 0;
+}
+
+static int wc() {
+  char c[101];
+  int32_t read_bytes = 100;
+  uint32_t lines = 0;
+  while (read_bytes >= 100) {
+    read_bytes = read(STDIN, c, 100);
+
+    for (int i = 0; i < read_bytes; i++) {
+      if (c[i] == '\n') lines++;
+    }
+  }
+
+  printf("wc: %u lines\n", lines);
   return 0;
 }
 
@@ -215,23 +256,25 @@ static int help();
 static program_t commands[] = {
   {"help", "Display this help message", help},
   {"echo", "Print arguments to stdout", echo},
-  {"clear", "Clear stdout", clear},
+  {"cat", "Print stdin to stdout", cat},
+  {"filter", "Print stdin to stdout removing vowels", filter},
+  {"wc", "Count the number of newlines in stdin", wc},
+  {"clear", "Clear the terminal", clear},
   {"setfont", "Set text mode font", setfont},
   {"gfxdemo", "Graphics mode demo", gfxdemo},
-  {"demo3d", "3d Graphics demo", demo3d},
+  {"demo3d", "3D Graphics demo", demo3d},
   {"history", "Print command history", history},
   {"status", "Turn the system status bar on or off", status},
+  {"except", "Test exceptions", exception_test},
   {"beep", "Plays a short beep", beep},
   {"music", "Plays Tetris music", music},
-  {"except", "Test exceptions", exception_test},
-  {"golf", "Play Golf", gg_start_game},
-  {"capy", "Print our cute mascot", print_mascot},
   {"mem", "Display memory status", mem},
-  {"test1", "for bg testing, with kb input", print_test},
-  {"test2", "for bg testing, with timer", timer_test},
   {"proc", "Manage processes", proc},
   {"test", "Run tests", test},
-  {"red", "a red", red},
+  {"loop", "Print a greeting on a timer", loop},
+  {"mvar", "Readers and writers sync test", mvar},
+  {"capy", "Print our cute mascot", print_mascot},
+  {"golf", "Play Golf", gg_start_game},
 };
 static size_t n_commands = sizeof(commands) / sizeof(program_t);
 

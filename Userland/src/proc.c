@@ -1,8 +1,10 @@
 #include <print.h>
 #include <proc.h>
 #include <process.h>
+#include <scheduler.h>
 #include <shell.h>
 #include <strings.h>
+#include <utils.h>
 
 #define check_pid(pid, action)                                                 \
   if ((pid) < 3) {                                                             \
@@ -22,15 +24,12 @@ static char *const state_str[] = {
   [PROC_STATE_EXITED] = COL_GRAY "Exited " COL_RESET,
 };
 
-static int print_help();
-static int ps();
-static int make_foreground(pid_t pid);
-static int kill(pid_t pid);
 static command_t commands[] = {
   {"help", "Display this help message"},
   {"ls", "List all running processes"},
   {"fg", "Bring a process into foreground"},
   {"kill", "Kill a process"},
+  {"nice", "Change a process priority"},
   {"stop", "Block a process"},
   {"run",
    "Force a blocked process to run now " COL_RED "(WARNING: can mess with "
@@ -96,8 +95,14 @@ static int kill(pid_t pid) {
   // TODO fail if pid does not exist
 
   proc_kill(pid);
-  proc_wait_for_foreground();
-  proc_wait(pid);
+  return 0;
+}
+
+static int nice(pid_t pid, priority_t priority) {
+  check_pid(pid, "modify");
+  // TODO fail if pid does not exist
+
+  proc_set_priority(pid, priority);
   return 0;
 }
 
@@ -117,19 +122,9 @@ static int run(pid_t pid) {
   return 0;
 }
 
-static uint32_t parse_uint(const char *s) {
-  uint32_t r = 0;
-  while (*s >= '0' && *s <= '9') {
-    r *= 10;
-    r += *s - '0';
-    s++;
-  }
-  return r;
-}
-
 int proc(uint64_t argc, char *const *argv) {
   if (argc < 2) {
-    printf("Usage: proc <command>\n");
+    printf("Usage: proc <command> [<pid> [<priority>]]\n");
     printf("Type " COL_YELLOW "proc help" COL_RESET " for a list of commands\n"
     );
     return 0;
@@ -148,6 +143,21 @@ int proc(uint64_t argc, char *const *argv) {
   if (!strcmp(argv[1], "kill")) { return kill(pid); }
   if (!strcmp(argv[1], "stop")) { return stop(pid); }
   if (!strcmp(argv[1], "run")) { return run(pid); }
+
+  if (!strcmp(argv[1], "nice")) {
+    if (argc < 4) {
+      printf(COL_RED "proc %s: missing priority\n", argv[1]);
+      return 1;
+    }
+
+    priority_t priority = parse_uint(argv[3]);
+    if (priority > MAX_PRIORITY) {
+      printf(COL_RED "proc %s: invalid priority %u\n", argv[1], priority);
+      return 1;
+    }
+
+    return nice(pid, priority);
+  }
 
   printf(COL_RED "proc: invalid command %s\n", argv[1]);
   printf("Type " COL_YELLOW "proc help" COL_RESET " for a list of commands\n");
