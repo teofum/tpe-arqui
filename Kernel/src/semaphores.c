@@ -33,7 +33,7 @@ static int get_free_sem() {
 }
 
 /**
- * Creates new semaphore and returns handle, NULL if it fails
+ * Creates new semaphore and returns handle, -1 if it fails
  */
 sem_t sem_create(int initial) {
   int index = get_free_sem();

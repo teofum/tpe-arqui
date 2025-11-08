@@ -60,7 +60,7 @@ static int test_mm(uint64_t argc, char *const *argv) {
   }
 }
 
-#define SEM_ID "sem"
+//#define SEM_ID "sem"
 #define TOTAL_PAIR_PROCESSES 2
 
 int64_t global;
@@ -72,7 +72,9 @@ void slow_inc(int64_t *p, int64_t inc) {
   *p = aux;
 }
 
-uint64_t my_process_inc(uint64_t argc, char *argv[]) {
+int sem_id = -1;
+
+static int my_process_inc(uint64_t argc, char *const *argv) {
   uint64_t n;
   int8_t inc;
   int8_t use_sem;
@@ -83,20 +85,22 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
   if ((inc = satoi(argv[1])) == 0) return -1;
   if ((use_sem = satoi(argv[2])) < 0) return -1;
 
-  if (use_sem)
-    if (!sem_open(SEM_ID, 1)) {
+  if (use_sem) {
+    sem_id = sem_create(1);
+    if (sem_id == -1) {
       printf("test_sync: ERROR opening semaphore\n");
       return -1;
     }
+  }
 
   uint64_t i;
   for (i = 0; i < n; i++) {
-    if (use_sem) sem_wait(SEM_ID);
+    if (use_sem) sem_wait(sem_id);
     slow_inc(&global, inc);
-    if (use_sem) sem_post(SEM_ID);
+    if (use_sem) sem_post(sem_id);
   }
 
-  if (use_sem) sem_close(SEM_ID);
+  if (use_sem) sem_close(sem_id);
 
   return 0;
 }
@@ -114,7 +118,8 @@ uint64_t test_sync(uint64_t argc, char *argv[]) {
   uint64_t i;
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
     pids[i] = proc_spawn(my_process_inc, 3, argv_dec, NULL);
-    pids[i + TOTAL_PAIR_PROCESSES] = proc_spawn(my_process_inc, 3, argv_inc, NULL);
+    pids[i + TOTAL_PAIR_PROCESSES] =
+      proc_spawn(my_process_inc, 3, argv_inc, NULL);
   }
 
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
@@ -173,20 +178,20 @@ static int test_processes(uint64_t argc, char *const *argv) {
         action = get_uniform(100) % 2;
 
         switch (action) {
-        case 0:
-          if (p_rqs[rq].state == RUNNING || p_rqs[rq].state == BLOCKED) {
-            proc_kill(p_rqs[rq].pid);
-            p_rqs[rq].state = KILLED;
-            alive--;
-          }
-          break;
+          case 0:
+            if (p_rqs[rq].state == RUNNING || p_rqs[rq].state == BLOCKED) {
+              proc_kill(p_rqs[rq].pid);
+              p_rqs[rq].state = KILLED;
+              alive--;
+            }
+            break;
 
-        case 1:
-          if (p_rqs[rq].state == RUNNING) {
-            proc_block(p_rqs[rq].pid);
-            p_rqs[rq].state = BLOCKED;
-          }
-          break;
+          case 1:
+            if (p_rqs[rq].state == RUNNING) {
+              proc_block(p_rqs[rq].pid);
+              p_rqs[rq].state = BLOCKED;
+            }
+            break;
         }
       }
 
@@ -232,8 +237,7 @@ static int test_prio(uint64_t argc, char *const *argv) {
   for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
     pids[i] = proc_spawn(zero_to_max, 1, ztm_argv, NULL);
 
-  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
-    proc_wait(pids[i]);
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) proc_wait(pids[i]);
 
   printf("SAME PRIORITY, THEN CHANGE IT...\n");
   for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) {
@@ -242,8 +246,7 @@ static int test_prio(uint64_t argc, char *const *argv) {
     printf("  PROCESS %d NEW PRIORITY: %lld\n", pids[i], prio[i]);
   }
 
-  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
-    proc_wait(pids[i]);
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) proc_wait(pids[i]);
 
   printf("SAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n");
   for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) {
@@ -253,11 +256,9 @@ static int test_prio(uint64_t argc, char *const *argv) {
     printf("  PROCESS %d NEW PRIORITY: %lld\n", pids[i], prio[i]);
   }
 
-  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
-    proc_run(pids[i]);
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) proc_run(pids[i]);
 
-  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++)
-    proc_wait(pids[i]);
+  for (uint64_t i = 0; i < TOTAL_PROCESSES; i++) proc_wait(pids[i]);
 
   return 0;
 }
@@ -275,9 +276,7 @@ static int print_help() {
   printf("Available tests:\n\n");
 
   for (int i = 0; i < n_tests; i++) {
-    printf(
-      COL_BLUE "%s" COL_RESET " - %s\n", tests[i].name, tests[i].desc
-    );
+    printf(COL_BLUE "%s" COL_RESET " - %s\n", tests[i].name, tests[i].desc);
   }
 
   return 0;
