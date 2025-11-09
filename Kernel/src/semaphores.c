@@ -1,3 +1,4 @@
+#include "process.h"
 #include <lib.h>
 #include <mem.h>
 #include <scheduler.h>
@@ -72,7 +73,8 @@ int sem_wait(sem_t sem) {
 
   while (curr_sem->value == 0) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
-    proc_block_release(curr_sem->lock);
+    lock_release(curr_sem->lock);
+    proc_block();
     lock_acquire(curr_sem->lock);
   }
 

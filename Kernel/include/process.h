@@ -110,11 +110,6 @@ void proc_block();
 void proc_blockpid(pid_t pid);
 
 /*
- * Releases the spinlock after Blocking the process
- */
-void proc_block_release(lock_t lock);
-
-/*
  * Set a blocked process to running. The process is likely to block itself
  * again (eg if it's waiting on i/o or foreground)
  */
