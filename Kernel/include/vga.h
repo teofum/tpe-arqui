@@ -2,6 +2,7 @@
 #define VGA_H
 
 #include <stdint.h>
+#include <types.h>
 
 #define VGA_WIDTH vbe_mode_info->width
 #define VGA_HEIGHT vbe_mode_info->height
@@ -18,11 +19,6 @@
 #define colors(x, y) (((uint64_t) (x) << 32) | (y))
 
 typedef uint32_t color_t;
-
-/*
- * Opaque framebuffer type.
- */
-typedef struct vga_framebuffer_cdt_t *vga_framebuffer_t;
 
 /*
  * VBE mode info struct, used to query display hardware capabilities

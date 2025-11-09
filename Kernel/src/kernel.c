@@ -77,26 +77,13 @@ int main() {
   scheduler_init();
 
   // Enable status bar
-  status_set_enabled(1);
+  // status_set_enabled(1);
 
   // Initialize interrupts and syscalls
   init_syscalls();
   load_idt();
 
-  while (1) {
-    proc_init((proc_entrypoint_t) userland_code_module);
-
-    // printf(
-    //   "\x1A 195,248,132;[Kernel] \x1A R;"
-    //   "Userland module exited with code \x1A 255,197,96;%#08x\n"
-    //   "\x1A 195,248,132;[Kernel] \x1A R;"
-    //   "Press any key to restart shell\n",
-    //   ret
-    // );
-
-    int key = 0;
-    while (!key) { key = kbd_get_key_event().key; }
-  }
+  while (1) { proc_init((proc_entrypoint_t) userland_code_module); }
 
   return 0;
 }
