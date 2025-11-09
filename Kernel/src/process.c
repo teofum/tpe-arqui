@@ -187,6 +187,14 @@ void proc_blockpid(pid_t pid) {
   scheduler_remove(pid);
 }
 
+void proc_block_release(lock_t lock) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  pcb->state = PROC_STATE_BLOCKED;
+  lock_release(lock);
+
+  proc_yield();
+}
+
 void proc_runpid(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
   if (pcb->state == PROC_STATE_BLOCKED) {
