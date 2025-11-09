@@ -70,14 +70,15 @@ int sem_wait(sem_t sem) {
   semaphore_t *curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
 
-  if (curr_sem->value == 0) {
+  while (curr_sem->value == 0) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
     lock_release(curr_sem->lock);
     proc_block();
-  } else {
-    lock_release(curr_sem->lock);
+
+    lock_acquire(curr_sem->lock);
   }
 
+  lock_release(curr_sem->lock);
   curr_sem->value--;
 
   return 0;
