@@ -239,12 +239,7 @@ void proc_exit(int return_code) {
   proc_close_fds(proc_running_pid);
 
   while (!pqueue_empty(pcb->waiting_processes)) {
-    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
-
-    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
-    waiting_pcb->state = PROC_STATE_RUNNING;
-
-    scheduler_enqueue(waiting_pid);
+    pqueue_dequeue_and_run(pcb->waiting_processes);
   }
 
   proc_yield();
@@ -286,21 +281,15 @@ int proc_wait(pid_t pid) {
 void proc_kill(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
-  scheduler_remove(pid);
-
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = RETURN_KILLED;
 
+  scheduler_remove(pid);
   proc_close_fds(pid);
 
   pcb->n_waiting_processes = 0;
   while (!pqueue_empty(pcb->waiting_processes)) {
-    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
-
-    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
-    waiting_pcb->state = PROC_STATE_RUNNING;
-
-    scheduler_enqueue(waiting_pid);
+    pqueue_dequeue_and_run(pcb->waiting_processes);
   }
   proc_destroy(pid);
 }
