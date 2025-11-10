@@ -53,7 +53,7 @@
 
 - `|` - Conecta dos procesos mediante pipe
   ```bash
-  cat | filter
+  echo hola mundo | filter
   echo hola mundo | wc
   ```
 
