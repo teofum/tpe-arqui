@@ -200,11 +200,13 @@ static int history() {
   return 0;
 }
 
+#define CAT_BUFFER_LENGTH 512
+
 static int cat() {
-  char c[101];
-  int32_t read_bytes = 100;
-  while (read_bytes >= 100) {
-    read_bytes = read(STDIN, c, 100);
+  char c[CAT_BUFFER_LENGTH];
+  int32_t read_bytes = CAT_BUFFER_LENGTH;
+  while (read_bytes >= CAT_BUFFER_LENGTH) {
+    read_bytes = read(STDIN, c, CAT_BUFFER_LENGTH);
     write(STDOUT, c, read_bytes);
   }
 
@@ -216,11 +218,11 @@ static int cat() {
 #define tolower(c) (isupper(c) ? (c) - 'A' : (c))
 
 static int filter() {
-  char c[101];
-  char c2[101];
-  int32_t read_bytes = 100;
-  while (read_bytes >= 100) {
-    read_bytes = read(STDIN, c, 100);
+  char c[CAT_BUFFER_LENGTH];
+  char c2[CAT_BUFFER_LENGTH];
+  int32_t read_bytes = CAT_BUFFER_LENGTH;
+  while (read_bytes >= CAT_BUFFER_LENGTH) {
+    read_bytes = read(STDIN, c, CAT_BUFFER_LENGTH);
 
     int j = 0;
     for (int i = 0; i < read_bytes; i++) {
@@ -237,11 +239,11 @@ static int filter() {
 }
 
 static int wc() {
-  char c[101];
-  int32_t read_bytes = 100;
+  char c[CAT_BUFFER_LENGTH];
+  int32_t read_bytes = CAT_BUFFER_LENGTH;
   uint32_t lines = 0;
-  while (read_bytes >= 100) {
-    read_bytes = read(STDIN, c, 100);
+  while (read_bytes >= CAT_BUFFER_LENGTH) {
+    read_bytes = read(STDIN, c, CAT_BUFFER_LENGTH);
 
     for (int i = 0; i < read_bytes; i++) {
       if (c[i] == '\n') lines++;

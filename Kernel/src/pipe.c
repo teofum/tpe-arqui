@@ -14,7 +14,8 @@ typedef struct pipe_cdt_t {
 
   uint32_t read_cursor;
   uint32_t write_cursor;
-  sem_t sem;
+  sem_t bytes_available;
+  sem_t space_available;
 
   uint8_t data[PIPE_SIZE];
 } pipe_cdt_t;
@@ -29,7 +30,8 @@ pipe_t pipe_create() {
   pipe->can_write = 0;
   pipe->read_cursor = 0;
   pipe->write_cursor = 0;
-  pipe->sem = sem_create(0);
+  pipe->bytes_available = sem_create(0);
+  pipe->space_available = sem_create(PIPE_SIZE);
 
   return pipe;
 }
@@ -71,7 +73,8 @@ int pipe_disconnect(pipe_t pipe, fd_mode_t end) {
   }
 
   if (!pipe->can_read && !pipe->can_write) {
-    sem_close(pipe->sem);
+    sem_close(pipe->bytes_available);
+    sem_close(pipe->space_available);
     mem_free(pipe);
 
     return 1;
@@ -94,9 +97,10 @@ int32_t pipe_read(pipe_t pipe, char *buf, uint32_t len) {
   while (read < len) {
     if (pipe->write_cursor == pipe->read_cursor && !pipe->can_write) break;
 
-    sem_wait(pipe->sem);
+    sem_wait(pipe->bytes_available);
     *buf++ = pipe->data[pipe->read_cursor];
     advance(pipe->read_cursor);
+    sem_post(pipe->space_available);
     read++;
   }
 
@@ -109,9 +113,10 @@ int32_t pipe_write(pipe_t pipe, const char *buf, uint32_t len) {
 
   uint32_t written = 0;
   while (written < len) {
+    sem_wait(pipe->space_available);
     pipe->data[pipe->write_cursor] = *buf++;
     advance(pipe->write_cursor);
-    sem_post(pipe->sem);
+    sem_post(pipe->bytes_available);
     written++;
   }
 
