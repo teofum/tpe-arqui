@@ -108,7 +108,6 @@ int32_t pipe_read(pipe_t pipe, char *buf, uint32_t len) {
 }
 
 int32_t pipe_write(pipe_t pipe, const char *buf, uint32_t len) {
-  // Don't allow writing to a pipe if the reading end is closed
   if (!pipe->can_write) return -1;
 
   uint32_t written = 0;

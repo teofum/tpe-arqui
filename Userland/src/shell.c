@@ -434,7 +434,7 @@ static int run_commands(command_group_t *cmds) {
   }
 
   // Run the programs
-  pid_t first_pid = -1;
+  pid_t *pids = mem_alloc(sizeof(pid_t) * cmds->count);
   for (size_t i = 0; i < cmds->count; i++) {
     proc_entrypoint_t ep = programs[i]->entry_point;
     pid_t pid;
@@ -461,7 +461,7 @@ static int run_commands(command_group_t *cmds) {
     } else {
       pid = proc_spawn(ep, args[i].count, args[i].strings, NULL);
     }
-    if (i == 0) first_pid = pid;
+    pids[i] = pid;
 
     mem_free((void *) args[i].strings);
   }
@@ -470,7 +470,9 @@ static int run_commands(command_group_t *cmds) {
 
   // Wait for the first program in the pipeline, if it's meant to run in foreground
   if (!cmds->background) {
-    int return_value = proc_wait(first_pid);
+    int return_value = 0;
+    for (int i = 0; i < cmds->count; i++) return_value = proc_wait(pids[i]);
+
     if (return_value == RETURN_KILLED) {
       prompt_length += printf("[" COL_RED "Killed" COL_RESET "] ");
     } else if (return_value != 0) {
@@ -480,6 +482,7 @@ static int run_commands(command_group_t *cmds) {
 
   mem_free(scratch);
   mem_free((void *) cmds->cmds);
+  mem_free(pids);
   return 0;
 }
 
