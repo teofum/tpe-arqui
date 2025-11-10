@@ -4,6 +4,7 @@
 #include <fd.h>
 #include <pipe.h>
 #include <pqueue.h>
+#include <spinlock.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <types.h>
@@ -107,6 +108,11 @@ void proc_block();
  * Blocks a process by PID and yields control to the scheduler.
  */
 void proc_blockpid(pid_t pid);
+
+/*
+ * marks the process as blocked without yielding
+ */
+void proc_block_dont_yield();
 
 /*
  * Set a blocked process to running. The process is likely to block itself

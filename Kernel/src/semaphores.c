@@ -1,3 +1,4 @@
+#include "process.h"
 #include <lib.h>
 #include <mem.h>
 #include <scheduler.h>
@@ -33,7 +34,7 @@ static int get_free_sem() {
 }
 
 /**
- * Creates new semaphore and returns handle, NULL if it fails
+ * Creates new semaphore and returns handle, -1 if it fails
  */
 sem_t sem_create(int initial) {
   int index = get_free_sem();
@@ -70,15 +71,16 @@ int sem_wait(sem_t sem) {
   semaphore_t *curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
 
-  if (curr_sem->value == 0) {
+  while (curr_sem->value == 0) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
+    proc_block_dont_yield();
     lock_release(curr_sem->lock);
-    proc_block();
-  } else {
-    lock_release(curr_sem->lock);
+    proc_yield();
+    lock_acquire(curr_sem->lock);
   }
 
   curr_sem->value--;
+  lock_release(curr_sem->lock);
 
   return 0;
 }
