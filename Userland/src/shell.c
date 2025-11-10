@@ -446,13 +446,13 @@ static int run_commands(command_group_t *cmds) {
              .fd = STDIN,
              .type = i == 0 ? FD_TTY : FD_PIPE,
              .pipe = i == 0 ? NULL : pipes[i - 1],
-             .mode = PIPE_READ,
+             .mode = FD_READ,
            },
            (proc_fd_descriptor_t) {
              .fd = STDOUT,
              .type = i == cmds->count - 1 ? FD_TTY : FD_PIPE,
              .pipe = i == cmds->count - 1 ? NULL : pipes[i],
-             .mode = PIPE_WRITE,
+             .mode = FD_WRITE,
            },
          }};
       pid = proc_spawn(ep, args[i].count, args[i].strings, &desc);

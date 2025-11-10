@@ -11,6 +11,8 @@ global %1
 ; I/O system calls
 define_syscall read, 0x03
 define_syscall write, 0x04
+define_syscall open, 0x05
+define_syscall close, 0x06
 define_syscall writes, 0x07
 define_syscall io_clear, 0x09
 define_syscall io_setfont, 0x0A
@@ -86,3 +88,4 @@ define_syscall sem_close, 0x84
 
 ; Pipe system calls
 define_syscall pipe_create, 0x90
+define_syscall pipe_create_named, 0x91

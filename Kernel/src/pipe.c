@@ -19,6 +19,8 @@ typedef struct pipe_cdt_t {
   uint8_t data[PIPE_SIZE];
 } pipe_cdt_t;
 
+static pipe_t named_pipes[MAX_NAMED_PIPES];
+
 pipe_t pipe_create() {
   pipe_t pipe = mem_alloc(sizeof(struct pipe_cdt_t));
   if (!pipe) return NULL;
@@ -32,24 +34,38 @@ pipe_t pipe_create() {
   return pipe;
 }
 
-fd_t pipe_connect(pipe_t pipe, pipe_end_t end) {
+pipe_t pipe_create_named(uint32_t name) {
+  if (name >= MAX_NAMED_PIPES || named_pipes[name]) return NULL;
+
+  pipe_t pipe = pipe_create();
+  if (pipe) named_pipes[name] = pipe;
+
+  return pipe;
+}
+
+fd_t pipe_connect(pipe_t pipe, fd_mode_t end) {
   switch (end) {
-    case PIPE_READ:
+    case FD_READ:
       pipe->can_read = 1;
-      return create_pipe_fd(pipe);
-    case PIPE_WRITE:
+      return create_pipe_fd(pipe, FD_READ);
+    case FD_WRITE:
       pipe->can_write = 1;
-      return create_pipe_fd(pipe);
+      return create_pipe_fd(pipe, FD_WRITE);
   }
   return (fd_t) {};
 }
 
-void pipe_disconnect(pipe_t pipe, pipe_end_t end) {
+fd_t pipe_connect_named(uint32_t name, fd_mode_t end) {
+  if (name >= MAX_NAMED_PIPES || !named_pipes[name]) return (fd_t) {};
+  return pipe_connect(named_pipes[name], end);
+}
+
+int pipe_disconnect(pipe_t pipe, fd_mode_t end) {
   switch (end) {
-    case PIPE_READ:
+    case FD_READ:
       pipe->can_read = 0;
       break;
-    case PIPE_WRITE:
+    case FD_WRITE:
       pipe->can_write = 0;
       break;
   }
@@ -57,7 +73,18 @@ void pipe_disconnect(pipe_t pipe, pipe_end_t end) {
   if (!pipe->can_read && !pipe->can_write) {
     sem_close(pipe->sem);
     mem_free(pipe);
+
+    return 1;
   }
+
+  return 0;
+}
+
+void pipe_disconnect_named(uint32_t name, fd_mode_t end) {
+  if (name >= MAX_NAMED_PIPES || !named_pipes[name]) return;
+
+  int destroyed = pipe_disconnect(named_pipes[name], end);
+  if (destroyed) named_pipes[name] = NULL;
 }
 
 int32_t pipe_read(pipe_t pipe, char *buf, uint32_t len) {

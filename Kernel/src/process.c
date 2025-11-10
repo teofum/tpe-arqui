@@ -225,11 +225,8 @@ static void proc_close_fds(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
   for (int i = 0; i < FD_COUNT; i++) {
-    if (pcb->file_descriptors[i].type == FD_PIPE) {
-      pipe_disconnect(
-        pcb->file_descriptors[i].data, i == STDIN ? PIPE_READ : PIPE_WRITE
-      );
-    }
+    fd_t fd = pcb->file_descriptors[i];
+    if (fd.type == FD_PIPE) pipe_disconnect(fd.data, fd.mode);
   }
 }
 
@@ -396,4 +393,19 @@ int proc_set_priority(pid_t pid, priority_t new_priority) {
   if (pcb->state == PROC_STATE_RUNNING) scheduler_enqueue(pid);
 
   return 1;
+}
+
+void proc_open(uint32_t fd_idx, uint32_t pipe, fd_mode_t mode) {
+  proc_close(fd_idx);
+
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  pcb->file_descriptors[fd_idx] = pipe_connect_named(pipe, mode);
+}
+
+void proc_close(uint32_t fd_idx) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  fd_t fd = pcb->file_descriptors[fd_idx];
+  if (fd.type == FD_PIPE) pipe_disconnect(fd.data, fd.mode);
+  pcb->file_descriptors[fd_idx] = create_empty_fd();
 }
