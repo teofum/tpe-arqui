@@ -187,12 +187,11 @@ void proc_blockpid(pid_t pid) {
   scheduler_remove(pid);
 }
 
-void proc_block_release(lock_t lock) {
+void proc_block_dont_yield() {
   proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
   pcb->state = PROC_STATE_BLOCKED;
-  lock_release(lock);
 
-  proc_yield();
+  scheduler_remove(proc_running_pid);
 }
 
 void proc_runpid(pid_t pid) {
