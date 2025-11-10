@@ -26,6 +26,7 @@
 - `proc nice <pid> <priority>` - Cambia la prioridad de un proceso (0-4)
 - `proc stop <pid>` - Bloquea un proceso
 - `proc run <pid>` - Desbloquea un proceso
+- `loop <mensaje> [<intervalo_ms>]` - Imprime un mensaje repetidamente
 
 ### Inter-Process Communication
 
