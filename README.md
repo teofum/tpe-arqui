@@ -2,7 +2,12 @@
 
 ## Compilación y ejecución
 
-
+- `make container` – configurar el container de build
+- `make` o `make remote` – build completo del proyecto con el container
+- `make all` – build completo local (usar dentro del container)
+- `make run` – ejecutar el so en qemu
+- `make debug` – ejecutar el so en qemu en modo debug para conectar gdb remoto
+- `make clean` – limpiar todos los archivos de build
 
 ## Comandos disponibles
 
@@ -47,14 +52,15 @@
 ## Caracteres especiales
 
 - `&` - Ejecuta comando en background
+
   ```bash
   test mm 1000000 &
   ```
 
 - `|` - Conecta dos procesos mediante pipe
   ```bash
-  cat | filter
-  echo hola mundo | wc
+  help | filter
+  echo hello world | wc
   ```
 
 ## Atajos de teclado
@@ -63,8 +69,6 @@
 - `Ctrl + D` - Envía EOF (End of File)
 
 ## Ejemplos de uso por fuera de los tests
-
-
 
 ## Limitaciones
 
