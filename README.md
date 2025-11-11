@@ -53,7 +53,7 @@
 
 - `|` - Conecta dos procesos mediante pipe
   ```bash
-  echo hola mundo | filter
+  cat | filter
   echo hola mundo | wc
   ```
 
@@ -68,7 +68,7 @@
 
 ## Limitaciones
 
-
+- No existe jerarquía de procesos. Si un proceso padre termina sin hacer wait de sus hijos, estos quedan huérfanos y continúan ejecutándose sin un padre que los espere.
 
 ## Autores
 
