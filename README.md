@@ -17,6 +17,17 @@
 - `echo <args>` - Imprime argumentos a stdout
 - `clear` - Limpia la terminal
 - `history` - Muestra historial de comandos
+- `status <on|off>` - Activa/desactiva la status bar
+- `setfont` - Cambia tamaño o estilo de fuente (`setfont ls` lista los disponibles)
+- `beep` - Reproduce un beep corto
+- `music` - Reproduce música de Tetris
+
+### Demos y juegos
+
+- `gfxdemo` - Demo de modo gráfico
+- `demo3d` - Demo de gráficos 3D
+- `golf` - Juego de golf
+- `capy` - Muestra la mascota del sistema
 
 ### Physical Memory Management
 
