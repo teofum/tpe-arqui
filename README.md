@@ -70,6 +70,8 @@
 
 - No existe jerarquía de procesos. Si un proceso padre termina sin hacer wait de sus hijos, estos quedan huérfanos y continúan ejecutándose sin un padre que los espere.
 
+- El sistema de scheduling asegura de que ningun proceso se muera de hambre, por ende el performance decae con muchos procesos, pero para el uso esperado consideramos que era adecuado.
+
 ## Autores
 
 - Arcodaci, Tiziano - tarcodaci@itba.edu.ar
