@@ -65,10 +65,30 @@
 
 ## Atajos de teclado
 
+- `F1` - Dump del estado de la CPU
 - `Ctrl + C` - Mata el proceso en foreground
 - `Ctrl + D` - Envía EOF (End of File)
 
 ## Ejemplos de uso por fuera de los tests
+
+```bash
+# Memory management
+mem
+
+# Scheduling con prioridades
+loop A 2000 &
+loop B 2000 &
+proc nice 3 4
+proc ls
+
+# Pipes
+echo sistemas operativos | filter
+cat | wc
+
+# Sincronización
+mvar 3 2 &
+proc kill 4
+```
 
 ## Limitaciones
 
