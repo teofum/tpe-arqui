@@ -44,7 +44,7 @@
 #define VMAX 50.0f
 #define TURNS_SPEED 0.005f
 #define ACCELERATION 0.005f
-#define GRAVITY 0.2f
+#define GRAVITY 0.05f
 #define BRAKING 0.9
 
 // Hit debounce so it doesn't register multiple times in a row
@@ -395,33 +395,87 @@ do_collision(game_t *game, physics_object_t *a, physics_object_t *b) {
   return 0;
 }
 
+static inline float inv_sqrt(float v) {
+  if (v <= 0.0f) return 0.0f;
+  float y = v;
+  long i = *(long *) &y;// bit-level initial guess
+  i = 0x5f3759df - (i >> 1);
+  y = *(float *) &i;
+  // one Newton–Raphson iteration for accuracy
+  y = y * (1.5f - 0.5f * v * y * y);
+  return y;
+}
+
+
 static void
 apply_gravity(game_t *game, terrain_t *terrain, physics_object_t *obj) {
-  float fx = obj->x / TERRAIN_SIZE_UNITS_X;
-  float fy = obj->y / TERRAIN_SIZE_UNITS_Y;
 
-  uint32_t x = fx, y = fy;
-  x = max(0, min(TERRAIN_SIZE_X - 1, x));
-  y = max(0, min(TERRAIN_SIZE_Y - 1, y));
+#define FLOORF(x) ((int) (x) - ((x) < 0 && (x) != (int) (x)))
 
-  float3 normals[] = {
-    terrain->normals[x][y],
-    terrain->normals[x + 1][y],
-    terrain->normals[x][y + 1],
-    terrain->normals[x + 1][y + 1],
+  float gx = obj->x / TERRAIN_SIZE_UNITS_X;
+  float gy = obj->y / TERRAIN_SIZE_UNITS_Y;
+
+  int ix = FLOORF(gx);
+  int iy = FLOORF(gy);
+
+  if (ix < 0) ix = 0;
+  if (iy < 0) iy = 0;
+  if (ix > TERRAIN_SIZE_X - 2) ix = TERRAIN_SIZE_X - 2;
+  if (iy > TERRAIN_SIZE_Y - 2) iy = TERRAIN_SIZE_Y - 2;
+
+  float tx = gx - ix;
+  float ty = gy - iy;
+
+  // bilinear interpolation of normals
+  float3 n00 = terrain->normals[ix][iy];
+  float3 n10 = terrain->normals[ix + 1][iy];
+  float3 n01 = terrain->normals[ix][iy + 1];
+  float3 n11 = terrain->normals[ix + 1][iy + 1];
+
+  float3 n0 = vlerp(n00, n10, tx);
+  float3 n1 = vlerp(n01, n11, tx);
+  float3 n = {
+    n0.x + (n1.x - n0.x) * ty, n0.y + (n1.y - n0.y) * ty,
+    n0.z + (n1.z - n0.z) * ty
   };
 
-  float3 normal = vlerp(
-    vlerp(normals[0], normals[1], fx - x),
-    vlerp(normals[2], normals[3], fx - x), fy - y
-  );
-  vector_t s = {normal.x, normal.z};
+  // normalize interpolated normal
+  {
+    float len2 = n.x * n.x + n.y * n.y + n.z * n.z;
+    float invLen = inv_sqrt(len2);
+    if (invLen > 0.0f) {
+      n.x *= invLen;
+      n.y *= invLen;
+      n.z *= invLen;
+    } else {
+      n.x = 0.0f;
+      n.y = 1.0f;
+      n.z = 0.0f;
+    }
+  }
 
-  vector_t a = {
-    -GRAVITY * s.x * abs(s.x),
-    -GRAVITY * s.y * abs(s.y),
-  };
+  // 3D normal → 2D downslope direction
+  float dx = -n.x, dy = -n.z;
+
+  float dlen2 = dx * dx + dy * dy;
+  float invd = inv_sqrt(dlen2);
+  if (invd > 0.0f) {
+    dx *= invd;
+    dy *= invd;
+  } else {
+    dx = dy = 0.0f;
+  }
+
+  // slope magnitude = sin(theta) = sqrt(1 - ny^2)
+  float s2 = 1.0f - n.y * n.y;
+  if (s2 < 0.0f) s2 = 0.0f;
+  float sin_theta = s2 * inv_sqrt(s2);
+
+  vector_t a = {GRAVITY * sin_theta * dx, GRAVITY * sin_theta * dy};
+
   accelerate_object(game, obj, &a);
+
+#undef FLOORF
 }
 
 static int check_hole(physics_object_t *obj, hole_t *hole) {
