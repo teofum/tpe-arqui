@@ -1,4 +1,5 @@
-#include "io.h"
+#include "fd.h"
+#include <io.h>
 #include <mem.h>
 #include <print.h>
 #include <process.h>
@@ -343,6 +344,43 @@ int test_sem_sync() {
   return 0;
 }
 
+/*
+ * Test named pipes
+ */
+static int pipe_writer(uint64_t argc, char *const *argv) {
+  open(5, 2, FD_WRITE);
+  printf("    Writer: writing \"%s\" to pipe\n", argv[1]);
+  write(5, argv[1], 4);
+  close(5);
+  return 0;
+}
+
+static int pipe_reader(uint64_t argc, char *const *argv) {
+  char buf[8] = {0};
+
+  open(7, 2, FD_READ);
+  read(7, buf, 4);
+  close(7);
+
+  printf("    Reader: read \"%s\" from pipe\n", argv[1]);
+  sst_assert_streq(argv[1], buf, "String read from pipe doesn't match");
+
+  return 0;
+}
+
+int test_named_pipe() {
+  pipe_create_named(2);
+
+  char *const argv[2] = {"", "test"};
+  pid_t writer_pid = proc_spawn(pipe_writer, lengthof(argv), argv, NULL);
+  pid_t reader_pid = proc_spawn(pipe_reader, lengthof(argv), argv, NULL);
+
+  proc_wait(writer_pid);
+  proc_wait(reader_pid);
+
+  return 0;
+}
+
 /* ========================================================================= *
  * Tests end here                                                            *
  * ========================================================================= */
@@ -359,7 +397,8 @@ test_fn_t tests[] = {
   test_proc_read_unset_fd,
   test_proc_write_unset_fd,
   test_sem_ops,
-  test_sem_sync
+  test_sem_sync,
+  test_named_pipe,
 };
 
 int sst_run_tests() {

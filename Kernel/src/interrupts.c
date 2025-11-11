@@ -142,7 +142,8 @@ void init_syscalls() {
   /* Virtual terminal I/O */
   register_syscall(0x03, io_read);
   register_syscall(0x04, io_write);
-  // 0x05, 0x06 reserved for future syscalls (open, close)
+  register_syscall(0x05, proc_open);
+  register_syscall(0x06, proc_close);
   register_syscall(0x07, io_writes);
   register_syscall(0x09, io_clear);
   register_syscall(0x0A, io_setfont);
@@ -218,6 +219,7 @@ void init_syscalls() {
 
   /* Pipes */
   register_syscall(0x90, pipe_create);
+  register_syscall(0x91, pipe_create_named);
 }
 
 typedef struct {

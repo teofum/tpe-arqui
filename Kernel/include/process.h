@@ -71,7 +71,7 @@ typedef struct {
   uint32_t fd;
   fd_type_t type;
   pipe_t pipe;
-  pipe_end_t mode;
+  fd_mode_t mode;
 } proc_fd_descriptor_t;
 
 typedef struct {
@@ -108,11 +108,6 @@ void proc_block();
  * Blocks a process by PID and yields control to the scheduler.
  */
 void proc_blockpid(pid_t pid);
-
-/*
- * marks the process as blocked without yielding
- */
-void proc_block_dont_yield();
 
 /*
  * Set a blocked process to running. The process is likely to block itself
@@ -196,5 +191,9 @@ int32_t proc_request_framebuffer(int32_t width, int32_t height);
 int32_t proc_release_framebuffer(uint32_t fb_handle);
 
 int proc_set_priority(pid_t pid, priority_t priority);
+
+void proc_open(uint32_t fd, uint32_t pipe, fd_mode_t mode);
+
+void proc_close(uint32_t fd);
 
 #endif
