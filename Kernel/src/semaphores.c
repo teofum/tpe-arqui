@@ -1,5 +1,7 @@
 #include <lib.h>
 #include <mem.h>
+#include <pqueue.h>
+#include <process.h>
 #include <scheduler.h>
 #include <semaphores.h>
 #include <spinlock.h>
@@ -66,16 +68,20 @@ sem_t sem_create(int initial) {
  */
 int sem_wait(sem_t sem) {
   if (!valid_sem(sem)) return -1;
+  _cli();
 
   semaphore_t *curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
 
   while (curr_sem->value == 0) {
     pqueue_enqueue(curr_sem->waiters, proc_running_pid);
-    proc_block_release(curr_sem->lock);
+    lock_release(curr_sem->lock);
+    proc_block();
+
     lock_acquire(curr_sem->lock);
   }
 
+  lock_release(curr_sem->lock);
   curr_sem->value--;
   lock_release(curr_sem->lock);
 
@@ -93,9 +99,7 @@ int sem_post(sem_t sem) {
 
   curr_sem->value++;
   if (!pqueue_empty(curr_sem->waiters)) {
-    pid_t pid = pqueue_dequeue(curr_sem->waiters);
-    (&proc_control_table[pid])->state = PROC_STATE_RUNNING;
-    scheduler_enqueue(pid);
+    pqueue_dequeue_and_run(curr_sem->waiters);
   }
 
   lock_release(curr_sem->lock);

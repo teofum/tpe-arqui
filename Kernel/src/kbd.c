@@ -225,14 +225,7 @@ static uint8_t get_extended_key(uint8_t key) {
 void kbd_init() { kbd_pqueue = pqueue_create(); }
 
 static void unblock_next_waiting_process() {
-  if (!pqueue_empty(kbd_pqueue)) {
-    pid_t waiting_pid = pqueue_dequeue(kbd_pqueue);
-
-    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
-    waiting_pcb->state = PROC_STATE_RUNNING;
-
-    scheduler_enqueue(waiting_pid);
-  }
+  if (!pqueue_empty(kbd_pqueue)) pqueue_dequeue_and_run(kbd_pqueue);
 }
 
 static uint8_t get_key_from_scancode(uint8_t scancode) {

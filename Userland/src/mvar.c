@@ -10,7 +10,8 @@
 
 typedef struct {
   char c;
-  sem_t mutex;
+  sem_t empty;
+  sem_t full;
 } mvar_shared_t;
 
 static mvar_shared_t shared;
@@ -29,9 +30,9 @@ int writer(uint64_t argc, char *const *argv) {
     while (interval-- > 0) { yield(); }
     interval = pcg32_rand(&rng) % INTERVAL_MAX;
 
-    sem_wait(shared.mutex);
-    if (shared.c == 0) { shared.c = argv[1][0]; }
-    sem_post(shared.mutex);
+    sem_wait(shared.empty);
+    shared.c = argv[1][0];
+    sem_post(shared.full);
   }
 
   return 0;
@@ -48,12 +49,9 @@ int reader(uint64_t argc, char *const *argv) {
     while (interval-- > 0) { yield(); }
     interval = pcg32_rand(&rng) % INTERVAL_MAX;
 
-    sem_wait(shared.mutex);
-    if (shared.c != 0) {
-      printf("%s%c", argv[1], shared.c);
-      shared.c = 0;
-    }
-    sem_post(shared.mutex);
+    sem_wait(shared.full);
+    printf("%s%c", argv[1], shared.c);
+    sem_post(shared.empty);
   }
 
   return 0;
@@ -61,7 +59,8 @@ int reader(uint64_t argc, char *const *argv) {
 
 int mvar(uint64_t argc, char *const *argv) {
   shared.c = 0;
-  shared.mutex = sem_create(1);
+  shared.empty = sem_create(1);
+  shared.full = sem_create(0);
 
   if (argc < 3) {
     printf("Usage: mvar <n_writers> <n_readers>\n");

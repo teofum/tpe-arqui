@@ -200,11 +200,13 @@ static int history() {
   return 0;
 }
 
+#define CAT_BUFFER_LENGTH 512
+
 static int cat() {
-  char c[101];
-  int32_t read_bytes = 100;
-  while (read_bytes >= 100) {
-    read_bytes = read(STDIN, c, 100);
+  char c[CAT_BUFFER_LENGTH];
+  int32_t read_bytes = CAT_BUFFER_LENGTH;
+  while (read_bytes >= CAT_BUFFER_LENGTH) {
+    read_bytes = read(STDIN, c, CAT_BUFFER_LENGTH);
     write(STDOUT, c, read_bytes);
   }
 
@@ -216,11 +218,11 @@ static int cat() {
 #define tolower(c) (isupper(c) ? (c) - 'A' : (c))
 
 static int filter() {
-  char c[101];
-  char c2[101];
-  int32_t read_bytes = 100;
-  while (read_bytes >= 100) {
-    read_bytes = read(STDIN, c, 100);
+  char c[CAT_BUFFER_LENGTH];
+  char c2[CAT_BUFFER_LENGTH];
+  int32_t read_bytes = CAT_BUFFER_LENGTH;
+  while (read_bytes >= CAT_BUFFER_LENGTH) {
+    read_bytes = read(STDIN, c, CAT_BUFFER_LENGTH);
 
     int j = 0;
     for (int i = 0; i < read_bytes; i++) {
@@ -237,11 +239,11 @@ static int filter() {
 }
 
 static int wc() {
-  char c[101];
-  int32_t read_bytes = 100;
+  char c[CAT_BUFFER_LENGTH];
+  int32_t read_bytes = CAT_BUFFER_LENGTH;
   uint32_t lines = 0;
-  while (read_bytes >= 100) {
-    read_bytes = read(STDIN, c, 100);
+  while (read_bytes >= CAT_BUFFER_LENGTH) {
+    read_bytes = read(STDIN, c, CAT_BUFFER_LENGTH);
 
     for (int i = 0; i < read_bytes; i++) {
       if (c[i] == '\n') lines++;
@@ -432,7 +434,7 @@ static int run_commands(command_group_t *cmds) {
   }
 
   // Run the programs
-  pid_t first_pid = -1;
+  pid_t *pids = mem_alloc(sizeof(pid_t) * cmds->count);
   for (size_t i = 0; i < cmds->count; i++) {
     proc_entrypoint_t ep = programs[i]->entry_point;
     pid_t pid;
@@ -446,20 +448,20 @@ static int run_commands(command_group_t *cmds) {
              .fd = STDIN,
              .type = i == 0 ? FD_TTY : FD_PIPE,
              .pipe = i == 0 ? NULL : pipes[i - 1],
-             .mode = PIPE_READ,
+             .mode = FD_READ,
            },
            (proc_fd_descriptor_t) {
              .fd = STDOUT,
              .type = i == cmds->count - 1 ? FD_TTY : FD_PIPE,
              .pipe = i == cmds->count - 1 ? NULL : pipes[i],
-             .mode = PIPE_WRITE,
+             .mode = FD_WRITE,
            },
          }};
       pid = proc_spawn(ep, args[i].count, args[i].strings, &desc);
     } else {
       pid = proc_spawn(ep, args[i].count, args[i].strings, NULL);
     }
-    if (i == 0) first_pid = pid;
+    pids[i] = pid;
 
     mem_free((void *) args[i].strings);
   }
@@ -468,7 +470,9 @@ static int run_commands(command_group_t *cmds) {
 
   // Wait for the first program in the pipeline, if it's meant to run in foreground
   if (!cmds->background) {
-    int return_value = proc_wait(first_pid);
+    int return_value = 0;
+    for (int i = 0; i < cmds->count; i++) return_value = proc_wait(pids[i]);
+
     if (return_value == RETURN_KILLED) {
       prompt_length += printf("[" COL_RED "Killed" COL_RESET "] ");
     } else if (return_value != 0) {
@@ -478,6 +482,7 @@ static int run_commands(command_group_t *cmds) {
 
   mem_free(scratch);
   mem_free((void *) cmds->cmds);
+  mem_free(pids);
   return 0;
 }
 

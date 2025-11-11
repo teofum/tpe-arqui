@@ -6,7 +6,7 @@
 #define MAX_PRIORITY 4
 #define DEFAULT_PRIORITY 2
 
-typedef int16_t pid_t;// TODO: esto no va ak
+typedef int16_t pid_t;
 
 extern int scheduler_force_next;
 

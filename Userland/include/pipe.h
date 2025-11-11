@@ -4,13 +4,10 @@
 #include <fd.h>
 #include <stdint.h>
 
-typedef enum {
-  PIPE_WRITE,
-  PIPE_READ,
-} pipe_end_t;
-
 typedef struct pipe_cdt_t *pipe_t;
 
 pipe_t pipe_create();
+
+pipe_t pipe_create_named(uint32_t name);
 
 #endif

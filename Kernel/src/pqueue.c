@@ -1,6 +1,9 @@
 #include <mem.h>
 #include <pqueue.h>
+#include <process.h>
+#include <scheduler.h>
 #include <stdint.h>
+#include <types.h>
 
 typedef struct pqueue_item_t {
   pid_t data;
@@ -51,6 +54,21 @@ pid_t pqueue_dequeue(pqueue_t queue) {
   pid_t pid = head->data;
   queue->head = head->tail;
   mem_free(head);
+
+  return pid;
+}
+
+pid_t pqueue_dequeue_and_run(pqueue_t queue) {
+  pid_t pid = pqueue_dequeue(queue);
+
+  if (pid != -1) {
+    proc_control_block_t *waiting_pcb = &proc_control_table[pid];
+
+    if (waiting_pcb->state == PROC_STATE_BLOCKED) {
+      waiting_pcb->state = PROC_STATE_RUNNING;
+      scheduler_enqueue(pid);
+    }
+  }
 
   return pid;
 }

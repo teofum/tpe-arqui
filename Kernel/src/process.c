@@ -47,7 +47,7 @@ proc_initialize_fds(proc_control_block_t *pcb, proc_descriptor_t *desc) {
         pcb->file_descriptors[fd_desc->fd] =
           pipe_connect(fd_desc->pipe, fd_desc->mode);
       } else {
-        pcb->file_descriptors[fd_desc->fd] = (fd_t){
+        pcb->file_descriptors[fd_desc->fd] = (fd_t) {
           .type = fd_desc->type,
           .data = NULL,
         };
@@ -169,6 +169,7 @@ void proc_init(proc_entrypoint_t entry_point) {
 }
 
 void proc_yield() {
+  _sti();// Ensure interrupts are enabled
   scheduler_force_next = 1;
   _proc_timer_interrupt();
 }
@@ -185,14 +186,6 @@ void proc_blockpid(pid_t pid) {
   pcb->state = PROC_STATE_BLOCKED;
 
   scheduler_remove(pid);
-}
-
-void proc_block_release(lock_t lock) {
-  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
-  pcb->state = PROC_STATE_BLOCKED;
-  lock_release(lock);
-
-  proc_yield();
 }
 
 void proc_runpid(pid_t pid) {
@@ -233,11 +226,8 @@ static void proc_close_fds(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
   for (int i = 0; i < FD_COUNT; i++) {
-    if (pcb->file_descriptors[i].type == FD_PIPE) {
-      pipe_disconnect(
-        pcb->file_descriptors[i].data, i == STDIN ? PIPE_READ : PIPE_WRITE
-      );
-    }
+    fd_t fd = pcb->file_descriptors[i];
+    if (fd.type == FD_PIPE) pipe_disconnect(fd.data, fd.mode);
   }
 }
 
@@ -250,12 +240,7 @@ void proc_exit(int return_code) {
   proc_close_fds(proc_running_pid);
 
   while (!pqueue_empty(pcb->waiting_processes)) {
-    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
-
-    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
-    waiting_pcb->state = PROC_STATE_RUNNING;
-
-    scheduler_enqueue(waiting_pid);
+    pqueue_dequeue_and_run(pcb->waiting_processes);
   }
 
   proc_yield();
@@ -297,21 +282,15 @@ int proc_wait(pid_t pid) {
 void proc_kill(pid_t pid) {
   proc_control_block_t *pcb = &proc_control_table[pid];
 
-  scheduler_remove(pid);
-
   pcb->state = PROC_STATE_EXITED;
   pcb->return_code = RETURN_KILLED;
 
+  scheduler_remove(pid);
   proc_close_fds(pid);
 
   pcb->n_waiting_processes = 0;
   while (!pqueue_empty(pcb->waiting_processes)) {
-    pid_t waiting_pid = pqueue_dequeue(pcb->waiting_processes);
-
-    proc_control_block_t *waiting_pcb = &proc_control_table[waiting_pid];
-    waiting_pcb->state = PROC_STATE_RUNNING;
-
-    scheduler_enqueue(waiting_pid);
+    pqueue_dequeue_and_run(pcb->waiting_processes);
   }
   proc_destroy(pid);
 }
@@ -404,4 +383,19 @@ int proc_set_priority(pid_t pid, priority_t new_priority) {
   if (pcb->state == PROC_STATE_RUNNING) scheduler_enqueue(pid);
 
   return 1;
+}
+
+void proc_open(uint32_t fd_idx, uint32_t pipe, fd_mode_t mode) {
+  proc_close(fd_idx);
+
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+  pcb->file_descriptors[fd_idx] = pipe_connect_named(pipe, mode);
+}
+
+void proc_close(uint32_t fd_idx) {
+  proc_control_block_t *pcb = &proc_control_table[proc_running_pid];
+
+  fd_t fd = pcb->file_descriptors[fd_idx];
+  if (fd.type == FD_PIPE) pipe_disconnect(fd.data, fd.mode);
+  pcb->file_descriptors[fd_idx] = create_empty_fd();
 }
