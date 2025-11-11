@@ -1,6 +1,7 @@
-#include "pqueue.h"
 #include <lib.h>
 #include <mem.h>
+#include <pqueue.h>
+#include <process.h>
 #include <scheduler.h>
 #include <semaphores.h>
 #include <spinlock.h>
@@ -34,7 +35,7 @@ static int get_free_sem() {
 }
 
 /**
- * Creates new semaphore and returns handle, NULL if it fails
+ * Creates new semaphore and returns handle, -1 if it fails
  */
 sem_t sem_create(int initial) {
   int index = get_free_sem();
@@ -67,6 +68,7 @@ sem_t sem_create(int initial) {
  */
 int sem_wait(sem_t sem) {
   if (!valid_sem(sem)) return -1;
+  _cli();
 
   semaphore_t *curr_sem = sem_references[sem];
   lock_acquire(curr_sem->lock);
@@ -81,6 +83,7 @@ int sem_wait(sem_t sem) {
 
   lock_release(curr_sem->lock);
   curr_sem->value--;
+  lock_release(curr_sem->lock);
 
   return 0;
 }

@@ -4,6 +4,7 @@
 #include <fd.h>
 #include <pipe.h>
 #include <pqueue.h>
+#include <spinlock.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <types.h>

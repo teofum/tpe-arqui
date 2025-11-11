@@ -8,9 +8,8 @@
 #include <sst.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <utils.h>
 
-// TODO move this somewhere else
-#define lengthof(x) (sizeof((x)) / sizeof((x)[0]))
 
 #define SST
 

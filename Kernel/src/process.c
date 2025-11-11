@@ -169,6 +169,7 @@ void proc_init(proc_entrypoint_t entry_point) {
 }
 
 void proc_yield() {
+  _sti();// Ensure interrupts are enabled
   scheduler_force_next = 1;
   _proc_timer_interrupt();
 }
