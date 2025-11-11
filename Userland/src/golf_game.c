@@ -41,10 +41,10 @@
 // Multiplies all velocities
 #define VMUL 0.1f
 
-#define VMAX 9.0f
-#define TURNS_SPEED 0.008f
+#define VMAX 50.0f
+#define TURNS_SPEED 0.005f
 #define ACCELERATION 0.005f
-#define GRAVITY 0.03f
+#define GRAVITY 0.2f
 #define BRAKING 0.9
 
 // Hit debounce so it doesn't register multiple times in a row
@@ -1093,7 +1093,7 @@ static int play_game(
     balls[i].y = FIELD_HEIGHT * (random_float(rng) * 0.8f + 0.1f);
     balls[i].vx = 0.0f;
     balls[i].vy = 0.0f;
-    balls[i].drag = 12.0f;
+    balls[i].drag = 2.0f;
     balls[i].size = 0.1f;
     balls[i].inv_mass = 1.0f;
 
