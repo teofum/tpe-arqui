@@ -41,10 +41,10 @@
 // Multiplies all velocities
 #define VMUL 0.1f
 
-#define VMAX 50.0f
-#define TURNS_SPEED 0.005f
+#define VMAX 35.0f
+#define TURNS_SPEED 0.004f
 #define ACCELERATION 0.005f
-#define GRAVITY 0.05f
+#define GRAVITY 0.01f
 #define BRAKING 0.9
 
 // Hit debounce so it doesn't register multiple times in a row
