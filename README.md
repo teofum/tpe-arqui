@@ -103,9 +103,9 @@ proc kill 4
 
 ## Limitaciones
 
-- No existe jerarquía de procesos. Si un proceso padre termina sin hacer wait de sus hijos, estos quedan huérfanos y continúan ejecutándose sin un padre que los espere.
-
-- El sistema de scheduling asegura de que ningun proceso se muera de hambre, por ende el performance decae con muchos procesos, pero para el uso esperado consideramos que era adecuado.
+- No existe jerarquía de procesos. Si un proceso padre termina sin hacer wait de sus hijos, estos quedan huérfanos y continúan ejecutándose sin un padre que los espere, o, al terminar, quedan en estado `exited`.
+- Los comandos que leen de entrada estándar como `cat` o `filter`, si se corren con la entrada de terminal, no muestran el texto ingresado hasta llenar el buffer o encontrar EOF. Esto se debe a que el _echo_ de terminal es manejado por la shell.
+- El sistema de scheduling asegura de que no haya inanición, por lo cual el rendimiento decae con muchos procesos. Para el uso esperado consideramos que era adecuado.
 
 ## Autores
 
