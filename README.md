@@ -1,0 +1,114 @@
+# TP2 - Sistemas Operativos
+
+## Compilación y ejecución
+
+- `make container` – configurar el container de build
+- `make` o `make remote` – build completo del proyecto con el container
+- `make all` – build completo local (usar dentro del container)
+- `make run` – ejecutar el so en qemu
+- `make debug` – ejecutar el so en qemu en modo debug para conectar gdb remoto
+- `make clean` – limpiar todos los archivos de build
+
+## Comandos disponibles
+
+### Comandos generales
+
+- `help` - Muestra lista de comandos disponibles
+- `echo <args>` - Imprime argumentos a stdout
+- `clear` - Limpia la terminal
+- `history` - Muestra historial de comandos
+- `status <on|off>` - Activa/desactiva la status bar
+- `setfont` - Cambia tamaño o estilo de fuente (`setfont ls` lista los disponibles)
+- `beep` - Reproduce un beep corto
+- `music` - Reproduce música de Tetris
+
+### Demos y juegos
+
+- `gfxdemo` - Demo de modo gráfico
+- `demo3d` - Demo de gráficos 3D
+- `golf` - Juego de golf
+- `capy` - Muestra la mascota del sistema
+
+### Physical Memory Management
+
+- `mem` - Muestra estado de la memoria (total, usada, libre)
+
+### Procesos, context switching y scheduling
+
+- `proc help` - Muestra ayuda de comandos de procesos
+- `proc ls` - Lista todos los procesos con sus propiedades (PID, nombre, estado, prioridad, RSP, foreground)
+- `proc fg <pid>` - Trae un proceso a foreground
+- `proc kill <pid>` - Mata un proceso
+- `proc nice <pid> <priority>` - Cambia la prioridad de un proceso (0-4)
+- `proc stop <pid>` - Bloquea un proceso
+- `proc run <pid>` - Desbloquea un proceso
+- `loop <mensaje> [<intervalo_ms>]` - Imprime un mensaje repetidamente
+
+### Inter-Process Communication
+
+- `cat` - Imprime stdin a stdout
+- `wc` - Cuenta líneas del input
+- `filter` - Filtra vocales del input
+- `mvar <n_writers> <n_readers>` - Problema de múltiples lectores/escritores
+
+### Tests provistos por la Cátedra
+
+- `test help` - Muestra lista de tests disponibles
+- `test mm <max_memory>` - Test de memory allocator (ciclo infinito)
+- `test sync <n>` - Test de sincronización con semáforos
+- `test nosync <n>` - Test de sincronización sin semáforos (muestra race conditions)
+- `test processes <max_processes>` - Test de creación, bloqueo y eliminación de procesos
+- `test prio <max_value>` - Test de scheduler con prioridades
+
+## Caracteres especiales
+
+- `&` - Ejecuta comando en background
+
+  ```bash
+  test mm 1000000 &
+  ```
+
+- `|` - Conecta dos procesos mediante pipe
+  ```bash
+  help | filter
+  echo hello world | wc
+  ```
+
+## Atajos de teclado
+
+- `F1` - Dump del estado de la CPU
+- `Ctrl + C` - Mata el proceso en foreground
+- `Ctrl + D` - Envía EOF (End of File)
+
+## Ejemplos de uso por fuera de los tests
+
+```bash
+# Memory management
+mem
+
+# Scheduling con prioridades
+loop A 2000 &
+loop B 2000 &
+proc nice 3 4
+proc ls
+
+# Pipes
+echo sistemas operativos | filter
+cat | wc
+
+# Sincronización
+mvar 3 2 &
+proc kill 4
+```
+
+## Limitaciones
+
+- No existe jerarquía de procesos. Si un proceso padre termina sin hacer wait de sus hijos, estos quedan huérfanos y continúan ejecutándose sin un padre que los espere, o, al terminar, quedan en estado `exited`.
+- Los comandos que leen de entrada estándar como `cat` o `filter`, si se corren con la entrada de terminal, no muestran el texto ingresado hasta llenar el buffer o encontrar EOF. Esto se debe a que el _echo_ de terminal es manejado por la shell.
+- El sistema de scheduling asegura de que no haya inanición, por lo cual el rendimiento decae con muchos procesos. Para el uso esperado consideramos que era adecuado.
+
+## Autores
+
+- Arcodaci, Tiziano - tarcodaci@itba.edu.ar
+- Fumagalli, Teo - tfumagalli@itba.edu.ar
+- Pizzuto Beltran, Lorenzo - lpizzutobeltran@itba.edu.ar
