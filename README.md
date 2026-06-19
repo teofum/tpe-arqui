@@ -1,4 +1,53 @@
-# TP2 - Sistemas Operativos
+# CarpichOS 🦫
+## TP2 - Sistemas Operativos
+<table>
+  <tr>
+    <td width="55%" valign="top">
+     featuring native hardware drivers, multiprocessing capabilities, inter-process communication via pipes, and a custom memory manager.
+<p><strong>CarpichOS</strong> is a custom-built operating system written entirely in C from scratch, completely independent of external libraries.</p>
+<p><strong>• Native Hardware Drivers</strong></p>
+<p><strong>• Multiprocessing capabilities</strong></p>
+<p><strong>• Pipe-Driven IPC</strong></p>
+<p><strong>• Custom Memory Manager</strong></p>
+      <p>To push the kernel to its limits, our crown jewel, the OS features a bare-metal <b>3D graphics library</b>. We showcased this full stack by writing a miniature 3D capybara golf game that runs natively on the system.</p>
+    </td>
+    <td width="45%" valign="top">
+<pre>
+                     .%-%@.                                         
+                  .**++##=@* 
+               .=%.    .%=%%.*-.                                    
+             =*-   .::   .=    -+*:                                 
+          .+*.    :.:               -%%+:::..                       
+         ==+==                               .-===**-               
+         *:  *:                                     -%-.            
+         .#  :* #        *-               .=*.          
+           %:=.%.         .:=%.        @+               .+=     %*.   
+           .-+*#*====*:          -=-                -*.      .#=    \
+                               -*.                                    +=#   
+                                 -* -+   
+                                   -*.               ..-%%%:            .*.  
+                                    :*.            *=.                  :+. 
+                                      #.        .*=                      *: 
+                                       %.        ::                        % 
+                                       :*.                          .      .*
+                                       :#-*+.                     =*%       #.
+                                       :* =+.                 .=*.        -*
+                                       .+.  =%-         +                  %. 
+                                       :* .-:#.     .:%#                  .% 
+                                   .+***-  :* -@+.                     -+. 
+                                   #@*=.  .%=#:. +%..                  .-+  
+                                    :++-==. =#*+#**#@#=.            .+*= 
+                                                       .-#%%#-. 
+</pre>
+    </td>
+  </tr>
+</table>
+
+| | |
+| :---: | :---: |
+| <img src="https://github.com/user-attachments/assets/f9ecb7d4-2c5c-48e9-a56e-8a556cee0839" width="100%" alt="Image 1" /> | <img src="https://github.com/user-attachments/assets/59e0eb47-951d-41c9-bddf-dd6d45e39e7c" width="100%" alt="Image 2" /> |
+| <img src="https://github.com/user-attachments/assets/6463d0c8-1a1a-46dd-9b76-51a145c9d719" width="100%" alt="Image 3" /> | <video src="https://github.com/user-attachments/assets/b07825df-db38-4a7f-a07f-3bdc13ed2e7e" width="100%" controls /> |
+| <img src="https://github.com/user-attachments/assets/3f3f4814-40a8-439d-81c9-0b4f79948831" width="100%" alt="Image 5" /> | <img src="https://github.com/user-attachments/assets/bada4934-bbd5-42d3-96f8-fbc64a0a5914" width="100%" alt="Image 4" /> |
 
 ## Compilación y ejecución
 
