@@ -1,47 +1,44 @@
 # CarpichOS 🦫
 ## TP2 - Sistemas Operativos
-<table>
-  <tr>
-    <td width="55%" valign="top">
-     featuring native hardware drivers, multiprocessing capabilities, inter-process communication via pipes, and a custom memory manager.
-<p><strong>CarpichOS</strong> is a custom-built operating system written entirely in C from scratch, completely independent of external libraries.</p>
-<p><strong>• Native Hardware Drivers</strong></p>
-<p><strong>• Multiprocessing capabilities</strong></p>
-<p><strong>• Pipe-Driven IPC</strong></p>
-<p><strong>• Custom Memory Manager</strong></p>
-      <p>To push the kernel to its limits, our crown jewel, the OS features a bare-metal <b>3D graphics library</b>. We showcased this full stack by writing a miniature 3D capybara golf game that runs natively on the system.</p>
-    </td>
-    <td width="45%" valign="top">
-<pre>
-                     .%-%@.                                         
-                  .**++##=@* 
-               .=%.    .%=%%.*-.                                    
-             =*-   .::   .=    -+*:                                 
-          .+*.    :.:               -%%+:::..                       
-         ==+==                               .-===**-               
-         *:  *:                                     -%-.            
-         .#  :* #        *-               .=*.          
-           %:=.%.         .:=%.        @+               .+=     %*.   
-           .-+*#*====*:          -=-                -*.      .#=    \
-                               -*.                                    +=#   
-                                 -* -+   
-                                   -*.               ..-%%%:            .*.  
-                                    :*.            *=.                  :+. 
-                                      #.        .*=                      *: 
-                                       %.        ::                        % 
-                                       :*.                          .      .*
-                                       :#-*+.                     =*%       #.
-                                       :* =+.                 .=*.        -*
-                                       .+.  =%-         +                  %. 
-                                       :* .-:#.     .:%#                  .% 
-                                   .+***-  :* -@+.                     -+. 
-                                   #@*=.  .%=#:. +%..                  .-+  
-                                    :++-==. =#*+#**#@#=.            .+*= 
-                                                       .-#%%#-. 
-</pre>
-    </td>
-  </tr>
-</table>
+
+CarpichOS is a custom-built operating system written entirely in C from scratch, completely independent of external libraries.
+      
+• Native Hardware Drivers: Built from the ground up to interface directly with the hardware layer.
+      
+• Multiprocessing Capabilities: Features a custom kernel scheduling engine for concurrent tasks.
+      
+• Pipe-Driven IPC: Implements robust inter-process communication for seamless data flow.
+      
+• Custom Memory Manager: Optimized allocation system engineered specifically for speed and isolation.
+      
+To push the kernel to its limits, our crown jewel—the OS—features a bare-metal 3D graphics library. We showcased this full stack by writing a miniature 3D capybara golf game that runs natively on the system.
+```
+            .%-%@.                                         
+         .**++##=@* .=%.    .%=%%.*-.                                    
+    =*-   .::   .=    -+*:                                 
+ .+*.    :.:               -%%+:::..                       
+==+==                               .-===**-               
+*:  *:                                     -%-.            
+.#  :* #        *-               .=*.          
+  %:=.%.         .:=%.        @+               .+=     %*.   
+  .-+*#*====*:          -=-                -*.      .#=    
+                      -*.                                    +=#   
+                        -* -+   
+                          -*.               ..-%%%:            .*.  
+                           :*.            *=.                  :+. 
+                             #.        .*=                      *: 
+                              %.        ::                        % 
+                              :*.                          .      .*
+                              :#-*+.                     =*%       #.
+                              :* =+.                 .=*.        -*
+                              .+.  =%-         +                  %. 
+                              :* .-:#.     .:%#                  .% 
+                          .+***-  :* -@+.                     -+.  
+                          #@*=.  .%=#:. +%..                  .-+    
+                           :++-==. =#*+#**#@#=.            .+*=      
+                                              .-#%%#-.
+```
+
 
 | | |
 | :---: | :---: |
